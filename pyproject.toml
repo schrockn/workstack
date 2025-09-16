@@ -1,0 +1,17 @@
+[project]
+name = "work"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Nick Schrock", email = "schrockn@dagsterlabs.com" }
+]
+requires-python = ">=3.13"
+dependencies = []
+
+[project.scripts]
+work = "work:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
