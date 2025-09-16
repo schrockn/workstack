@@ -37,8 +37,8 @@ def cli() -> None:
     "branch",
     type=str,
     help=(
-        "Create and check out a new branch in the worktree. "
-        "Equivalent to `git worktree add -b <branch>`."
+        "Branch name to create and check out in the worktree. "
+        "Defaults to `work/<name>` if omitted."
     ),
 )
 @click.option(
@@ -48,7 +48,7 @@ def cli() -> None:
     default=None,
     help=(
         "Git ref to base the worktree on (e.g. HEAD, origin/main). "
-        "If omitted and --branch is set, uses the current HEAD."
+        "Defaults to HEAD if omitted."
     ),
 )
 @click.option(
@@ -71,7 +71,12 @@ def create(name: str, branch: Optional[str], ref: Optional[str], no_post: bool) 
         click.echo(f"Worktree path already exists: {wt_path}")
         raise SystemExit(1)
 
-    # Create worktree via git
+    # Create worktree via git. If no branch provided, derive a sensible default.
+    if branch is None:
+        from .naming import default_branch_for_worktree
+
+        branch = default_branch_for_worktree(name)
+
     add_worktree(repo.root, wt_path, branch=branch, ref=ref)
 
     # Write .env based on config

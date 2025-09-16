@@ -42,6 +42,9 @@ Commands
 
 - `work create NAME [--branch BRANCH] [--ref REF]`
   - Creates `.work/NAME`, writes `.env`, runs post-create commands
+  - Creates and checks out a branch in the worktree:
+    - Default branch name: `work/<NAME>` (sanitized)
+    - Base ref: `--ref REF` (defaults to `HEAD`)
   - Also writes `.work/NAME/activate.sh` (executable)
 - `work activate-script NAME` — prints the same activation code (useful for regeneration/piping)
 - `work list` — lists existing worktree directories under `.work/`.

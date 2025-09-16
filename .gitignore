@@ -8,4 +8,5 @@ wheels/
 
 # Virtual environments
 .venv
+activate.sh
 .work
