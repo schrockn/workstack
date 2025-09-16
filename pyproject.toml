@@ -7,12 +7,14 @@ authors = [
     { name = "Nick Schrock", email = "schrockn@dagsterlabs.com" }
 ]
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+    "click>=8.1.7",
+]
 
 [project.scripts]
 work = "work:main"
 
-[project.optional-dependencies]
+[dependency-groups]
 dev = [
     "ruff>=0.5.0",
     "pyright>=1.1.350",
