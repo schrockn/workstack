@@ -28,3 +28,17 @@ def add_worktree(repo_root: Path, path: Path, *, branch: Optional[str], ref: Opt
         cmd = ["git", "worktree", "add", str(path), base_ref]
 
     subprocess.run(cmd, cwd=repo_root, check=True)
+
+
+def remove_worktree(repo_root: Path, path: Path, *, force: bool) -> None:
+    """Remove a git worktree from the repository metadata.
+
+    Runs `git worktree remove [--force] <path>`. This may fail if the worktree has
+    uncommitted changes unless `force=True`.
+    """
+
+    cmd = ["git", "worktree", "remove"]
+    if force:
+        cmd.append("--force")
+    cmd.append(str(path))
+    subprocess.run(cmd, cwd=repo_root, check=True)

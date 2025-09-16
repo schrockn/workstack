@@ -47,9 +47,10 @@ Commands
     - Base ref: `--ref REF` (defaults to `HEAD`)
   - Also writes `.work/NAME/activate.sh` (executable)
 - `work activate-script NAME` — prints the same activation code (useful for regeneration/piping)
-- `work list` — lists existing worktree directories under `.work/`.
+- `work list` — lists worktree names with activation hint, e.g. `foo (source /abs/.work/foo/activate.sh)`.
 - `work init [--preset auto|generic|dagster] [--force]` — creates `.work/` and scaffolds `.work/config.toml`
   - Default `--preset auto` detects Dagster if the root project name is `dagster` (via root `pyproject.toml` or `setup.py`). Otherwise writes the generic template.
+- `work rm NAME [-f|--force]` — removes `.work/NAME`. Prompts for confirmation unless `-f`.
 
 Activation
 ----------

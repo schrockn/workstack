@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import shutil
 import shlex
 import subprocess
 from pathlib import Path
@@ -141,12 +142,16 @@ def activate_script(name: str) -> None:
 
 @cli.command("list")
 def list_cmd() -> None:
-    """List worktrees under `.work/` (paths only)."""
+    """List worktrees under `.work/` with activation hints."""
     repo = discover_repo_context(Path.cwd())
     work_dir = ensure_work_dir(repo)
-    for p in sorted(work_dir.iterdir() if work_dir.exists() else []):
-        if p.is_dir():
-            click.echo(str(p))
+    if not work_dir.exists():
+        return
+    entries = sorted(p for p in work_dir.iterdir() if p.is_dir())
+    for p in entries:
+        name = p.name
+        act = p / "activate.sh"
+        click.echo(f"{name} (source {act})")
 
 
 @cli.command("init")
@@ -183,3 +188,40 @@ def init_cmd(force: bool, preset: str) -> None:
     content = render_config_template(effective_preset)
     cfg_path.write_text(content, encoding="utf-8")
     click.echo(f"Wrote {cfg_path}")
+
+
+@cli.command("rm")
+@click.argument("name", metavar="NAME")
+@click.option("-f", "--force", is_flag=True, help="Do not prompt for confirmation.")
+def rm_cmd(name: str, force: bool) -> None:
+    """Remove the `.work/NAME` worktree directory.
+
+    With `-f/--force`, skips the confirmation prompt.
+    Attempts `git worktree remove` before deleting the directory.
+    """
+
+    repo = discover_repo_context(Path.cwd())
+    work_dir = ensure_work_dir(repo)
+    wt_path = worktree_path_for(work_dir, name)
+
+    if not wt_path.exists() or not wt_path.is_dir():
+        click.echo(f"Worktree not found: {wt_path}")
+        raise SystemExit(1)
+
+    if not force:
+        if not click.confirm(f"Remove worktree directory {wt_path}?", default=False):
+            click.echo("Aborted.")
+            return
+
+    # Try to remove via git first; ignore errors and fall back to rmtree
+    try:
+        from .git import remove_worktree
+
+        remove_worktree(repo.root, wt_path, force=force)
+    except Exception:
+        pass
+
+    if wt_path.exists():
+        shutil.rmtree(wt_path)
+
+    click.echo(str(wt_path))
