@@ -1,5 +1,5 @@
 [project]
-name = "work"
+name = "workstack"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
@@ -12,7 +12,7 @@ dependencies = [
 ]
 
 [project.scripts]
-work = "work:main"
+workstack = "workstack:main"
 
 [dependency-groups]
 dev = [
@@ -41,7 +41,7 @@ select = [
 ]
 
 [tool.ruff.lint.isort]
-known-first-party = ["work"]
+known-first-party = ["workstack"]
 
 [tool.pyright]
 pythonVersion = "3.13"

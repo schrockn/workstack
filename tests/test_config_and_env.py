@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from work.config import load_config
-from work.core import make_env_content
+from workstack.config import load_config
+from workstack.core import make_env_content
 
 
 def test_load_config_defaults(tmp_path: Path) -> None:

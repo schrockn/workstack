@@ -1,8 +1,8 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-- Source code lives under `src/work/`. The package name is `work` and the CLI entry point is `work:main` (see `pyproject.toml`).
-- Add new modules in `src/work/` using small, focused files. Keep the public API minimal via `src/work/__init__.py`.
+- Source code lives under `src/workstack/`. The package name is `workstack` and the CLI entry point is `workstack:main` (see `pyproject.toml`).
+- Add new modules in `src/workstack/` using small, focused files. Keep the public API minimal via `src/workstack/__init__.py`.
 - Place tests under `tests/` mirroring the source layout (e.g., `tests/test_module.py` for `src/work/module.py`).
 
 ## Environment & Tooling
@@ -19,12 +19,12 @@
 
 ## Testing Guidelines
 - Use Pytest. Put tests in `tests/` and name files `test_*.py` with test functions `test_*`.
-- Execute tests via the uv workflow (e.g., with `uv run`). Coverage can target the `work` package.
+- Execute tests via the uv workflow (e.g., with `uv run`). Coverage can target the `workstack` package.
 - Aim for meaningful coverage on new/changed code and include edge cases.
  - Pytest is configured in `pyproject.toml` (`testpaths`, default `-q`).
 
 ## Commit & Pull Request Guidelines
-- Commits: imperative mood, concise subject (≤72 chars), descriptive body when needed. Example: `feat: add task parser for work CLI`.
+- Commits: imperative mood, concise subject (≤72 chars), descriptive body when needed. Example: `feat: add task parser for workstack CLI`.
 - Group related changes; avoid mixing refactors with features.
 - PRs: include a clear description, linked issues, test plan (commands/output), and notes on breaking changes. Add screenshots or sample CLI output when relevant.
 

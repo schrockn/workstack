@@ -26,7 +26,7 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])  # terse help flags
 
 
 @click.group(context_settings=CONTEXT_SETTINGS)
-@click.version_option(package_name="work")
+@click.version_option(package_name="workstack")
 def cli() -> None:
     """Manage git worktrees under `.work/` in the current repo."""
 

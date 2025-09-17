@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from work.detect import detect_root_project_name, is_repo_named
+from workstack.detect import detect_root_project_name, is_repo_named
 
 
 def test_detects_by_root_pyproject(tmp_path: Path) -> None:

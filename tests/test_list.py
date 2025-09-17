@@ -4,7 +4,7 @@ from pathlib import Path
 
 from click.testing import CliRunner
 
-from work.cli import cli
+from workstack.cli import cli
 
 
 def test_list_outputs_names_not_paths() -> None:

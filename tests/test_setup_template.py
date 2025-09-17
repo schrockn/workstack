@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from work.config import render_config_template
+from workstack.config import render_config_template
 
 
 def test_render_config_template_default() -> None:

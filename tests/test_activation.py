@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from work.activation import render_activation_script
+from workstack.activation import render_activation_script
 
 
 def test_activation_script_contains_expected_lines(tmp_path: Path) -> None:

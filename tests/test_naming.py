@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from work.naming import default_branch_for_worktree, sanitize_branch_component
+from workstack.naming import default_branch_for_worktree, sanitize_branch_component
 
 
 def test_sanitize_branch_component_basic() -> None:
