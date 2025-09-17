@@ -30,4 +30,3 @@ def default_branch_for_worktree(name: str) -> str:
     """
 
     return f"work/{sanitize_branch_component(name)}"
-

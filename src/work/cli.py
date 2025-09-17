@@ -38,8 +38,7 @@ def cli() -> None:
     "branch",
     type=str,
     help=(
-        "Branch name to create and check out in the worktree. "
-        "Defaults to `work/<name>` if omitted."
+        "Branch name to create and check out in the worktree. Defaults to `work/<name>` if omitted."
     ),
 )
 @click.option(
@@ -47,10 +46,7 @@ def cli() -> None:
     "ref",
     type=str,
     default=None,
-    help=(
-        "Git ref to base the worktree on (e.g. HEAD, origin/main). "
-        "Defaults to HEAD if omitted."
-    ),
+    help=("Git ref to base the worktree on (e.g. HEAD, origin/main). Defaults to HEAD if omitted."),
 )
 @click.option(
     "--no-post",
