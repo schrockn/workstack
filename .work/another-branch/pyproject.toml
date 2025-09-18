@@ -1,0 +1,56 @@
+[project]
+name = "work"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Nick Schrock", email = "schrockn@dagsterlabs.com" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "click>=8.1.7",
+]
+
+[project.scripts]
+work = "work:main"
+
+[dependency-groups]
+dev = [
+    "ruff>=0.5.0",
+    "pyright>=1.1.350",
+    "pytest>=8.0.0",
+    "pytest-cov>=5.0.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.ruff]
+target-version = "py313"
+line-length = 100
+src = ["src"]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "F",   # pyflakes
+    "I",   # isort (import sorting)
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["work"]
+
+[tool.pyright]
+pythonVersion = "3.13"
+typeCheckingMode = "standard"
+include = ["src"]
+venvPath = "."
+venv = ".venv"
+reportMissingImports = "warning"
+
+[tool.pytest.ini_options]
+addopts = "-q"
+testpaths = ["tests"]
