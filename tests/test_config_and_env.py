@@ -15,7 +15,7 @@ def test_load_config_defaults(tmp_path: Path) -> None:
 
 def test_env_rendering(tmp_path: Path) -> None:
     # Write a config
-    work_dir = tmp_path / ".work"
+    work_dir = tmp_path / ".workstack"
     work_dir.mkdir()
     (work_dir / "config.toml").write_text(
         """
@@ -30,7 +30,7 @@ def test_env_rendering(tmp_path: Path) -> None:
     )
 
     cfg = load_config(tmp_path)
-    wt_path = tmp_path / ".work" / "foo"
+    wt_path = tmp_path / ".workstack" / "foo"
     repo_root = tmp_path
     content = make_env_content(cfg, worktree_path=wt_path, repo_root=repo_root, name="foo")
 

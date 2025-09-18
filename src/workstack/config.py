@@ -9,7 +9,7 @@ import tomllib
 
 @dataclass(frozen=True)
 class LoadedConfig:
-    """In-memory representation of `.work/config.toml`."""
+    """In-memory representation of `.workstack/config.toml`."""
 
     env: Dict[str, str]
     post_create_commands: List[str]
@@ -17,7 +17,7 @@ class LoadedConfig:
 
 
 def load_config(repo_root: Path) -> LoadedConfig:
-    """Load `.work/config.toml` if present; otherwise return defaults.
+    """Load `.workstack/config.toml` if present; otherwise return defaults.
 
     Example config:
       [env]
@@ -31,7 +31,7 @@ def load_config(repo_root: Path) -> LoadedConfig:
       ]
     """
 
-    cfg_path = repo_root / ".work" / "config.toml"
+    cfg_path = repo_root / ".workstack" / "config.toml"
     if not cfg_path.exists():
         return LoadedConfig(env={}, post_create_commands=[], post_create_shell=None)
 

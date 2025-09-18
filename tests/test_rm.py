@@ -11,7 +11,7 @@ def test_rm_force_removes_directory() -> None:
     runner = CliRunner()
     with runner.isolated_filesystem():
         Path(".git").mkdir()
-        wt = Path(".work") / "foo"
+        wt = Path(".workstack") / "foo"
         (wt).mkdir(parents=True)
         (wt / "hello.txt").write_text("hello world", encoding="utf-8")
 
@@ -26,7 +26,7 @@ def test_rm_prompts_and_aborts_on_no() -> None:
     runner = CliRunner()
     with runner.isolated_filesystem():
         Path(".git").mkdir()
-        wt = Path(".work") / "bar"
+        wt = Path(".workstack") / "bar"
         (wt).mkdir(parents=True)
 
         result = runner.invoke(cli, ["rm", "bar"], input="n\n")

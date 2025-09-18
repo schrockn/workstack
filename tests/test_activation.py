@@ -6,7 +6,7 @@ from workstack.activation import render_activation_script
 
 
 def test_activation_script_contains_expected_lines(tmp_path: Path) -> None:
-    wt = tmp_path / ".work" / "foo"
+    wt = tmp_path / ".workstack" / "foo"
     (wt / ".venv" / "bin").mkdir(parents=True)
     (wt / ".venv" / "bin" / "activate").write_text("# venv activate")
 

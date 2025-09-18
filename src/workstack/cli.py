@@ -28,7 +28,7 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])  # terse help flags
 @click.group(context_settings=CONTEXT_SETTINGS)
 @click.version_option(package_name="workstack")
 def cli() -> None:
-    """Manage git worktrees under `.work/` in the current repo."""
+    """Manage git worktrees under `.workstack/` in the current repo."""
 
 
 @cli.command("create")
@@ -51,12 +51,12 @@ def cli() -> None:
 @click.option(
     "--no-post",
     is_flag=True,
-    help="Skip running post-create commands from `.work/config.toml`.",
+    help="Skip running post-create commands from `.workstack/config.toml`.",
 )
 def create(name: str, branch: Optional[str], ref: Optional[str], no_post: bool) -> None:
-    """Create a worktree at `.work/NAME` and write a .env file.
+    """Create a worktree at `.workstack/NAME` and write a .env file.
 
-    Reads `.work/config.toml` for env templates and post-create commands (if present).
+    Reads `.workstack/config.toml` for env templates and post-create commands (if present).
     """
 
     repo = discover_repo_context(Path.cwd())
@@ -96,6 +96,7 @@ def create(name: str, branch: Optional[str], ref: Optional[str], no_post: bool) 
         )
 
     click.echo(str(wt_path))
+    click.echo(f"pushd {wt_path} && source activate.sh")
 
 
 def run_commands_in_worktree(
@@ -120,8 +121,8 @@ def run_commands_in_worktree(
 def activate_script(name: str) -> None:
     """Print shell code to activate the worktree env and venv.
 
-    Note: `work create NAME` also writes `.work/NAME/activate.sh` which can be
-    sourced directly: `source .work/NAME/activate.sh`.
+    Note: `work create NAME` also writes `.workstack/NAME/activate.sh` which can be
+    sourced directly: `source .workstack/NAME/activate.sh`.
     """
 
     repo = discover_repo_context(Path.cwd())
@@ -138,7 +139,7 @@ def activate_script(name: str) -> None:
 
 @cli.command("list")
 def list_cmd() -> None:
-    """List worktrees under `.work/` with activation hints."""
+    """List worktrees under `.workstack/` with activation hints."""
     repo = discover_repo_context(Path.cwd())
     work_dir = ensure_work_dir(repo)
     if not work_dir.exists():
@@ -151,7 +152,7 @@ def list_cmd() -> None:
 
 
 @cli.command("init")
-@click.option("--force", is_flag=True, help="Overwrite existing .work/config.toml if present.")
+@click.option("--force", is_flag=True, help="Overwrite existing .workstack/config.toml if present.")
 @click.option(
     "--preset",
     type=click.Choice(["auto", "generic", "dagster"], case_sensitive=False),
@@ -162,7 +163,7 @@ def list_cmd() -> None:
     ),
 )
 def init_cmd(force: bool, preset: str) -> None:
-    """Initialize `.work/` and scaffold `.work/config.toml` for this repo."""
+    """Initialize `.workstack/` and scaffold `.workstack/config.toml` for this repo."""
 
     repo = discover_repo_context(Path.cwd())
     work_dir = ensure_work_dir(repo)
@@ -185,12 +186,31 @@ def init_cmd(force: bool, preset: str) -> None:
     cfg_path.write_text(content, encoding="utf-8")
     click.echo(f"Wrote {cfg_path}")
 
+    # Check for .gitignore and add .workstack and activate.sh if it exists
+    gitignore_path = repo.root / ".gitignore"
+    if gitignore_path.exists():
+        gitignore_content = gitignore_path.read_text(encoding="utf-8")
+        additions = []
+
+        if ".workstack" not in gitignore_content:
+            additions.append(".workstack")
+
+        if "activate.sh" not in gitignore_content:
+            additions.append("activate.sh")
+
+        if additions:
+            if not gitignore_content.endswith("\n"):
+                gitignore_content += "\n"
+            gitignore_content += "\n".join(additions) + "\n"
+            gitignore_path.write_text(gitignore_content, encoding="utf-8")
+            click.echo(f"Added {', '.join(additions)} to {gitignore_path}")
+
 
 @cli.command("rm")
 @click.argument("name", metavar="NAME")
 @click.option("-f", "--force", is_flag=True, help="Do not prompt for confirmation.")
 def rm_cmd(name: str, force: bool) -> None:
-    """Remove the `.work/NAME` worktree directory.
+    """Remove the `.workstack/NAME` worktree directory.
 
     With `-f/--force`, skips the confirmation prompt.
     Attempts `git worktree remove` before deleting the directory.

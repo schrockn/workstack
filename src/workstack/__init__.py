@@ -1,7 +1,7 @@
 """workstack CLI entry point.
 
 This package provides a Click-based CLI for managing git worktrees under a
-repository-local `.work/` directory. See `workstack --help` for details.
+repository-local `.workstack/` directory. See `workstack --help` for details.
 """
 
 from .cli import cli

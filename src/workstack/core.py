@@ -9,7 +9,7 @@ from .config import LoadedConfig
 
 @dataclass(frozen=True)
 class RepoContext:
-    """Represents a git repo root and its managed `.work` directory."""
+    """Represents a git repo root and its managed `.workstack` directory."""
 
     root: Path
     work_dir: Path
@@ -18,26 +18,26 @@ class RepoContext:
 def discover_repo_context(start: Path) -> RepoContext:
     """Walk up from `start` to find a directory containing `.git`.
 
-    Returns a RepoContext pointing to the repo root and the `.work` directory.
+    Returns a RepoContext pointing to the repo root and the `.workstack` directory.
     Raises FileNotFoundError if not inside a git repo.
     """
 
     cur = start.resolve()
     for parent in [cur, *cur.parents]:
         if (parent / ".git").exists():
-            work_dir = parent / ".work"
+            work_dir = parent / ".workstack"
             return RepoContext(root=parent, work_dir=work_dir)
     raise FileNotFoundError("Not inside a git repository (no .git found up the tree).")
 
 
 def ensure_work_dir(repo: RepoContext) -> Path:
-    """Ensure `.work` exists and return it."""
+    """Ensure `.workstack` exists and return it."""
     repo.work_dir.mkdir(exist_ok=True)
     return repo.work_dir
 
 
 def worktree_path_for(work_dir: Path, name: str) -> Path:
-    """Return the absolute path for a named worktree under `.work`."""
+    """Return the absolute path for a named worktree under `.workstack`."""
     return (work_dir / name).resolve()
 
 
