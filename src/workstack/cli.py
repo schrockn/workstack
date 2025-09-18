@@ -137,9 +137,8 @@ def activate_script(name: str) -> None:
     click.echo(script, nl=True)
 
 
-@cli.command("list")
-def list_cmd() -> None:
-    """List worktrees under `.workstack/` with activation hints."""
+def _list_worktrees() -> None:
+    """Internal function to list worktrees."""
     repo = discover_repo_context(Path.cwd())
     work_dir = ensure_work_dir(repo)
     if not work_dir.exists():
@@ -149,6 +148,18 @@ def list_cmd() -> None:
         name = p.name
         act = p / "activate.sh"
         click.echo(f"{name} (source {act})")
+
+
+@cli.command("list")
+def list_cmd() -> None:
+    """List worktrees under `.workstack/` with activation hints."""
+    _list_worktrees()
+
+
+@cli.command("ls")
+def ls_cmd() -> None:
+    """List worktrees under `.workstack/` with activation hints."""
+    _list_worktrees()
 
 
 @cli.command("init")
