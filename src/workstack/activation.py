@@ -17,7 +17,6 @@ def render_activation_script(*, worktree_path: Path) -> str:
     venv_activate = worktree_path / ".venv" / "bin" / "activate"
     lines: list[str] = [
         "# work activate-script",  # comment for visibility
-        "set -e",
         f"cd {quote(wt)}",
         f"if [ -f {quote(str(venv_activate))} ]; then",
         f"  . {quote(str(venv_activate))}",
