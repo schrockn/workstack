@@ -1,6 +1,10 @@
 from __future__ import annotations
 
-from workstack.naming import default_branch_for_worktree, sanitize_branch_component, sanitize_worktree_name
+from workstack.naming import (
+    default_branch_for_worktree,
+    sanitize_branch_component,
+    sanitize_worktree_name,
+)
 
 
 def test_sanitize_branch_component_basic() -> None:
@@ -21,7 +25,10 @@ def test_sanitize_worktree_name() -> None:
     assert sanitize_worktree_name("Add_Auth_Feature") == "add-auth-feature"
     assert sanitize_worktree_name("My_Cool_Plan") == "my-cool-plan"
     assert sanitize_worktree_name("FOO_BAR_BAZ") == "foo-bar-baz"
-    assert sanitize_worktree_name("feature__with___multiple___underscores") == "feature-with-multiple-underscores"
+    assert (
+        sanitize_worktree_name("feature__with___multiple___underscores")
+        == "feature-with-multiple-underscores"
+    )
     assert sanitize_worktree_name("name-with-hyphens") == "name-with-hyphens"
     assert sanitize_worktree_name("Mixed_Case-Hyphen_Underscore") == "mixed-case-hyphen-underscore"
     assert sanitize_worktree_name("@@weird!!name??") == "weird-name"

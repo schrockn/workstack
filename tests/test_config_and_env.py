@@ -15,9 +15,9 @@ def test_load_config_defaults(tmp_path: Path) -> None:
 
 def test_env_rendering(tmp_path: Path) -> None:
     # Write a config
-    work_dir = tmp_path / ".workstack"
-    work_dir.mkdir()
-    (work_dir / "config.toml").write_text(
+    config_dir = tmp_path / "config_dir"
+    config_dir.mkdir()
+    (config_dir / "config.toml").write_text(
         """
         [env]
         DAGSTER_GIT_REPO_DIR = "{worktree_path}"
@@ -29,8 +29,8 @@ def test_env_rendering(tmp_path: Path) -> None:
         """.strip()
     )
 
-    cfg = load_config(tmp_path)
-    wt_path = tmp_path / ".workstack" / "foo"
+    cfg = load_config(config_dir)
+    wt_path = tmp_path / "worktrees" / "foo"
     repo_root = tmp_path
     content = make_env_content(cfg, worktree_path=wt_path, repo_root=repo_root, name="foo")
 

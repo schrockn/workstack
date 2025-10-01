@@ -9,7 +9,14 @@ from typing import Iterable, Optional
 
 import click
 
-from .config import LoadedConfig, load_config, render_config_template
+from .config import (
+    LoadedConfig,
+    load_config,
+    render_config_template,
+    load_global_config,
+    create_global_config,
+    GLOBAL_CONFIG_PATH,
+)
 from .core import (
     RepoContext,
     discover_repo_context,
@@ -17,7 +24,7 @@ from .core import (
     make_env_content,
     worktree_path_for,
 )
-from .git import add_worktree
+from .git import add_worktree, get_current_branch, checkout_branch
 from .detect import is_repo_named
 from .activation import render_activation_script
 
@@ -28,7 +35,7 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])  # terse help flags
 @click.group(context_settings=CONTEXT_SETTINGS)
 @click.version_option(package_name="workstack")
 def cli() -> None:
-    """Manage git worktrees under `.workstack/` in the current repo."""
+    """Manage git worktrees in a global worktrees directory."""
 
 
 @cli.group("completion")
@@ -158,7 +165,7 @@ def completion_fish() -> None:
 @click.option(
     "--no-post",
     is_flag=True,
-    help="Skip running post-create commands from `.workstack/config.toml`.",
+    help="Skip running post-create commands from config.toml.",
 )
 @click.option(
     "--plan",
@@ -166,10 +173,16 @@ def completion_fish() -> None:
     type=click.Path(exists=True, dir_okay=False, path_type=Path),
     help="Path to a plan markdown file. Will derive worktree name from filename and move to .PLAN.md in the worktree.",
 )
-def create(name: Optional[str], branch: Optional[str], ref: Optional[str], no_post: bool, plan_file: Optional[Path]) -> None:
-    """Create a worktree at `.workstack/NAME` and write a .env file.
+def create(
+    name: Optional[str],
+    branch: Optional[str],
+    ref: Optional[str],
+    no_post: bool,
+    plan_file: Optional[Path],
+) -> None:
+    """Create a worktree and write a .env file.
 
-    Reads `.workstack/config.toml` for env templates and post-create commands (if present).
+    Reads config.toml for env templates and post-create commands (if present).
     If --plan is provided, derives name from the plan filename and moves it to .PLAN.md in the worktree.
     """
 
@@ -188,8 +201,8 @@ def create(name: Optional[str], branch: Optional[str], ref: Optional[str], no_po
         raise SystemExit(1)
 
     repo = discover_repo_context(Path.cwd())
-    cfg = load_config(repo.root)
     work_dir = ensure_work_dir(repo)
+    cfg = load_config(work_dir)
     wt_path = worktree_path_for(work_dir, name)
 
     if wt_path.exists():
@@ -250,7 +263,122 @@ def run_commands_in_worktree(
             subprocess.run(shlex.split(cmd), cwd=worktree_path, check=True)
 
 
-def complete_worktree_names(ctx: click.Context, param: click.Parameter, incomplete: str) -> list[str]:
+@cli.command("move")
+@click.argument("name", metavar="NAME", required=False)
+@click.option(
+    "--to-branch",
+    "to_branch",
+    type=str,
+    default=None,
+    help="Branch to switch current worktree to (defaults to main or master).",
+)
+@click.option(
+    "--no-post",
+    is_flag=True,
+    help="Skip running post-create commands from config.toml.",
+)
+def move_cmd(name: Optional[str], to_branch: Optional[str], no_post: bool) -> None:
+    """Move the current branch to a new worktree.
+
+    Creates a worktree with the current branch, then switches the current worktree
+    to a different branch (defaults to main or master).
+
+    If NAME is not provided, derives it from the current branch name.
+    """
+
+    repo = discover_repo_context(Path.cwd())
+
+    # Get the current branch
+    try:
+        current_branch = get_current_branch(Path.cwd())
+    except ValueError as e:
+        click.echo(f"Error: {e}", err=True)
+        raise SystemExit(1)
+    except subprocess.CalledProcessError:
+        click.echo(
+            "Error: Not in a git repository or unable to determine current branch.", err=True
+        )
+        raise SystemExit(1)
+
+    # Determine the worktree name
+    if not name:
+        from .naming import sanitize_worktree_name
+
+        name = sanitize_worktree_name(current_branch)
+
+    work_dir = ensure_work_dir(repo)
+    cfg = load_config(work_dir)
+    wt_path = worktree_path_for(work_dir, name)
+
+    if wt_path.exists():
+        click.echo(f"Worktree path already exists: {wt_path}")
+        raise SystemExit(1)
+
+    # Determine which branch to switch the current worktree to
+    if to_branch is None:
+        # Try to find main or master
+        try:
+            result = subprocess.run(
+                ["git", "rev-parse", "--verify", "main"],
+                cwd=repo.root,
+                capture_output=True,
+                text=True,
+            )
+            if result.returncode == 0:
+                to_branch = "main"
+            else:
+                result = subprocess.run(
+                    ["git", "rev-parse", "--verify", "master"],
+                    cwd=repo.root,
+                    capture_output=True,
+                    text=True,
+                )
+                if result.returncode == 0:
+                    to_branch = "master"
+                else:
+                    click.echo(
+                        "Error: Could not find 'main' or 'master' branch. "
+                        "Please specify --to-branch explicitly."
+                    )
+                    raise SystemExit(1)
+        except Exception as e:
+            click.echo(f"Error determining default branch: {e}", err=True)
+            raise SystemExit(1)
+
+    # Switch the current worktree to the target branch first
+    # (must do this before creating the new worktree so the branch isn't locked)
+    checkout_branch(repo.root, to_branch)
+
+    # Create the worktree with the existing branch
+    add_worktree(repo.root, wt_path, branch=current_branch, ref=None, use_existing_branch=True)
+
+    # Write .env based on config
+    env_content = make_env_content(cfg, worktree_path=wt_path, repo_root=repo.root, name=name)
+    (wt_path / ".env").write_text(env_content, encoding="utf-8")
+
+    # Write activation script and make it executable
+    act_path = wt_path / "activate.sh"
+    act_content = render_activation_script(worktree_path=wt_path)
+    act_path.write_text(act_content, encoding="utf-8")
+    os.chmod(act_path, 0o755)
+
+    # Post-create commands
+    if not no_post and cfg.post_create_commands:
+        click.echo("Running post-create commands...")
+        run_commands_in_worktree(
+            commands=cfg.post_create_commands,
+            worktree_path=wt_path,
+            shell=cfg.post_create_shell,
+        )
+
+    click.echo(f"Moved branch '{current_branch}' to worktree: {wt_path}")
+    click.echo(f"Current worktree switched to branch: {to_branch}")
+    click.echo(f"To activate the new worktree: source <(workstack switch {name})")
+
+
+def complete_worktree_names(
+    ctx: click.Context, param: click.Parameter, incomplete: str
+) -> list[str]:
     """Shell completion for worktree names. Includes '.' for root repo."""
     try:
         repo = discover_repo_context(Path.cwd())
@@ -261,11 +389,9 @@ def complete_worktree_names(ctx: click.Context, param: click.Parameter, incomple
 
         # Add worktree directories
         if work_dir.exists():
-            names.extend([
-                p.name
-                for p in work_dir.iterdir()
-                if p.is_dir() and p.name.startswith(incomplete)
-            ])
+            names.extend(
+                [p.name for p in work_dir.iterdir() if p.is_dir() and p.name.startswith(incomplete)]
+            )
 
         return names
     except Exception:
@@ -274,10 +400,13 @@ def complete_worktree_names(ctx: click.Context, param: click.Parameter, incomple
 
 @cli.command("switch")
 @click.argument("name", metavar="NAME", shell_complete=complete_worktree_names)
-def switch_cmd(name: str) -> None:
+@click.option(
+    "--script", is_flag=True, help="Print only the activation script without usage instructions."
+)
+def switch_cmd(name: str, script: bool) -> None:
     """Print shell code to switch to a worktree and activate it.
 
-    Usage: source <(workstack switch NAME)
+    Usage: source <(workstack switch NAME --script)
 
     Use '.' to switch to the root repo directory.
     This will cd to the worktree directory and source its activate.sh script.
@@ -289,12 +418,14 @@ def switch_cmd(name: str) -> None:
     if name == ".":
         # Just cd to root, no activation script
         root_path = repo.root
-        lines = [
-            f"# Run this command: source <(workstack switch .)",
-            f"cd '{str(root_path)}'",
-            'echo "Switched to root repo: $(pwd)"',
-        ]
-        click.echo("\n".join(lines) + "\n", nl=True)
+        if script:
+            lines = [
+                f"cd '{str(root_path)}'",
+                'echo "Switched to root repo: $(pwd)"',
+            ]
+            click.echo("\n".join(lines) + "\n", nl=True)
+        else:
+            click.echo(f"source <(workstack switch . --script)")
         return
 
     work_dir = ensure_work_dir(repo)
@@ -304,8 +435,11 @@ def switch_cmd(name: str) -> None:
         click.echo(f"Worktree not found: {wt_path}", err=True)
         raise SystemExit(1)
 
-    script = render_activation_script(worktree_path=wt_path)
-    click.echo(script, nl=True)
+    if script:
+        activation_script = render_activation_script(worktree_path=wt_path)
+        click.echo(activation_script, nl=True)
+    else:
+        click.echo(f"source <(workstack switch {name} --script)")
 
 
 @cli.command("activate-script")
@@ -313,8 +447,8 @@ def switch_cmd(name: str) -> None:
 def activate_script(name: str) -> None:
     """Print shell code to activate the worktree env and venv.
 
-    Note: `work create NAME` also writes `.workstack/NAME/activate.sh` which can be
-    sourced directly: `source .workstack/NAME/activate.sh`.
+    Note: `work create NAME` also writes `activate.sh` which can be
+    sourced directly from the worktree directory.
     """
 
     repo = discover_repo_context(Path.cwd())
@@ -349,18 +483,18 @@ def _list_worktrees() -> None:
 
 @cli.command("list")
 def list_cmd() -> None:
-    """List worktrees under `.workstack/` with activation hints."""
+    """List worktrees with activation hints."""
     _list_worktrees()
 
 
 @cli.command("ls")
 def ls_cmd() -> None:
-    """List worktrees under `.workstack/` with activation hints."""
+    """List worktrees with activation hints."""
     _list_worktrees()
 
 
 @cli.command("init")
-@click.option("--force", is_flag=True, help="Overwrite existing .workstack/config.toml if present.")
+@click.option("--force", is_flag=True, help="Overwrite existing repo config if present.")
 @click.option(
     "--preset",
     type=click.Choice(["auto", "generic", "dagster"], case_sensitive=False),
@@ -371,8 +505,19 @@ def ls_cmd() -> None:
     ),
 )
 def init_cmd(force: bool, preset: str) -> None:
-    """Initialize `.workstack/` and scaffold `.workstack/config.toml` for this repo."""
+    """Initialize workstack for this repo and scaffold config.toml."""
 
+    # Check for global config first
+    if not GLOBAL_CONFIG_PATH.exists():
+        click.echo(f"Global config not found at {GLOBAL_CONFIG_PATH}")
+        click.echo("Please provide the path where you want to store all worktrees.")
+        click.echo("(This directory will contain subdirectories for each repository)")
+        workstacks_root = click.prompt("Worktrees root directory", type=Path)
+        workstacks_root = workstacks_root.expanduser().resolve()
+        create_global_config(workstacks_root)
+        click.echo(f"Created global config at {GLOBAL_CONFIG_PATH}")
+
+    # Now proceed with repo-specific setup
     repo = discover_repo_context(Path.cwd())
     work_dir = ensure_work_dir(repo)
     cfg_path = work_dir / "config.toml"
@@ -394,14 +539,11 @@ def init_cmd(force: bool, preset: str) -> None:
     cfg_path.write_text(content, encoding="utf-8")
     click.echo(f"Wrote {cfg_path}")
 
-    # Check for .gitignore and add .workstack, activate.sh, and .PLAN.md if it exists
+    # Check for .gitignore and add activate.sh and .PLAN.md
     gitignore_path = repo.root / ".gitignore"
     if gitignore_path.exists():
         gitignore_content = gitignore_path.read_text(encoding="utf-8")
         additions = []
-
-        if ".workstack" not in gitignore_content:
-            additions.append(".workstack")
 
         if "activate.sh" not in gitignore_content:
             additions.append("activate.sh")
@@ -417,11 +559,74 @@ def init_cmd(force: bool, preset: str) -> None:
             click.echo(f"Added {', '.join(additions)} to {gitignore_path}")
 
 
+@cli.command("co")
+@click.argument("branch", metavar="BRANCH")
+@click.option(
+    "--name",
+    "name",
+    type=str,
+    default=None,
+    help="Name for the worktree (defaults to sanitized branch name).",
+)
+@click.option(
+    "--no-post",
+    is_flag=True,
+    help="Skip running post-create commands from config.toml.",
+)
+def co_cmd(branch: str, name: Optional[str], no_post: bool) -> None:
+    """Create a worktree and checkout an existing git branch.
+
+    This is a convenience command that combines creating a worktree with checking out
+    an existing branch. The worktree name defaults to the sanitized branch name.
+    """
+
+    repo = discover_repo_context(Path.cwd())
+
+    # Determine the worktree name
+    if not name:
+        from .naming import sanitize_worktree_name
+
+        name = sanitize_worktree_name(branch)
+
+    work_dir = ensure_work_dir(repo)
+    cfg = load_config(work_dir)
+    wt_path = worktree_path_for(work_dir, name)
+
+    if wt_path.exists():
+        click.echo(f"Worktree path already exists: {wt_path}")
+        raise SystemExit(1)
+
+    # Create worktree with existing branch
+    add_worktree(repo.root, wt_path, branch=branch, ref=None, use_existing_branch=True)
+
+    # Write .env based on config
+    env_content = make_env_content(cfg, worktree_path=wt_path, repo_root=repo.root, name=name)
+    (wt_path / ".env").write_text(env_content, encoding="utf-8")
+
+    # Write activation script and make it executable
+    act_path = wt_path / "activate.sh"
+    act_content = render_activation_script(worktree_path=wt_path)
+    act_path.write_text(act_content, encoding="utf-8")
+    os.chmod(act_path, 0o755)
+
+    # Post-create commands
+    if not no_post and cfg.post_create_commands:
+        click.echo("Running post-create commands...")
+        run_commands_in_worktree(
+            commands=cfg.post_create_commands,
+            worktree_path=wt_path,
+            shell=cfg.post_create_shell,
+        )
+
+    click.echo(str(wt_path))
+    click.echo(f"pushd {wt_path} && source activate.sh")
+
+
 @cli.command("rm")
 @click.argument("name", metavar="NAME")
 @click.option("-f", "--force", is_flag=True, help="Do not prompt for confirmation.")
 def rm_cmd(name: str, force: bool) -> None:
-    """Remove the `.workstack/NAME` worktree directory.
+    """Remove the worktree directory.
 
     With `-f/--force`, skips the confirmation prompt.
     Attempts `git worktree remove` before deleting the directory.

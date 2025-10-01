@@ -10,3 +10,4 @@ wheels/
 .venv
 activate.sh
 .workstack
+.PLAN.md

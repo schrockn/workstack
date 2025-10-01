@@ -116,4 +116,7 @@ def test_create_with_both_name_and_plan_fails(tmp_path: Path) -> None:
 
     # Should fail
     assert result.returncode != 0
-    assert "Cannot specify both NAME and --plan" in result.stdout or "Cannot specify both NAME and --plan" in result.stderr
+    assert (
+        "Cannot specify both NAME and --plan" in result.stdout
+        or "Cannot specify both NAME and --plan" in result.stderr
+    )
