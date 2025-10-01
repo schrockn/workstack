@@ -20,14 +20,39 @@ def discover_repo_context(start: Path) -> RepoContext:
 
     Returns a RepoContext pointing to the repo root and the `.workstack` directory.
     Raises FileNotFoundError if not inside a git repo.
+
+    Note: Properly handles git worktrees by finding the main repository root,
+    not the worktree's .git file.
     """
+    import subprocess
 
     cur = start.resolve()
-    for parent in [cur, *cur.parents]:
-        if (parent / ".git").exists():
-            work_dir = parent / ".workstack"
-            return RepoContext(root=parent, work_dir=work_dir)
-    raise FileNotFoundError("Not inside a git repository (no .git found up the tree).")
+
+    # Use git to find the true repository root (handles worktrees correctly)
+    try:
+        # Get the common git directory (points to main repo even from worktrees)
+        result = subprocess.run(
+            ["git", "rev-parse", "--git-common-dir"],
+            cwd=cur,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        git_common_dir = Path(result.stdout.strip())
+        # The parent of .git is the repo root
+        root = git_common_dir.parent.resolve()
+        work_dir = root / ".workstack"
+        return RepoContext(root=root, work_dir=work_dir)
+    except subprocess.CalledProcessError:
+        # Fallback to walking up the tree
+        for parent in [cur, *cur.parents]:
+            git_path = parent / ".git"
+            if git_path.exists():
+                # Only accept if .git is a directory (not a worktree .git file)
+                if git_path.is_dir():
+                    work_dir = parent / ".workstack"
+                    return RepoContext(root=parent, work_dir=work_dir)
+        raise FileNotFoundError("Not inside a git repository (no .git found up the tree).")
 
 
 def ensure_work_dir(repo: RepoContext) -> Path:

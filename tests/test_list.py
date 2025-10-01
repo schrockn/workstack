@@ -16,12 +16,18 @@ def test_list_outputs_names_not_paths() -> None:
 
         result = runner.invoke(cli, ["list"])
         assert result.exit_code == 0, result.output
-        lines = sorted(result.output.strip().splitlines())
+        lines = result.output.strip().splitlines()
 
         cwd = Path.cwd()
+        # First line should be root
+        assert lines[0].startswith(".")
+        assert "root" in lines[0].lower()
+
+        # Remaining lines should be worktrees, sorted
+        worktree_lines = sorted(lines[1:])
         expected_foo = cwd / ".workstack" / "foo" / "activate.sh"
         expected_bar = cwd / ".workstack" / "bar" / "activate.sh"
-        assert lines == [
+        assert worktree_lines == [
             f"bar (source {expected_bar})",
             f"foo (source {expected_foo})",
         ]

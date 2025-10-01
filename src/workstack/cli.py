@@ -31,8 +31,115 @@ def cli() -> None:
     """Manage git worktrees under `.workstack/` in the current repo."""
 
 
+@cli.group("completion")
+def completion_group() -> None:
+    """Generate shell completion scripts."""
+
+
+@completion_group.command("bash")
+def completion_bash() -> None:
+    """Generate bash completion script.
+
+    \b
+    To load completions in your current shell session:
+      source <(workstack completion bash)
+
+    \b
+    To load completions for every new session, execute once:
+
+    \b
+    Linux:
+      workstack completion bash > /etc/bash_completion.d/workstack
+
+    \b
+    macOS:
+      workstack completion bash > $(brew --prefix)/etc/bash_completion.d/workstack
+
+    \b
+    You will need to start a new shell for this setup to take effect.
+    """
+    import sys
+    import shutil
+
+    # Find the workstack executable
+    workstack_exe = shutil.which("workstack")
+    if not workstack_exe:
+        # Fallback to current Python + module
+        workstack_exe = sys.argv[0]
+
+    env = os.environ.copy()
+    env["_WORKSTACK_COMPLETE"] = "bash_source"
+    result = subprocess.run([workstack_exe], env=env, capture_output=True, text=True)
+    click.echo(result.stdout, nl=False)
+
+
+@completion_group.command("zsh")
+def completion_zsh() -> None:
+    """Generate zsh completion script.
+
+    \b
+    To load completions in your current shell session:
+      source <(workstack completion zsh)
+
+    \b
+    To load completions for every new session, execute once:
+      mkdir -p ~/.zsh/completion
+      workstack completion zsh > ~/.zsh/completion/_workstack
+
+    \b
+    Then add to your ~/.zshrc:
+      fpath=(~/.zsh/completion $fpath)
+      autoload -U compinit
+      compinit
+
+    \b
+    You will need to start a new shell for this setup to take effect.
+    """
+    import sys
+
+    # Find the workstack executable
+    workstack_exe = shutil.which("workstack")
+    if not workstack_exe:
+        # Fallback to current Python + module
+        workstack_exe = sys.argv[0]
+
+    env = os.environ.copy()
+    env["_WORKSTACK_COMPLETE"] = "zsh_source"
+    result = subprocess.run([workstack_exe], env=env, capture_output=True, text=True)
+    click.echo(result.stdout, nl=False)
+
+
+@completion_group.command("fish")
+def completion_fish() -> None:
+    """Generate fish completion script.
+
+    \b
+    To load completions in your current shell session:
+      workstack completion fish | source
+
+    \b
+    To load completions for every new session, execute once:
+      workstack completion fish > ~/.config/fish/completions/workstack.fish
+
+    \b
+    You will need to start a new shell for this setup to take effect.
+    """
+    import sys
+
+    # Find the workstack executable
+    workstack_exe = shutil.which("workstack")
+    if not workstack_exe:
+        # Fallback to current Python + module
+        workstack_exe = sys.argv[0]
+
+    env = os.environ.copy()
+    env["_WORKSTACK_COMPLETE"] = "fish_source"
+    result = subprocess.run([workstack_exe], env=env, capture_output=True, text=True)
+    click.echo(result.stdout, nl=False)
+
+
 @cli.command("create")
-@click.argument("name", metavar="NAME")
+@click.argument("name", metavar="NAME", required=False)
 @click.option(
     "--branch",
     "branch",
@@ -53,11 +160,32 @@ def cli() -> None:
     is_flag=True,
     help="Skip running post-create commands from `.workstack/config.toml`.",
 )
-def create(name: str, branch: Optional[str], ref: Optional[str], no_post: bool) -> None:
+@click.option(
+    "--plan",
+    "plan_file",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    help="Path to a plan markdown file. Will derive worktree name from filename and move to .PLAN.md in the worktree.",
+)
+def create(name: Optional[str], branch: Optional[str], ref: Optional[str], no_post: bool, plan_file: Optional[Path]) -> None:
     """Create a worktree at `.workstack/NAME` and write a .env file.
 
     Reads `.workstack/config.toml` for env templates and post-create commands (if present).
+    If --plan is provided, derives name from the plan filename and moves it to .PLAN.md in the worktree.
     """
+
+    # Determine the worktree name
+    if plan_file:
+        if name:
+            click.echo("Cannot specify both NAME and --plan. Use one or the other.")
+            raise SystemExit(1)
+        # Derive name from plan filename (strip extension)
+        from .naming import sanitize_worktree_name
+
+        plan_stem = plan_file.stem  # filename without extension
+        name = sanitize_worktree_name(plan_stem)
+    elif not name:
+        click.echo("Must provide NAME or --plan option.")
+        raise SystemExit(1)
 
     repo = discover_repo_context(Path.cwd())
     cfg = load_config(repo.root)
@@ -85,6 +213,12 @@ def create(name: str, branch: Optional[str], ref: Optional[str], no_post: bool) 
     act_content = render_activation_script(worktree_path=wt_path)
     act_path.write_text(act_content, encoding="utf-8")
     os.chmod(act_path, 0o755)
+
+    # Move plan file if provided
+    if plan_file:
+        plan_dest = wt_path / ".PLAN.md"
+        shutil.move(str(plan_file), str(plan_dest))
+        click.echo(f"Moved plan to {plan_dest}")
 
     # Post-create commands
     if not no_post and cfg.post_create_commands:
@@ -116,8 +250,66 @@ def run_commands_in_worktree(
             subprocess.run(shlex.split(cmd), cwd=worktree_path, check=True)
 
 
+def complete_worktree_names(ctx: click.Context, param: click.Parameter, incomplete: str) -> list[str]:
+    """Shell completion for worktree names. Includes '.' for root repo."""
+    try:
+        repo = discover_repo_context(Path.cwd())
+        work_dir = repo.work_dir
+
+        # Always include "." for root repo
+        names = ["."] if ".".startswith(incomplete) else []
+
+        # Add worktree directories
+        if work_dir.exists():
+            names.extend([
+                p.name
+                for p in work_dir.iterdir()
+                if p.is_dir() and p.name.startswith(incomplete)
+            ])
+
+        return names
+    except Exception:
+        return []
+
+
+@cli.command("switch")
+@click.argument("name", metavar="NAME", shell_complete=complete_worktree_names)
+def switch_cmd(name: str) -> None:
+    """Print shell code to switch to a worktree and activate it.
+
+    Usage: source <(workstack switch NAME)
+
+    Use '.' to switch to the root repo directory.
+    This will cd to the worktree directory and source its activate.sh script.
+    """
+
+    repo = discover_repo_context(Path.cwd())
+
+    # Handle special case: "." means root repo
+    if name == ".":
+        # Just cd to root, no activation script
+        root_path = repo.root
+        lines = [
+            f"# Run this command: source <(workstack switch .)",
+            f"cd '{str(root_path)}'",
+            'echo "Switched to root repo: $(pwd)"',
+        ]
+        click.echo("\n".join(lines) + "\n", nl=True)
+        return
+
+    work_dir = ensure_work_dir(repo)
+    wt_path = worktree_path_for(work_dir, name)
+
+    if not wt_path.exists():
+        click.echo(f"Worktree not found: {wt_path}", err=True)
+        raise SystemExit(1)
+
+    script = render_activation_script(worktree_path=wt_path)
+    click.echo(script, nl=True)
+
+
 @cli.command("activate-script")
-@click.argument("name", metavar="NAME")
+@click.argument("name", metavar="NAME", shell_complete=complete_worktree_names)
 def activate_script(name: str) -> None:
     """Print shell code to activate the worktree env and venv.
 
@@ -140,6 +332,11 @@ def activate_script(name: str) -> None:
 def _list_worktrees() -> None:
     """Internal function to list worktrees."""
     repo = discover_repo_context(Path.cwd())
+
+    # Show root repo first
+    click.echo(f". (root repo: {repo.root})")
+
+    # Show worktrees
     work_dir = ensure_work_dir(repo)
     if not work_dir.exists():
         return
@@ -197,7 +394,7 @@ def init_cmd(force: bool, preset: str) -> None:
     cfg_path.write_text(content, encoding="utf-8")
     click.echo(f"Wrote {cfg_path}")
 
-    # Check for .gitignore and add .workstack and activate.sh if it exists
+    # Check for .gitignore and add .workstack, activate.sh, and .PLAN.md if it exists
     gitignore_path = repo.root / ".gitignore"
     if gitignore_path.exists():
         gitignore_content = gitignore_path.read_text(encoding="utf-8")
@@ -208,6 +405,9 @@ def init_cmd(force: bool, preset: str) -> None:
 
         if "activate.sh" not in gitignore_content:
             additions.append("activate.sh")
+
+        if ".PLAN.md" not in gitignore_content:
+            additions.append(".PLAN.md")
 
         if additions:
             if not gitignore_content.endswith("\n"):
