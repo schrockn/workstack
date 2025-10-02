@@ -174,33 +174,76 @@ def completion_fish() -> None:
         "and move to .PLAN.md in the worktree."
     ),
 )
+@click.option(
+    "--move",
+    is_flag=True,
+    help=(
+        "Move the current branch to the new worktree, then switch current worktree to --ref "
+        "(defaults to main/master). Name defaults to current branch name."
+    ),
+)
 def create(
     name: str | None,
     branch: str | None,
     ref: str | None,
     no_post: bool,
     plan_file: Path | None,
+    move: bool,
 ) -> None:
     """Create a worktree and write a .env file.
 
     Reads config.toml for env templates and post-create commands (if present).
     If --plan is provided, derives name from the plan filename and moves it to
     .PLAN.md in the worktree.
+    If --move is provided, moves the current branch to the new worktree.
     """
 
-    # Determine the worktree name
-    if plan_file:
-        if name:
-            click.echo("Cannot specify both NAME and --plan. Use one or the other.")
+    # Handle --move flag
+    if move:
+        if plan_file:
+            click.echo("Cannot use --move with --plan.")
             raise SystemExit(1)
-        # Derive name from plan filename (strip extension)
-        from .naming import sanitize_worktree_name
 
-        plan_stem = plan_file.stem  # filename without extension
-        name = sanitize_worktree_name(plan_stem)
-    elif not name:
-        click.echo("Must provide NAME or --plan option.")
-        raise SystemExit(1)
+        # Get the current branch
+        try:
+            current_branch = get_current_branch(Path.cwd())
+        except ValueError as e:
+            click.echo(f"Error: {e}", err=True)
+            raise SystemExit(1)
+        except subprocess.CalledProcessError:
+            click.echo(
+                "Error: Not in a git repository or unable to determine current branch.", err=True
+            )
+            raise SystemExit(1)
+
+        # Set branch to current branch and derive name if not provided
+        if branch:
+            click.echo("Cannot specify --branch with --move (uses current branch).")
+            raise SystemExit(1)
+        branch = current_branch
+
+        if not name:
+            from .naming import sanitize_worktree_name
+
+            name = sanitize_worktree_name(current_branch)
+
+    # Determine the worktree name (for non-move cases)
+    if not move:
+        if plan_file:
+            if name:
+                click.echo("Cannot specify both NAME and --plan. Use one or the other.")
+                raise SystemExit(1)
+            # Derive name from plan filename (strip extension)
+            from .naming import sanitize_worktree_name
+
+            plan_stem = plan_file.stem  # filename without extension
+            name = sanitize_worktree_name(plan_stem)
+        elif not name:
+            click.echo("Must provide NAME or --plan option.")
+            raise SystemExit(1)
+
+    # At this point, name should always be set
+    assert name is not None, "name must be set by now"
 
     repo = discover_repo_context(Path.cwd())
     work_dir = ensure_work_dir(repo)
@@ -211,17 +254,58 @@ def create(
         click.echo(f"Worktree path already exists: {wt_path}")
         raise SystemExit(1)
 
-    # Create worktree via git. If no branch provided, derive a sensible default.
-    if branch is None:
-        from .naming import default_branch_for_worktree
+    # Handle move logic: switch current worktree first
+    to_branch = None
+    if move:
+        # Determine which branch to switch to (use ref if provided, else main/master)
+        to_branch = ref
+        if to_branch is None:
+            # Try to find main or master
+            try:
+                result = subprocess.run(
+                    ["git", "rev-parse", "--verify", "main"],
+                    cwd=repo.root,
+                    capture_output=True,
+                    text=True,
+                )
+                if result.returncode == 0:
+                    to_branch = "main"
+                else:
+                    result = subprocess.run(
+                        ["git", "rev-parse", "--verify", "master"],
+                        cwd=repo.root,
+                        capture_output=True,
+                        text=True,
+                    )
+                    if result.returncode == 0:
+                        to_branch = "master"
+                    else:
+                        click.echo(
+                            "Error: Could not find 'main' or 'master' branch. "
+                            "Please specify --ref explicitly."
+                        )
+                        raise SystemExit(1)
+            except Exception as e:
+                click.echo(f"Error determining default branch: {e}", err=True)
+                raise SystemExit(1)
 
-        branch = default_branch_for_worktree(name)
+        # Switch current worktree to the target branch first
+        checkout_branch(repo.root, to_branch)
 
-    # Get graphite setting from global config
-    global_config = load_global_config()
-    add_worktree(
-        repo.root, wt_path, branch=branch, ref=ref, use_graphite=global_config.use_graphite
-    )
+        # Create worktree with existing branch
+        add_worktree(repo.root, wt_path, branch=branch, ref=None, use_existing_branch=True)
+    else:
+        # Create worktree via git. If no branch provided, derive a sensible default.
+        if branch is None:
+            from .naming import default_branch_for_worktree
+
+            branch = default_branch_for_worktree(name)
+
+        # Get graphite setting from global config
+        global_config = load_global_config()
+        add_worktree(
+            repo.root, wt_path, branch=branch, ref=ref, use_graphite=global_config.use_graphite
+        )
 
     # Write .env based on config
     env_content = make_env_content(cfg, worktree_path=wt_path, repo_root=repo.root, name=name)
@@ -248,8 +332,13 @@ def create(
             shell=cfg.post_create_shell,
         )
 
-    click.echo(str(wt_path))
-    click.echo(f"pushd {wt_path} && source activate.sh")
+    if move:
+        click.echo(f"Moved branch '{branch}' to worktree: {wt_path}")
+        click.echo(f"Current worktree switched to branch: {to_branch}")
+        click.echo(f"To activate the new worktree: source <(workstack switch {name})")
+    else:
+        click.echo(str(wt_path))
+        click.echo(f"pushd {wt_path} && source activate.sh")
 
 
 def run_commands_in_worktree(
