@@ -1,13 +1,16 @@
 from __future__ import annotations
 
+import shutil
+import tomllib
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional
-
-import tomllib
-
 
 GLOBAL_CONFIG_PATH = Path.home() / ".workstack" / "config.toml"
+
+
+def detect_graphite() -> bool:
+    """Detect if Graphite (gt) is installed and available in PATH."""
+    return shutil.which("gt") is not None
 
 
 @dataclass(frozen=True)
@@ -15,6 +18,7 @@ class GlobalConfig:
     """Global workstack configuration."""
 
     workstacks_root: Path
+    use_graphite: bool
 
 
 def load_global_config() -> GlobalConfig:
@@ -30,14 +34,22 @@ def load_global_config() -> GlobalConfig:
     if not root:
         raise ValueError(f"Missing 'workstacks_root' in {GLOBAL_CONFIG_PATH}")
 
-    return GlobalConfig(workstacks_root=Path(root).expanduser().resolve())
+    # Default to False for backward compatibility with existing configs
+    use_graphite = data.get("use_graphite", False)
+
+    return GlobalConfig(
+        workstacks_root=Path(root).expanduser().resolve(),
+        use_graphite=bool(use_graphite),
+    )
 
 
 def create_global_config(workstacks_root: Path) -> None:
     """Create global config at ~/.workstack/config.toml."""
     GLOBAL_CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
+    use_graphite = detect_graphite()
     content = f"""# Global workstack configuration
 workstacks_root = "{workstacks_root}"
+use_graphite = {str(use_graphite).lower()}
 """
     GLOBAL_CONFIG_PATH.write_text(content, encoding="utf-8")
 
@@ -46,9 +58,9 @@ workstacks_root = "{workstacks_root}"
 class LoadedConfig:
     """In-memory representation of `.workstack/config.toml`."""
 
-    env: Dict[str, str]
-    post_create_commands: List[str]
-    post_create_shell: Optional[str]
+    env: dict[str, str]
+    post_create_commands: list[str]
+    post_create_shell: str | None
 
 
 def load_config(config_dir: Path) -> LoadedConfig:
@@ -80,21 +92,21 @@ def load_config(config_dir: Path) -> LoadedConfig:
     return LoadedConfig(env=env, post_create_commands=commands, post_create_shell=shell)
 
 
-def render_config_template(preset: Optional[str] = None) -> str:
+def render_config_template(preset: str | None = None) -> str:
     """Return default config TOML content, optionally using a preset.
 
     Presets:
       - "dagster": sets DAGSTER_GIT_REPO_DIR and sensible post-create commands.
     """
 
-    header = f"""# work config for this repository
-# Available template variables: {{worktree_path}}, {{repo_root}}, {{name}}
+    header = """# work config for this repository
+# Available template variables: {worktree_path}, {repo_root}, {name}
 """
 
     if preset == "dagster":
-        body = f"""
+        body = """
 [env]
-DAGSTER_GIT_REPO_DIR = "{{worktree_path}}"
+DAGSTER_GIT_REPO_DIR = "{worktree_path}"
 
 [post_create]
 shell = "bash"
@@ -104,9 +116,9 @@ commands = [
 ]
 """
     else:
-        body = f"""
+        body = """
 [env]
-# EXAMPLE_KEY = "{{worktree_path}}"
+# EXAMPLE_KEY = "{worktree_path}"
 
 [post_create]
 # shell = "bash"

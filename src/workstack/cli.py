@@ -1,33 +1,31 @@
 from __future__ import annotations
 
 import os
-import shutil
 import shlex
+import shutil
 import subprocess
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable, Optional
 
 import click
 
+from .activation import render_activation_script
 from .config import (
-    LoadedConfig,
-    load_config,
-    render_config_template,
-    load_global_config,
-    create_global_config,
     GLOBAL_CONFIG_PATH,
+    create_global_config,
+    detect_graphite,
+    load_config,
+    load_global_config,
+    render_config_template,
 )
 from .core import (
-    RepoContext,
     discover_repo_context,
     ensure_work_dir,
     make_env_content,
     worktree_path_for,
 )
-from .git import add_worktree, get_current_branch, checkout_branch
 from .detect import is_repo_named
-from .activation import render_activation_script
-
+from .git import add_worktree, checkout_branch, get_current_branch
 
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])  # terse help flags
 
@@ -65,8 +63,8 @@ def completion_bash() -> None:
     \b
     You will need to start a new shell for this setup to take effect.
     """
-    import sys
     import shutil
+    import sys
 
     # Find the workstack executable
     workstack_exe = shutil.which("workstack")
@@ -171,19 +169,23 @@ def completion_fish() -> None:
     "--plan",
     "plan_file",
     type=click.Path(exists=True, dir_okay=False, path_type=Path),
-    help="Path to a plan markdown file. Will derive worktree name from filename and move to .PLAN.md in the worktree.",
+    help=(
+        "Path to a plan markdown file. Will derive worktree name from filename "
+        "and move to .PLAN.md in the worktree."
+    ),
 )
 def create(
-    name: Optional[str],
-    branch: Optional[str],
-    ref: Optional[str],
+    name: str | None,
+    branch: str | None,
+    ref: str | None,
     no_post: bool,
-    plan_file: Optional[Path],
+    plan_file: Path | None,
 ) -> None:
     """Create a worktree and write a .env file.
 
     Reads config.toml for env templates and post-create commands (if present).
-    If --plan is provided, derives name from the plan filename and moves it to .PLAN.md in the worktree.
+    If --plan is provided, derives name from the plan filename and moves it to
+    .PLAN.md in the worktree.
     """
 
     # Determine the worktree name
@@ -215,7 +217,11 @@ def create(
 
         branch = default_branch_for_worktree(name)
 
-    add_worktree(repo.root, wt_path, branch=branch, ref=ref)
+    # Get graphite setting from global config
+    global_config = load_global_config()
+    add_worktree(
+        repo.root, wt_path, branch=branch, ref=ref, use_graphite=global_config.use_graphite
+    )
 
     # Write .env based on config
     env_content = make_env_content(cfg, worktree_path=wt_path, repo_root=repo.root, name=name)
@@ -247,7 +253,7 @@ def create(
 
 
 def run_commands_in_worktree(
-    *, commands: Iterable[str], worktree_path: Path, shell: Optional[str]
+    *, commands: Iterable[str], worktree_path: Path, shell: str | None
 ) -> None:
     """Run commands serially in the worktree directory.
 
@@ -277,7 +283,7 @@ def run_commands_in_worktree(
     is_flag=True,
     help="Skip running post-create commands from config.toml.",
 )
-def move_cmd(name: Optional[str], to_branch: Optional[str], no_post: bool) -> None:
+def move_cmd(name: str | None, to_branch: str | None, no_post: bool) -> None:
     """Move the current branch to a new worktree.
 
     Creates a worktree with the current branch, then switches the current worktree
@@ -425,7 +431,7 @@ def switch_cmd(name: str, script: bool) -> None:
             ]
             click.echo("\n".join(lines) + "\n", nl=True)
         else:
-            click.echo(f"source <(workstack switch . --script)")
+            click.echo("source <(workstack switch . --script)")
         return
 
     work_dir = ensure_work_dir(repo)
@@ -516,6 +522,12 @@ def init_cmd(force: bool, preset: str) -> None:
         workstacks_root = workstacks_root.expanduser().resolve()
         create_global_config(workstacks_root)
         click.echo(f"Created global config at {GLOBAL_CONFIG_PATH}")
+        # Show graphite status on first init
+        has_graphite = detect_graphite()
+        if has_graphite:
+            click.echo("Graphite (gt) detected - will use 'gt create' for new branches")
+        else:
+            click.echo("Graphite (gt) not detected - will use 'git' for branch creation")
 
     # Now proceed with repo-specific setup
     repo = discover_repo_context(Path.cwd())
@@ -526,7 +538,7 @@ def init_cmd(force: bool, preset: str) -> None:
         click.echo(f"Config already exists: {cfg_path}. Use --force to overwrite.")
         raise SystemExit(1)
 
-    effective_preset: Optional[str]
+    effective_preset: str | None
     choice = preset.lower()
     if choice == "auto":
         effective_preset = "dagster" if is_repo_named(repo.root, "dagster") else None
@@ -573,7 +585,7 @@ def init_cmd(force: bool, preset: str) -> None:
     is_flag=True,
     help="Skip running post-create commands from config.toml.",
 )
-def co_cmd(branch: str, name: Optional[str], no_post: bool) -> None:
+def co_cmd(branch: str, name: str | None, no_post: bool) -> None:
     """Create a worktree and checkout an existing git branch.
 
     This is a convenience command that combines creating a worktree with checking out

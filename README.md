@@ -1,337 +1,280 @@
-workstack — Global Git Worktree Manager
-=========================================
+# workstack
 
-Click-based CLI to manage git worktrees in a centralized global directory.
+**A global git worktree manager that keeps your repository clean while enabling parallel development workflows.**
 
-## Overview
+Manage git worktrees in a centralized directory with automatic environment setup, per-worktree configuration, and seamless integration with AI coding assistants.
 
-`workstack` manages git worktrees in a global directory structure (e.g., `~/worktrees/<repo-name>/<worktree-name>/`), keeping your repository root clean. Each worktree gets its own environment, virtual environment, and activation script.
+## Why?
 
-## Quickstart
+Traditional git workflows force you to stash changes and switch branches constantly. Git worktrees solve this, but managing them manually is tedious. `workstack`:
 
-**Development:**
+- **Centralizes worktrees** in `~/worktrees/<repo>/<feature>/` (configurable)
+- **Auto-configures environments** with `.env`, virtual environments, and activation scripts
+- **Runs setup commands** automatically (install dependencies, migrations, etc.)
+- **Supports multiple repos** with different configurations per repository
+- **Integrates with AI assistants** via `.PLAN.md` file support
+- **Works with Graphite** for stacked diffs (optional)
+
+## Installation
+
 ```bash
-uv sync              # Install dependencies
-uv sync --group dev  # Include dev dependencies
-uv run workstack --help
-```
+# From PyPI
+pip install workstack
 
-**Install as a uv tool:**
-```bash
-# From local checkout
-uv tool install --path .
+# With uv (recommended)
+uv tool install workstack
 
-# From Git URL
+# From source
 uv tool install git+https://github.com/schrockn/workstack.git
-
-# From Git URL with ref
-uv tool install git+https://github.com/schrockn/workstack.git@v0.1.0
-
-# Use it
-workstack --help
-
-# Upgrade
-uv tool upgrade workstack
-
-# Uninstall
-uv tool uninstall workstack
 ```
 
-## Configuration
+## Quick Start
 
-### Global Config
+```bash
+# 1. Initialize in your repository
+cd /path/to/your/repo
+workstack init
 
-First-time `init` prompts for a global worktrees directory. This creates `~/.workstack/config.toml`:
+# 2. Create a worktree
+workstack create user-auth
 
+# 3. Switch to it
+source <(workstack switch user-auth --script)
+
+# 4. Work on your feature...
+
+# 5. Switch back
+source <(workstack switch . --script)
+
+# 6. Clean up
+workstack rm user-auth
+```
+
+## Core Concepts
+
+### Architecture
+
+```
+~/.workstack/config.toml          # Global config (worktree root location)
+~/worktrees/
+  your-repo/
+    config.toml                   # Repo-specific config
+    user-auth/                    # Worktree
+      .git, .env, .venv/, activate.sh, .PLAN.md, <source>
+    refactor-api/
+      ...
+```
+
+### Configuration
+
+**Global** (`~/.workstack/config.toml`):
 ```toml
 workstacks_root = "/Users/you/worktrees"
+use_graphite = true  # Auto-detected (requires gt CLI)
 ```
 
-All repository worktrees will be stored under `<workstacks_root>/<repo-name>/`.
-
-### Repo-local Config
-
-After running `workstack init` in a repository, edit `<workstacks_root>/<repo-name>/config.toml`:
-
+**Per-Repo** (`~/worktrees/<repo>/config.toml`):
 ```toml
 [env]
-# Template variables: {worktree_path}, {repo_root}, {name}
-DAGSTER_GIT_REPO_DIR = "{worktree_path}"
+# Variables: {worktree_path}, {repo_root}, {name}
+DATABASE_URL = "postgresql://localhost/{name}_db"
 
 [post_create]
 shell = "bash"
 commands = [
   "uv venv",
-  "uv run make dev_install",
+  "uv pip install -e .",
 ]
 ```
 
-Variables available in `[env]` templates:
-- `{worktree_path}` — absolute path to the worktree
-- `{repo_root}` — absolute path to the repository root
-- `{name}` — worktree name
-
 ## Commands
 
-### `workstack init [--preset auto|generic|dagster] [--force]`
+### `workstack init [--preset auto|generic|dagster]`
+Initialize workstack for current repository. Creates config, adds to `.gitignore`.
 
-Initialize workstack for the current repository.
-- Prompts for global config (`~/.workstack/config.toml`) if not present
-- Creates repo config directory at `<workstacks_root>/<repo-name>/`
-- Writes `config.toml` template
-- Adds `activate.sh` and `.PLAN.md` to `.gitignore`
+### `workstack create NAME [--branch BRANCH] [--ref REF] [--plan FILE]`
+Create worktree with new branch.
 
-**Presets:**
-- `auto` (default) — detects Dagster repos, otherwise uses generic template
-- `generic` — basic commented template
-- `dagster` — Dagster-specific environment and post-create commands
-
-### `workstack create [NAME] [options]`
-
-Create a new worktree with a new branch.
-
-**Options:**
-- `NAME` — worktree name (or use `--plan` to derive from filename)
-- `--branch BRANCH` — custom branch name (default: `work/<name>`)
-- `--ref REF` — base ref for branch (default: `HEAD`)
-- `--plan FILE` — derive name from plan file and move to `.PLAN.md` in worktree
-- `--no-post` — skip post-create commands
-
-**Examples:**
 ```bash
-# Create worktree "feature-x" with branch "work/feature-x"
-workstack create feature-x
-
-# Create with custom branch and base ref
-workstack create bugfix --branch fix/auth --ref origin/main
-
-# Create from plan file
-workstack create --plan Add_Auth_Feature.md
-# Creates worktree "add-auth-feature" and moves plan to .PLAN.md
+workstack create feature-x                          # Branch: work/feature-x
+workstack create fix --branch hotfix/bug --ref main
+workstack create --plan Add_Auth.md                 # Moves plan to .PLAN.md
 ```
 
-**What it does:**
-1. Creates worktree at `<workstacks_root>/<repo-name>/<name>/`
-2. Creates and checks out new branch
-3. Writes `.env` file with configured environment variables
-4. Writes `activate.sh` script (executable)
-5. Moves plan file to `.PLAN.md` if `--plan` specified
-6. Runs post-create commands from config
+### `workstack co BRANCH [--name NAME]`
+Checkout existing branch into worktree.
 
-### `workstack co BRANCH [--name NAME] [--no-post]`
-
-Create a worktree by checking out an existing branch.
-
-**Examples:**
 ```bash
-# Checkout existing branch "feature/login"
 workstack co feature/login
-
-# Checkout with custom worktree name
 workstack co feature/login --name login-work
 ```
 
-### `workstack move [NAME] [--to-branch BRANCH] [--no-post]`
+### `workstack move [NAME] [--to-branch BRANCH]`
+Move current branch to worktree, switch to different branch.
 
-Move the current branch to a new worktree and switch current directory to a different branch.
-
-**Examples:**
 ```bash
-# Move current branch to worktree, switch to main
-workstack move
-
-# Move with custom name and target branch
-workstack move my-feature --to-branch develop
+workstack move                     # Move to worktree, switch to main
+workstack move feat --to-branch develop
 ```
 
-**What it does:**
-1. Detects current branch
-2. Switches current worktree to target branch (defaults to `main` or `master`)
-3. Creates new worktree with the original branch
-4. Sets up environment and runs post-create commands
-
 ### `workstack switch NAME [--script]`
+Switch to worktree (or `.` for root repo).
 
-Print shell code to switch to a worktree.
-
-**Usage:**
 ```bash
-# With instructions (default)
-workstack switch feature-x
-
-# Direct activation
 source <(workstack switch feature-x --script)
-
-# Switch to root repo
 source <(workstack switch . --script)
 ```
 
-**Special case:** Use `.` as name to switch to root repository.
+**Alias:**
+```bash
+alias ws='source <(workstack switch --script'
+```
 
 ### `workstack list` / `workstack ls`
+List all worktrees.
 
-List all worktrees with activation hints.
-
-**Output:**
-```
-. (root repo: /path/to/repo)
-feature-x (source /path/to/worktrees/repo/feature-x/activate.sh)
-bugfix (source /path/to/worktrees/repo/bugfix/activate.sh)
-```
-
-### `workstack activate-script NAME`
-
-Print activation script for a worktree (useful for regeneration or debugging).
-
-### `workstack rm NAME [-f|--force]`
-
-Remove a worktree directory.
-
-**Examples:**
-```bash
-# Remove with confirmation prompt
-workstack rm feature-x
-
-# Force remove without prompt
-workstack rm feature-x -f
-```
-
-Runs `git worktree remove` first, then deletes the directory.
+### `workstack rm NAME [-f]`
+Remove worktree (with optional force).
 
 ### `workstack completion [bash|zsh|fish]`
+Generate shell completions.
 
-Generate shell completion scripts for tab-completing worktree names.
-
-**Setup examples:**
 ```bash
-# Bash — add to ~/.bashrc
-source <(workstack completion bash)
-
-# Zsh — add to ~/.zshrc
-source <(workstack completion zsh)
-
-# Fish — run once
-workstack completion fish > ~/.config/fish/completions/workstack.fish
+source <(workstack completion bash)  # Add to ~/.bashrc
 ```
-
-After setup, `workstack switch <TAB>` completes worktree names.
 
 ## Workflows
 
-### Plan-based Development with Claude
-
-1. Create a plan file in your Claude session:
-   ```bash
-   # Claude creates: Add_User_Authentication.md
-   ```
-
-2. Create worktree from plan:
-   ```bash
-   workstack create --plan Add_User_Authentication.md
-   ```
-   This:
-   - Derives name: `add-user-authentication`
-   - Creates worktree at `<workstacks_root>/<repo>/add-user-authentication/`
-   - Moves plan to `<worktree>/.PLAN.md`
-
-3. Switch to worktree:
-   ```bash
-   source <(workstack switch add-user-authentication --script)
-   ```
-
-4. Launch Claude:
-   ```bash
-   claude
-   ```
-   Claude automatically reads `.PLAN.md` on launch.
-
-### Branch-based Development
+### AI Development with Claude
 
 ```bash
-# Create worktree for new feature
-workstack create user-auth --ref origin/main
+# 1. Create plan (Claude generates this)
+claude "Create plan for user auth"  # Saves Add_User_Auth.md
 
-# Switch to it
-source <(workstack switch user-auth --script)
+# 2. Create worktree from plan
+workstack create --plan Add_User_Auth.md
 
-# Work on feature...
-
-# When done, switch back to root
-source <(workstack switch . --script)
-
-# Clean up
-workstack rm user-auth
+# 3. Switch and launch Claude
+source <(workstack switch add-user-auth --script)
+claude  # Reads .PLAN.md automatically
 ```
 
-### Moving Existing Work
-
-If you're already on a branch and want to move it to a worktree:
+### Parallel Features
 
 ```bash
-# Currently on branch "experimental-feature"
-workstack move
+workstack create feature-a
+source <(workstack switch feature-a --script)
+# ... work ...
 
-# Current directory switches to main
-# Branch moved to worktree at experimental-feature/
+workstack create feature-b
+source <(workstack switch feature-b --script)
+# ... work ...
+
+source <(workstack switch feature-a --script)  # Back to A
 ```
 
-## Activation Scripts
+### Testing PRs
 
-Each worktree gets an `activate.sh` that:
-1. Changes to the worktree directory
-2. Activates `.venv/bin/activate` if present
-3. Exports variables from `.env`
-
-**Always-available environment variables:**
-- `WORKTREE_PATH` — absolute path to worktree
-- `REPO_ROOT` — absolute path to repository root
-- `WORKTREE_NAME` — worktree name
-
-## Architecture
-
+```bash
+git fetch origin pull/123/head:pr-123
+workstack co pr-123
+source <(workstack switch pr-123 --script)
+pytest
+workstack rm pr-123 -f
 ```
-~/.workstack/
-  config.toml              # Global config
 
-~/worktrees/               # Configurable root
-  my-repo/
-    config.toml            # Repo config
-    feature-a/             # Worktree
-      .git                 # Git worktree metadata
-      .env                 # Environment variables
-      .venv/               # Virtual environment (if created)
-      activate.sh          # Activation script
-      .PLAN.md             # Optional plan file
-      <source files>
-    feature-b/
-      ...
+### Repository-Specific Setup
 
-/path/to/my-repo/          # Original repository
-  .git/                    # Git metadata
-  <source files>
+**Django:**
+```toml
+[env]
+DATABASE_URL = "postgresql://localhost/myproject_{name}"
+
+[post_create]
+shell = "bash"
+commands = [
+  "python -m venv .venv",
+  "source .venv/bin/activate && pip install -e .[dev]",
+  "createdb myproject_{name}",
+  "python manage.py migrate",
+]
 ```
+
+**Dagster:**
+```toml
+[env]
+DAGSTER_GIT_REPO_DIR = "{worktree_path}"
+
+[post_create]
+shell = "bash"
+commands = ["uv venv", "uv run make dev_install"]
+```
+
+## Environment Variables
+
+**Template Variables** (use in `config.toml`):
+- `{worktree_path}` - Absolute path to worktree
+- `{repo_root}` - Absolute path to repository root
+- `{name}` - Worktree name
+
+**Always Available** (exported in `activate.sh`):
+- `WORKTREE_PATH`, `REPO_ROOT`, `WORKTREE_NAME`
+
+## Graphite Integration
+
+If [Graphite CLI](https://graphite.dev/) (`gt`) is installed, `workstack` uses `gt create` instead of `git branch` for new worktrees, ensuring proper stack tracking.
+
+```bash
+brew install withgraphite/tap/graphite
+workstack init  # Auto-detects gt
+```
+
+Manual override in `~/.workstack/config.toml`:
+```toml
+use_graphite = false  # Disable even if gt is installed
+```
+
+## Tips
+
+**Shell aliases:**
+```bash
+alias ws='source <(workstack switch --script'
+alias wc='workstack create'
+alias wl='workstack list'
+source <(workstack completion bash)
+```
+
+**Naming:** Use lowercase with hyphens: `add-user-auth`, `fix-login-bug`
+
+**Cleanup:** `workstack list` → `workstack rm old-feature -f`
 
 ## Development
 
-**Tools:**
-- Package manager: `uv`
-- Linting/formatting: Ruff
-- Type checking: Pyright
-- Testing: Pytest
-
-**Run tests:**
 ```bash
+git clone https://github.com/schrockn/workstack.git
+cd workstack
+uv sync --group dev
 uv run pytest
-uv run pytest --cov=workstack
-```
-
-**Type checking:**
-```bash
+uv run ruff check
 uv run pyright
 ```
 
-**Linting:**
-```bash
-uv run ruff check
-uv run ruff format
-```
+## FAQ
+
+**vs git worktree?** Adds centralized management, auto environment setup, templates, and AI integration.
+
+**Python version?** 3.13+ (earlier may work).
+
+**Non-Python projects?** Yes! Configure `post_create` for any stack.
+
+**Without Graphite?** Works fine, uses standard git commands.
+
+## Links
+
+- **PyPI:** https://pypi.org/project/workstack/
+- **GitHub:** https://github.com/schrockn/workstack
+- **Issues:** https://github.com/schrockn/workstack/issues
+
+## License
+
+MIT - Nick Schrock ([@schrockn](https://github.com/schrockn))
