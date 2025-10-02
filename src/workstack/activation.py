@@ -8,6 +8,7 @@ def render_activation_script(*, worktree_path: Path) -> str:
 
     The script:
       - cds into the worktree
+      - creates .venv with `uv sync` if not present
       - sources `.venv/bin/activate` if present
       - exports variables from `.env` if present
     Works in bash and zsh.
@@ -18,6 +19,11 @@ def render_activation_script(*, worktree_path: Path) -> str:
     lines: list[str] = [
         "# work activate-script",  # comment for visibility
         f"cd {quote(wt)}",
+        "# Create venv if it doesn't exist",
+        f"if [ ! -d {quote(str(worktree_path / '.venv'))} ]; then",
+        "  echo 'Creating virtual environment with uv sync...'",
+        "  uv sync",
+        "fi",
         f"if [ -f {quote(str(venv_activate))} ]; then",
         f"  . {quote(str(venv_activate))}",
         "fi",
