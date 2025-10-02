@@ -1,26 +1,27 @@
 # workstack
 
-**A global git worktree manager that keeps your repository clean while enabling parallel development workflows.**
+**A global git worktree manager that enables the management of multiple git worktrees to parallelize development, primarily for agentic workflows.**
 
-Manage git worktrees in a centralized directory with automatic environment setup, per-worktree configuration, and seamless integration with AI coding assistants.
+Manage git worktrees and Graphite (gt) stacks in a centralized directory with automatic environment setup and per-worktree configuration.
 
 ## Why?
 
-Traditional git workflows force you to stash changes and switch branches constantly. Git worktrees solve this, but managing them manually is tedious. `workstack`:
+Traditional git workflows involve switching branches in a fixed repo at a single file location. This worked well for human workflows, as humans can typically only work on one thing at a time. With the emergence of coding agents, there is now a new need for maintaining parallel copies of repos. git has worktrees to enable this use case, but managing them is tedious and error-prone. `workstack` is designed to have a simple, opinionated workflow around the creation of worktrees that allows fast switching and easy management. It was designed to be used for Python projects managed via `uv` (it relies on fast environment creation) and for projects that use `gt` (Graphite) to manages "stacks", but could be fairly easily generalized by a motivated user. It does fallback to `git`-only operations when `gt` is not available.
 
-- **Centralizes worktrees** in `~/worktrees/<repo>/<feature>/` (configurable)
-- **Auto-configures environments** with `.env`, virtual environments, and activation scripts
-- **Runs setup commands** automatically (install dependencies, migrations, etc.)
-- **Supports multiple repos** with different configurations per repository
+## How it works
+
+You configure a single location for all you worktress (e.g. `~/workstack/worktrees`). As you use `workstack` it creates a folder per repository.
+
+- **Centralizes worktrees** in `~/worktrees/<repo>/<feature>/` (configurable).
+- **Auto-configures environments** with `.env`, virtual environments, and activation scripts. When you switch environments you can set new environment variables and run scripts for setup.
+- **CRUD operations via the cli**: `create`, `ls`, `rm` workstacks
+- **Fast switching**: Fast switching via the `switch` command.
 - **Integrates with AI assistants** via `.PLAN.md` file support
 - **Works with Graphite** for stacked diffs (optional)
 
 ## Installation
 
 ```bash
-# From PyPI
-pip install workstack
-
 # With uv (recommended)
 uv tool install workstack
 
@@ -38,7 +39,7 @@ workstack init
 # 2. Create a worktree
 workstack create user-auth
 
-# 3. Switch to it
+# 3. Switch to it (workstack switch user-path prints out the below for easy copy pasting)
 source <(workstack switch user-auth --script)
 
 # 4. Work on your feature...
@@ -49,6 +50,19 @@ source <(workstack switch . --script)
 # 6. Clean up
 workstack rm user-auth
 ```
+
+## Plan-oriented development
+
+`workstack` comes with a simple, but opinionated workflow for plan-based development. The idea:
+
+* **Plan in master/main**. Leave all work for worktress. Since planning is read-only, you can do planning in parallel without creating multiple worktrees.
+* **Make the plan**: Prompt your agent to create a plan, iterate on it, and then save it as a `md` file at repo root.
+* **Execute the plan**: Then create a `workstack` to execute the plan. `workstack create --plan your_plan.md` will
+   * Automatically create a workstack. Name it based on the name of the plan file.
+   * It will move the plan to the workstack with the name .PLAN.md. On `init` workstack adds this filename to your `.gitignore`. We have found the checking in planning files confuses reviews and adds excessive bookkeeping. This way the agent has access to the plan without polluting source control.
+* **Switch quickly**: You can switch worktrees quickly. Python requires you to source an shell script to activate a virtual environment, so this forces a level of indirection. We recommend either:
+   * `workstack switch .` prints out `source <(workstack switch . --script)` which you can copy and paste or `workstack switch . | pbcopy`
+* **Move branches to a different worktree**: This is annoying without `workstack` because two worktrees cannot point to the same branch. This handles the swapping for you.
 
 ## Core Concepts
 
@@ -86,6 +100,8 @@ commands = [
   "uv pip install -e .",
 ]
 ```
+
+
 
 ## Commands
 
