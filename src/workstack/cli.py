@@ -489,17 +489,14 @@ def _list_worktrees() -> None:
 
 @cli.command("list")
 def list_cmd() -> None:
-    """List worktrees with activation hints.
-
-    Alias: ls
-    """
+    """List worktrees with activation hints (alias: ls)."""
     _list_worktrees()
 
 
 # Register ls as a hidden alias (won't show in help)
 @cli.command("ls", hidden=True)
 def ls_cmd() -> None:
-    """List worktrees with activation hints."""
+    """List worktrees with activation hints (alias of 'list')."""
     _list_worktrees()
 
 
@@ -642,16 +639,8 @@ def co_cmd(branch: str, name: str | None, no_post: bool) -> None:
     click.echo(f"pushd {wt_path} && source activate.sh")
 
 
-@cli.command("rm")
-@click.argument("name", metavar="NAME")
-@click.option("-f", "--force", is_flag=True, help="Do not prompt for confirmation.")
-def rm_cmd(name: str, force: bool) -> None:
-    """Remove the worktree directory.
-
-    With `-f/--force`, skips the confirmation prompt.
-    Attempts `git worktree remove` before deleting the directory.
-    """
-
+def _remove_worktree(name: str, force: bool) -> None:
+    """Internal function to remove a worktree."""
     repo = discover_repo_context(Path.cwd())
     work_dir = ensure_work_dir(repo)
     wt_path = worktree_path_for(work_dir, name)
@@ -677,3 +666,24 @@ def rm_cmd(name: str, force: bool) -> None:
         shutil.rmtree(wt_path)
 
     click.echo(str(wt_path))
+
+
+@cli.command("remove")
+@click.argument("name", metavar="NAME")
+@click.option("-f", "--force", is_flag=True, help="Do not prompt for confirmation.")
+def remove_cmd(name: str, force: bool) -> None:
+    """Remove the worktree directory (alias: rm).
+
+    With `-f/--force`, skips the confirmation prompt.
+    Attempts `git worktree remove` before deleting the directory.
+    """
+    _remove_worktree(name, force)
+
+
+# Register rm as a hidden alias (won't show in help)
+@cli.command("rm", hidden=True)
+@click.argument("name", metavar="NAME")
+@click.option("-f", "--force", is_flag=True, help="Do not prompt for confirmation.")
+def rm_cmd(name: str, force: bool) -> None:
+    """Remove the worktree directory (alias of 'remove')."""
+    _remove_worktree(name, force)

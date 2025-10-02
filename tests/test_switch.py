@@ -1,11 +1,20 @@
 from __future__ import annotations
 
+import os
 import subprocess
 from pathlib import Path
 
 
 def test_switch_command(tmp_path: Path) -> None:
     """Test the switch command outputs activation script."""
+    # Set up isolated global config
+    global_config_dir = tmp_path / ".workstack"
+    global_config_dir.mkdir()
+    workstacks_root = tmp_path / "workstacks"
+    (global_config_dir / "config.toml").write_text(
+        f'workstacks_root = "{workstacks_root}"\nuse_graphite = false\n'
+    )
+
     # Set up a fake git repo
     repo = tmp_path / "repo"
     repo.mkdir()
@@ -18,27 +27,31 @@ def test_switch_command(tmp_path: Path) -> None:
     subprocess.run(["git", "add", "."], cwd=repo, check=True)
     subprocess.run(["git", "commit", "-m", "Initial commit"], cwd=repo, check=True)
 
-    # Create a worktree
+    # Create a worktree using isolated config
+    env = os.environ.copy()
+    env["HOME"] = str(tmp_path)
     result = subprocess.run(
         ["uv", "run", "workstack", "create", "myfeature", "--no-post"],
         cwd=repo,
         capture_output=True,
         text=True,
+        env=env,
     )
-    assert result.returncode == 0
+    assert result.returncode == 0, f"Create failed: {result.stderr}"
 
-    # Run switch command
+    # Run switch command with --script flag
     result = subprocess.run(
-        ["uv", "run", "workstack", "switch", "myfeature"],
+        ["uv", "run", "workstack", "switch", "myfeature", "--script"],
         cwd=repo,
         capture_output=True,
         text=True,
+        env=env,
     )
 
     assert result.returncode == 0
     # Should output shell code with cd command
     assert "cd" in result.stdout
-    assert str(repo / ".workstack" / "myfeature") in result.stdout
+    assert str(workstacks_root / "repo" / "myfeature") in result.stdout
     # Should source activate if venv exists
     assert "activate" in result.stdout
 
@@ -85,6 +98,14 @@ def test_switch_shell_completion(tmp_path: Path) -> None:
 
 def test_switch_to_root(tmp_path: Path) -> None:
     """Test switching to root repo using '.'."""
+    # Set up isolated global config
+    global_config_dir = tmp_path / ".workstack"
+    global_config_dir.mkdir()
+    workstacks_root = tmp_path / "workstacks"
+    (global_config_dir / "config.toml").write_text(
+        f'workstacks_root = "{workstacks_root}"\nuse_graphite = false\n'
+    )
+
     # Set up a fake git repo
     repo = tmp_path / "repo"
     repo.mkdir()
@@ -97,12 +118,15 @@ def test_switch_to_root(tmp_path: Path) -> None:
     subprocess.run(["git", "add", "."], cwd=repo, check=True)
     subprocess.run(["git", "commit", "-m", "Initial commit"], cwd=repo, check=True)
 
-    # Run switch command with "."
+    # Run switch command with "." and --script flag, using isolated config
+    env = os.environ.copy()
+    env["HOME"] = str(tmp_path)
     result = subprocess.run(
-        ["uv", "run", "workstack", "switch", "."],
+        ["uv", "run", "workstack", "switch", ".", "--script"],
         cwd=repo,
         capture_output=True,
         text=True,
+        env=env,
     )
 
     assert result.returncode == 0
@@ -114,6 +138,14 @@ def test_switch_to_root(tmp_path: Path) -> None:
 
 def test_list_includes_root(tmp_path: Path) -> None:
     """Test that list command shows root repo as '.'."""
+    # Set up isolated global config
+    global_config_dir = tmp_path / ".workstack"
+    global_config_dir.mkdir()
+    workstacks_root = tmp_path / "workstacks"
+    (global_config_dir / "config.toml").write_text(
+        f'workstacks_root = "{workstacks_root}"\nuse_graphite = false\n'
+    )
+
     # Set up a fake git repo
     repo = tmp_path / "repo"
     repo.mkdir()
@@ -126,12 +158,15 @@ def test_list_includes_root(tmp_path: Path) -> None:
     subprocess.run(["git", "add", "."], cwd=repo, check=True)
     subprocess.run(["git", "commit", "-m", "Initial commit"], cwd=repo, check=True)
 
-    # Create a worktree
+    # Create a worktree using isolated config
+    env = os.environ.copy()
+    env["HOME"] = str(tmp_path)
     subprocess.run(
         ["uv", "run", "workstack", "create", "myfeature", "--no-post"],
         cwd=repo,
         capture_output=True,
         text=True,
+        env=env,
     )
 
     # List worktrees
@@ -140,6 +175,7 @@ def test_list_includes_root(tmp_path: Path) -> None:
         cwd=repo,
         capture_output=True,
         text=True,
+        env=env,
     )
 
     assert result.returncode == 0
