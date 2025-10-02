@@ -489,11 +489,15 @@ def _list_worktrees() -> None:
 
 @cli.command("list")
 def list_cmd() -> None:
-    """List worktrees with activation hints."""
+    """List worktrees with activation hints.
+
+    Alias: ls
+    """
     _list_worktrees()
 
 
-@cli.command("ls")
+# Register ls as a hidden alias (won't show in help)
+@cli.command("ls", hidden=True)
 def ls_cmd() -> None:
     """List worktrees with activation hints."""
     _list_worktrees()
@@ -564,11 +568,15 @@ def init_cmd(force: bool, preset: str) -> None:
             additions.append(".PLAN.md")
 
         if additions:
-            if not gitignore_content.endswith("\n"):
-                gitignore_content += "\n"
-            gitignore_content += "\n".join(additions) + "\n"
-            gitignore_path.write_text(gitignore_content, encoding="utf-8")
-            click.echo(f"Added {', '.join(additions)} to {gitignore_path}")
+            if click.confirm(
+                f"Add {', '.join(additions)} to .gitignore?",
+                default=True,
+            ):
+                if not gitignore_content.endswith("\n"):
+                    gitignore_content += "\n"
+                gitignore_content += "\n".join(additions) + "\n"
+                gitignore_path.write_text(gitignore_content, encoding="utf-8")
+                click.echo(f"Added {', '.join(additions)} to {gitignore_path}")
 
 
 @cli.command("co")
