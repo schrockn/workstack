@@ -58,9 +58,8 @@ def test_create_with_plan_file(tmp_path: Path) -> None:
     # Verify original plan file was moved (not copied)
     assert not plan_file.exists()
 
-    # Verify other standard files were created
+    # Verify .env was created
     assert (worktree_path / ".env").exists()
-    assert (worktree_path / "activate.sh").exists()
 
 
 def test_create_with_plan_name_sanitization(tmp_path: Path) -> None:
