@@ -541,6 +541,15 @@ def switch_cmd(name: str, script: bool) -> None:
         click.echo(f"source <(workstack switch {name} --script)")
 
 
+def _format_worktree_line(name: str, branch: str | None) -> str:
+    """Format a single worktree line with colorization."""
+    name_part = click.style(name, fg="cyan", bold=True)
+    branch_part = click.style(f"[{branch}]", fg="yellow") if branch else ""
+    hint_part = click.style(f"(source <(workstack switch {name} --script))", fg="bright_black")
+    branch_spacing = " " if branch else ""
+    return f"{name_part} {branch_part}{branch_spacing}{hint_part}"
+
+
 def _list_worktrees() -> None:
     """Internal function to list worktrees."""
     repo = discover_repo_context(Path.cwd())
@@ -550,8 +559,7 @@ def _list_worktrees() -> None:
 
     # Show root repo first
     root_branch = branches.get(repo.root)
-    branch_str = f"[{root_branch}] " if root_branch else ""
-    click.echo(f". {branch_str}(root repo: {repo.root})")
+    click.echo(_format_worktree_line(".", root_branch))
 
     # Show worktrees
     work_dir = ensure_work_dir(repo)
@@ -560,10 +568,8 @@ def _list_worktrees() -> None:
     entries = sorted(p for p in work_dir.iterdir() if p.is_dir())
     for p in entries:
         name = p.name
-        # Get branch for this worktree path
         wt_branch = branches.get(p)
-        branch_str = f"[{wt_branch}] " if wt_branch else ""
-        click.echo(f"{name} {branch_str}(source <(workstack switch {name} --script))")
+        click.echo(_format_worktree_line(name, wt_branch))
 
 
 @cli.command("list")
