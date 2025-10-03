@@ -115,7 +115,7 @@ commands = [
 
 Initialize workstack for current repository. Creates config, adds to `.gitignore`.
 
-### `workstack create NAME [--branch BRANCH] [--ref REF] [--plan FILE]`
+### `workstack create NAME [--branch BRANCH] [--ref REF] [--plan FILE] [--move] [--no-post]`
 
 Create worktree with new branch.
 
@@ -123,29 +123,40 @@ Create worktree with new branch.
 workstack create feature-x                          # Branch: work/feature-x
 workstack create fix --branch hotfix/bug --ref main
 workstack create --plan Add_Auth.md                 # Moves plan to .PLAN.md in new worktree
+workstack create --move                             # Move current branch to worktree, switch to main
+workstack create feature-x --no-post                # Skip post-create commands
 ```
 
-### `workstack co BRANCH [--name NAME]`
+**Options:**
+
+- `--move`: Move current branch to new worktree, switch current worktree to main/master
+- `--no-post`: Skip running post-create commands from config.toml
+
+### `workstack co BRANCH [--name NAME] [--no-post]`
 
 Checkout existing branch into worktree.
 
 ```bash
 workstack co feature/login
 workstack co feature/login --name login-work
+workstack co pr-123 --no-post                       # Skip post-create commands
 ```
 
-### `workstack move [NAME] [--to-branch BRANCH]`
+### `workstack move [NAME] [--to-branch BRANCH] [--no-post]`
 
 Move current branch to worktree, switch to different branch.
 
 ```bash
 workstack move                     # Move to worktree, switch to main
 workstack move feat --to-branch develop
+workstack move --no-post           # Skip post-create commands
 ```
+
+**Note:** You can also use `workstack create --move` as an alternative.
 
 ### `workstack switch NAME [--script]`
 
-Switch to worktree (or `.` for root repo).
+Switch to worktree (or `.` for root repo). Supports shell completion for worktree names.
 
 ```bash
 source <(workstack switch feature-x --script)
@@ -155,7 +166,8 @@ source <(workstack switch . --script)
 **Alias:**
 
 ```bash
-alias ws='source <(workstack switch --script'
+# Create a shell function for easy switching
+ws() { source <(workstack switch "$1" --script); }
 ```
 
 ### `workstack list` / `workstack ls`
@@ -164,14 +176,16 @@ List all worktrees.
 
 ### `workstack rm NAME [-f]`
 
-Remove worktree (with optional force).
+Remove worktree (with optional force). Supports shell completion for worktree names.
 
-### `workstack completion [bash|zsh|fish]`
+### `workstack completion bash|zsh|fish`
 
 Generate shell completions.
 
 ```bash
 source <(workstack completion bash)  # Add to ~/.bashrc
+source <(workstack completion zsh)   # Add to ~/.zshrc
+workstack completion fish | source   # For fish shell
 ```
 
 ## Workflows
@@ -275,7 +289,7 @@ use_graphite = false  # Disable even if gt is installed
 **Shell aliases:**
 
 ```bash
-alias ws='source <(workstack switch --script'
+ws() { source <(workstack switch "$1" --script); }
 alias wc='workstack create'
 alias wl='workstack list'
 source <(workstack completion bash)
