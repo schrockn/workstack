@@ -25,7 +25,7 @@ from .core import (
     worktree_path_for,
 )
 from .detect import is_repo_named
-from .git import add_worktree, checkout_branch, get_current_branch, get_worktree_branch
+from .git import add_worktree, checkout_branch, get_current_branch, get_worktree_branches
 
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])  # terse help flags
 
@@ -562,18 +562,13 @@ def _list_worktrees() -> None:
     """Internal function to list worktrees."""
     repo = discover_repo_context(Path.cwd())
 
-    # Show root repo first with branch info
-    root_branch = get_worktree_branch(repo.root)
-    if root_branch:
-        click.echo(
-            click.style(".", bold=True)
-            + " "
-            + click.style(f"[{root_branch}]", fg="cyan")
-            + " "
-            + click.style(f"(root repo: {repo.root})", dim=True)
-        )
-    else:
-        click.echo(click.style(".", bold=True) + " " + click.style(f"(root repo: {repo.root})", dim=True))
+    # Get branch info for all worktrees
+    branches = get_worktree_branches(repo.root)
+
+    # Show root repo first
+    root_branch = branches.get(repo.root)
+    branch_str = f"[{root_branch}] " if root_branch else ""
+    click.echo(f". {branch_str}(root repo: {repo.root})")
 
     # Show worktrees
     work_dir = ensure_work_dir(repo)
@@ -583,19 +578,10 @@ def _list_worktrees() -> None:
     for p in entries:
         name = p.name
         act = p / "activate.sh"
-        branch = get_worktree_branch(p)
-
-        # Format the output with Click's styling
-        if branch:
-            click.echo(
-                click.style(name, bold=True)
-                + " "
-                + click.style(f"[{branch}]", fg="cyan")
-                + " "
-                + click.style(f"(source {act})", dim=True)
-            )
-        else:
-            click.echo(click.style(name, bold=True) + " " + click.style(f"(source {act})", dim=True))
+        # Get branch for this worktree path
+        wt_branch = branches.get(p)
+        branch_str = f"[{wt_branch}] " if wt_branch else ""
+        click.echo(f"{name} {branch_str}(source {act})")
 
 
 @cli.command("list")

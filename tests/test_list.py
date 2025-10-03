@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import subprocess
 from pathlib import Path
 from unittest import mock
 
@@ -37,24 +38,49 @@ def test_list_outputs_names_not_paths() -> None:
         (work_dir / "bar").mkdir(parents=True)
         (work_dir / "bar" / "activate.sh").write_text("#!/bin/bash\n", encoding="utf-8")
 
+        # Mock git worktree list to return branch info
+        git_worktree_output = f"""worktree {cwd}
+HEAD abc123
+branch refs/heads/main
+
+worktree {work_dir / "foo"}
+HEAD def456
+branch refs/heads/work/foo
+
+worktree {work_dir / "bar"}
+HEAD ghi789
+branch refs/heads/feature/bar
+
+"""
+
         # Mock GLOBAL_CONFIG_PATH to use our isolated config
         with mock.patch("workstack.config.GLOBAL_CONFIG_PATH", global_config_dir / "config.toml"):
-            result = runner.invoke(cli, ["list"])
-            assert result.exit_code == 0, result.output
+            # Create a selective mock that only mocks "git worktree list --porcelain"
+            original_run = subprocess.run
 
-            # Strip ANSI codes from output
-            clean_output = strip_ansi(result.output)
-            lines = clean_output.strip().splitlines()
+            def selective_mock_run(cmd, *args, **kwargs):
+                if cmd == ["git", "worktree", "list", "--porcelain"]:
+                    mock_result = mock.Mock()
+                    mock_result.stdout = git_worktree_output
+                    mock_result.returncode = 0
+                    return mock_result
+                return original_run(cmd, *args, **kwargs)
 
-            # First line should be root
-            assert lines[0].startswith(".")
-            assert "root" in lines[0].lower()
+            with mock.patch("workstack.git.subprocess.run", side_effect=selective_mock_run):
+                result = runner.invoke(cli, ["list"])
+                assert result.exit_code == 0, result.output
+                lines = result.output.strip().splitlines()
 
-            # Remaining lines should be worktrees, sorted
-            worktree_lines = sorted(lines[1:])
-            expected_foo = work_dir / "foo" / "activate.sh"
-            expected_bar = work_dir / "bar" / "activate.sh"
-            # The format is now: name [branch] (source path) or name (source path) if no branch
-            # Since we're in a mock environment without real git branches, just check for names and paths
-            assert any("bar" in line and str(expected_bar) in line for line in worktree_lines)
-            assert any("foo" in line and str(expected_foo) in line for line in worktree_lines)
+                # First line should be root with branch
+                assert lines[0].startswith(".")
+                assert "[main]" in lines[0]
+                assert "root" in lines[0].lower()
+
+                # Remaining lines should be worktrees with branches, sorted
+                worktree_lines = sorted(lines[1:])
+                expected_foo = work_dir / "foo" / "activate.sh"
+                expected_bar = work_dir / "bar" / "activate.sh"
+                assert worktree_lines == [
+                    f"bar [feature/bar] (source {expected_bar})",
+                    f"foo [work/foo] (source {expected_foo})",
+                ]

@@ -1,4 +1,10 @@
-.PHONY: format pyright test publish
+.PHONY: format prettier prettier-check pyright test publish
+
+prettier:
+	prettier --write '**/*.md' --ignore-path .gitignore
+
+prettier-check:
+	prettier --check '**/*.md' --ignore-path .gitignore
 
 format:
 	uv run ruff format
