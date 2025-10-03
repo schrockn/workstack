@@ -541,27 +541,6 @@ def switch_cmd(name: str, script: bool) -> None:
         click.echo(f"source <(workstack switch {name} --script)")
 
 
-@cli.command("activate-script")
-@click.argument("name", metavar="NAME", shell_complete=complete_worktree_names)
-def activate_script(name: str) -> None:
-    """Print shell code to activate the worktree env and venv.
-
-    Note: `work create NAME` also writes `activate.sh` which can be
-    sourced directly from the worktree directory.
-    """
-
-    repo = discover_repo_context(Path.cwd())
-    work_dir = ensure_work_dir(repo)
-    wt_path = worktree_path_for(work_dir, name)
-
-    if not wt_path.exists():
-        click.echo(f"Worktree not found: {wt_path}")
-        raise SystemExit(1)
-
-    script = render_activation_script(worktree_path=wt_path)
-    click.echo(script, nl=True)
-
-
 def _list_worktrees() -> None:
     """Internal function to list worktrees."""
     repo = discover_repo_context(Path.cwd())
