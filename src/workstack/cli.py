@@ -50,15 +50,12 @@ def completion_bash() -> None:
       source <(workstack completion bash)
 
     \b
-    To load completions for every new session, execute once:
+    To load completions permanently, add to your ~/.bashrc:
+      echo 'source <(workstack completion bash)' >> ~/.bashrc
 
     \b
-    Linux:
-      workstack completion bash > /etc/bash_completion.d/workstack
-
-    \b
-    macOS:
-      workstack completion bash > $(brew --prefix)/etc/bash_completion.d/workstack
+    Alternatively, you can save the completion script to bash_completion.d:
+      workstack completion bash > /usr/local/etc/bash_completion.d/workstack
 
     \b
     You will need to start a new shell for this setup to take effect.
@@ -87,15 +84,11 @@ def completion_zsh() -> None:
       source <(workstack completion zsh)
 
     \b
-    To load completions for every new session, execute once:
-      mkdir -p ~/.zsh/completion
-      workstack completion zsh > ~/.zsh/completion/_workstack
+    To load completions permanently, add to your ~/.zshrc:
+      echo 'source <(workstack completion zsh)' >> ~/.zshrc
 
     \b
-    Then add to your ~/.zshrc:
-      fpath=(~/.zsh/completion $fpath)
-      autoload -U compinit
-      compinit
+    Note: Make sure compinit is called in your ~/.zshrc after loading completions.
 
     \b
     You will need to start a new shell for this setup to take effect.
@@ -123,8 +116,8 @@ def completion_fish() -> None:
       workstack completion fish | source
 
     \b
-    To load completions for every new session, execute once:
-      workstack completion fish > ~/.config/fish/completions/workstack.fish
+    To load completions permanently:
+      mkdir -p ~/.config/fish/completions && workstack completion fish > ~/.config/fish/completions/workstack.fish
 
     \b
     You will need to start a new shell for this setup to take effect.
@@ -541,13 +534,17 @@ def switch_cmd(name: str, script: bool) -> None:
         click.echo(f"source <(workstack switch {name} --script)")
 
 
-def _format_worktree_line(name: str, branch: str | None) -> str:
+def _format_worktree_line(name: str, branch: str | None, is_root: bool = False) -> str:
     """Format a single worktree line with colorization."""
     name_part = click.style(name, fg="cyan", bold=True)
     branch_part = click.style(f"[{branch}]", fg="yellow") if branch else ""
-    hint_part = click.style(f"(source <(workstack switch {name} --script))", fg="bright_black")
+    root_label = click.style("(root)", fg="bright_black") if is_root else ""
+    hint = f"(source <(workstack switch {name} --script))"
+    hint_part = click.style(hint, fg="bright_black")
     branch_spacing = " " if branch else ""
-    return f"{name_part} {branch_part}{branch_spacing}{hint_part}"
+    root_spacing = " " if is_root else ""
+    parts = [name_part, branch_part, root_label, hint_part]
+    return " ".join(p for p in parts if p)
 
 
 def _list_worktrees() -> None:
@@ -559,7 +556,7 @@ def _list_worktrees() -> None:
 
     # Show root repo first
     root_branch = branches.get(repo.root)
-    click.echo(_format_worktree_line(".", root_branch))
+    click.echo(_format_worktree_line(".", root_branch, is_root=True))
 
     # Show worktrees
     work_dir = ensure_work_dir(repo)
@@ -569,7 +566,7 @@ def _list_worktrees() -> None:
     for p in entries:
         name = p.name
         wt_branch = branches.get(p)
-        click.echo(_format_worktree_line(name, wt_branch))
+        click.echo(_format_worktree_line(name, wt_branch, is_root=False))
 
 
 @cli.command("list")
@@ -741,7 +738,7 @@ def _remove_worktree(name: str, force: bool) -> None:
 
 
 @cli.command("remove")
-@click.argument("name", metavar="NAME")
+@click.argument("name", metavar="NAME", shell_complete=complete_worktree_names)
 @click.option("-f", "--force", is_flag=True, help="Do not prompt for confirmation.")
 def remove_cmd(name: str, force: bool) -> None:
     """Remove the worktree directory (alias: rm).
@@ -754,7 +751,7 @@ def remove_cmd(name: str, force: bool) -> None:
 
 # Register rm as a hidden alias (won't show in help)
 @cli.command("rm", hidden=True)
-@click.argument("name", metavar="NAME")
+@click.argument("name", metavar="NAME", shell_complete=complete_worktree_names)
 @click.option("-f", "--force", is_flag=True, help="Do not prompt for confirmation.")
 def rm_cmd(name: str, force: bool) -> None:
     """Remove the worktree directory (alias of 'remove')."""
