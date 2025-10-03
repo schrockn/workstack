@@ -95,3 +95,25 @@ def checkout_branch(repo_root: Path, branch: str) -> None:
     Runs `git checkout <branch>`.
     """
     subprocess.run(["git", "checkout", branch], cwd=repo_root, check=True)
+
+
+def get_worktree_branch(worktree_path: Path) -> str | None:
+    """Get the branch name for a specific worktree.
+
+    Returns None if the worktree is in detached HEAD state or if the branch
+    cannot be determined.
+    """
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+            cwd=worktree_path,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        branch = result.stdout.strip()
+        if branch == "HEAD":
+            return None
+        return branch
+    except subprocess.CalledProcessError:
+        return None
