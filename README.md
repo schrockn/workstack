@@ -80,7 +80,7 @@ workstack rm user-auth
   your-repo/
     config.toml                   # Repo-specific config
     user-auth/                    # Worktree
-      .git, .env, .venv/, activate.sh, .PLAN.md, <source>
+      .git, .env, .venv/, .PLAN.md, <source>
     refactor-api/
       ...
 ```
@@ -251,7 +251,7 @@ commands = ["uv venv", "uv run make dev_install"]
 - `{repo_root}` - Absolute path to repository root
 - `{name}` - Worktree name
 
-**Always Available** (exported in `activate.sh`):
+**Always Available** (exported when using `workstack switch`):
 
 - `WORKTREE_PATH`, `REPO_ROOT`, `WORKTREE_NAME`
 

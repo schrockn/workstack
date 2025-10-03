@@ -34,9 +34,7 @@ def test_list_outputs_names_not_paths() -> None:
         repo_name = cwd.name
         work_dir = workstacks_root / repo_name
         (work_dir / "foo").mkdir(parents=True)
-        (work_dir / "foo" / "activate.sh").write_text("#!/bin/bash\n", encoding="utf-8")
         (work_dir / "bar").mkdir(parents=True)
-        (work_dir / "bar" / "activate.sh").write_text("#!/bin/bash\n", encoding="utf-8")
 
         # Mock git worktree list to return branch info
         git_worktree_output = f"""worktree {cwd}
@@ -78,9 +76,7 @@ branch refs/heads/feature/bar
 
                 # Remaining lines should be worktrees with branches, sorted
                 worktree_lines = sorted(lines[1:])
-                expected_foo = work_dir / "foo" / "activate.sh"
-                expected_bar = work_dir / "bar" / "activate.sh"
                 assert worktree_lines == [
-                    f"bar [feature/bar] (source {expected_bar})",
-                    f"foo [work/foo] (source {expected_foo})",
+                    "bar [feature/bar] (source <(workstack switch bar --script))",
+                    "foo [work/foo] (source <(workstack switch foo --script))",
                 ]

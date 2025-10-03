@@ -311,12 +311,6 @@ def create(
     env_content = make_env_content(cfg, worktree_path=wt_path, repo_root=repo.root, name=name)
     (wt_path / ".env").write_text(env_content, encoding="utf-8")
 
-    # Write activation script and make it executable
-    act_path = wt_path / "activate.sh"
-    act_content = render_activation_script(worktree_path=wt_path)
-    act_path.write_text(act_content, encoding="utf-8")
-    os.chmod(act_path, 0o755)
-
     # Move plan file if provided
     if plan_file:
         plan_dest = wt_path / ".PLAN.md"
@@ -335,10 +329,10 @@ def create(
     if move:
         click.echo(f"Moved branch '{branch}' to worktree: {wt_path}")
         click.echo(f"Current worktree switched to branch: {to_branch}")
-        click.echo(f"To activate the new worktree: source <(workstack switch {name})")
+        click.echo(f"To activate the new worktree: source <(workstack switch {name} --script)")
     else:
         click.echo(str(wt_path))
-        click.echo(f"pushd {wt_path} && source activate.sh")
+        click.echo(f"source <(workstack switch {name} --script)")
 
 
 def run_commands_in_worktree(
@@ -451,12 +445,6 @@ def move_cmd(name: str | None, to_branch: str | None, no_post: bool) -> None:
     env_content = make_env_content(cfg, worktree_path=wt_path, repo_root=repo.root, name=name)
     (wt_path / ".env").write_text(env_content, encoding="utf-8")
 
-    # Write activation script and make it executable
-    act_path = wt_path / "activate.sh"
-    act_content = render_activation_script(worktree_path=wt_path)
-    act_path.write_text(act_content, encoding="utf-8")
-    os.chmod(act_path, 0o755)
-
     # Post-create commands
     if not no_post and cfg.post_create_commands:
         click.echo("Running post-create commands...")
@@ -468,7 +456,7 @@ def move_cmd(name: str | None, to_branch: str | None, no_post: bool) -> None:
 
     click.echo(f"Moved branch '{current_branch}' to worktree: {wt_path}")
     click.echo(f"Current worktree switched to branch: {to_branch}")
-    click.echo(f"To activate the new worktree: source <(workstack switch {name})")
+    click.echo(f"To activate the new worktree: source <(workstack switch {name} --script)")
 
 
 def complete_worktree_names(
@@ -511,11 +499,27 @@ def switch_cmd(name: str, script: bool) -> None:
 
     # Handle special case: "." means root repo
     if name == ".":
-        # Just cd to root, no activation script
         root_path = repo.root
         if script:
+            # Generate activation script for root repo (similar to worktrees)
+            venv_path = root_path / ".venv"
+            venv_activate = venv_path / "bin" / "activate"
+
             lines = [
+                "# work activate-script (root repo)",
                 f"cd '{str(root_path)}'",
+                "# Create venv if it doesn't exist",
+                f"if [ ! -d '{str(venv_path)}' ]; then",
+                "  echo 'Creating virtual environment with uv sync...'",
+                "  uv sync",
+                "fi",
+                f"if [ -f '{str(venv_activate)}' ]; then",
+                f"  . '{str(venv_activate)}'",
+                "fi",
+                "# Load .env into the environment (allexport)",
+                "set -a",
+                "if [ -f ./.env ]; then . ./.env; fi",
+                "set +a",
                 'echo "Switched to root repo: $(pwd)"',
             ]
             click.echo("\n".join(lines) + "\n", nl=True)
@@ -577,11 +581,10 @@ def _list_worktrees() -> None:
     entries = sorted(p for p in work_dir.iterdir() if p.is_dir())
     for p in entries:
         name = p.name
-        act = p / "activate.sh"
         # Get branch for this worktree path
         wt_branch = branches.get(p)
         branch_str = f"[{wt_branch}] " if wt_branch else ""
-        click.echo(f"{name} {branch_str}(source {act})")
+        click.echo(f"{name} {branch_str}(source <(workstack switch {name} --script))")
 
 
 @cli.command("list")
@@ -649,28 +652,21 @@ def init_cmd(force: bool, preset: str) -> None:
     cfg_path.write_text(content, encoding="utf-8")
     click.echo(f"Wrote {cfg_path}")
 
-    # Check for .gitignore and add activate.sh and .PLAN.md
+    # Check for .gitignore and add .PLAN.md
     gitignore_path = repo.root / ".gitignore"
     if gitignore_path.exists():
         gitignore_content = gitignore_path.read_text(encoding="utf-8")
-        additions = []
-
-        if "activate.sh" not in gitignore_content:
-            additions.append("activate.sh")
 
         if ".PLAN.md" not in gitignore_content:
-            additions.append(".PLAN.md")
-
-        if additions:
             if click.confirm(
-                f"Add {', '.join(additions)} to .gitignore?",
+                "Add .PLAN.md to .gitignore?",
                 default=True,
             ):
                 if not gitignore_content.endswith("\n"):
                     gitignore_content += "\n"
-                gitignore_content += "\n".join(additions) + "\n"
+                gitignore_content += ".PLAN.md\n"
                 gitignore_path.write_text(gitignore_content, encoding="utf-8")
-                click.echo(f"Added {', '.join(additions)} to {gitignore_path}")
+                click.echo(f"Added .PLAN.md to {gitignore_path}")
 
 
 @cli.command("co")
@@ -717,12 +713,6 @@ def co_cmd(branch: str, name: str | None, no_post: bool) -> None:
     env_content = make_env_content(cfg, worktree_path=wt_path, repo_root=repo.root, name=name)
     (wt_path / ".env").write_text(env_content, encoding="utf-8")
 
-    # Write activation script and make it executable
-    act_path = wt_path / "activate.sh"
-    act_content = render_activation_script(worktree_path=wt_path)
-    act_path.write_text(act_content, encoding="utf-8")
-    os.chmod(act_path, 0o755)
-
     # Post-create commands
     if not no_post and cfg.post_create_commands:
         click.echo("Running post-create commands...")
@@ -733,7 +723,7 @@ def co_cmd(branch: str, name: str | None, no_post: bool) -> None:
         )
 
     click.echo(str(wt_path))
-    click.echo(f"pushd {wt_path} && source activate.sh")
+    click.echo(f"source <(workstack switch {name} --script)")
 
 
 def _remove_worktree(name: str, force: bool) -> None:
