@@ -13,6 +13,7 @@ from .config import (
     GLOBAL_CONFIG_PATH,
     create_global_config,
     detect_graphite,
+    discover_presets,
     load_config,
     load_global_config,
     render_config_template,
@@ -583,15 +584,36 @@ def ls_cmd() -> None:
 @click.option("--force", is_flag=True, help="Overwrite existing repo config if present.")
 @click.option(
     "--preset",
-    type=click.Choice(["auto", "generic", "dagster"], case_sensitive=False),
+    type=str,
     default="auto",
     help=(
-        "Config template to use. 'auto' detects Dagster repos by project files; "
-        "'generic' writes a commented template; 'dagster' forces that preset."
+        "Config template to use. 'auto' detects preset based on repo characteristics. "
+        f"Available: auto, {', '.join(discover_presets())}."
     ),
 )
-def init_cmd(force: bool, preset: str) -> None:
+@click.option(
+    "--list-presets",
+    is_flag=True,
+    help="List available presets and exit.",
+)
+def init_cmd(force: bool, preset: str, list_presets: bool) -> None:
     """Initialize workstack for this repo and scaffold config.toml."""
+
+    # Discover available presets on demand
+    available_presets = discover_presets()
+    valid_choices = ["auto"] + available_presets
+
+    # Handle --list-presets flag
+    if list_presets:
+        click.echo("Available presets:")
+        for p in available_presets:
+            click.echo(f"  - {p}")
+        return
+
+    # Validate preset choice
+    if preset not in valid_choices:
+        click.echo(f"Invalid preset '{preset}'. Available options: {', '.join(valid_choices)}")
+        raise SystemExit(1)
 
     # Check for global config first
     if not GLOBAL_CONFIG_PATH.exists():
@@ -621,9 +643,7 @@ def init_cmd(force: bool, preset: str) -> None:
     effective_preset: str | None
     choice = preset.lower()
     if choice == "auto":
-        effective_preset = "dagster" if is_repo_named(repo.root, "dagster") else None
-    elif choice == "generic":
-        effective_preset = None
+        effective_preset = "dagster" if is_repo_named(repo.root, "dagster") else "generic"
     else:
         effective_preset = choice
 

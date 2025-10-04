@@ -90,40 +90,29 @@ def load_config(config_dir: Path) -> LoadedConfig:
     return LoadedConfig(env=env, post_create_commands=commands, post_create_shell=shell)
 
 
+def discover_presets() -> list[str]:
+    """Discover available preset names by scanning the presets directory.
+
+    Returns a list of preset names (without .toml extension).
+    """
+    presets_dir = Path(__file__).parent / "presets"
+    if not presets_dir.exists():
+        return []
+
+    return sorted(p.stem for p in presets_dir.glob("*.toml") if p.is_file())
+
+
 def render_config_template(preset: str | None = None) -> str:
     """Return default config TOML content, optionally using a preset.
 
-    Presets:
-      - "dagster": sets DAGSTER_GIT_REPO_DIR and sensible post-create commands.
+    If preset is None, uses the "generic" preset by default.
+    Preset files are loaded from src/workstack/presets/<preset>.toml
     """
+    preset_name = preset if preset is not None else "generic"
+    presets_dir = Path(__file__).parent / "presets"
+    preset_file = presets_dir / f"{preset_name}.toml"
 
-    header = """# work config for this repository
-# Available template variables: {worktree_path}, {repo_root}, {name}
-"""
+    if not preset_file.exists():
+        raise ValueError(f"Preset '{preset_name}' not found at {preset_file}")
 
-    if preset == "dagster":
-        body = """
-[env]
-DAGSTER_GIT_REPO_DIR = "{worktree_path}"
-
-[post_create]
-shell = "bash"
-commands = [
-  "uv venv",
-  "uv run make dev_install",
-]
-"""
-    else:
-        body = """
-[env]
-# EXAMPLE_KEY = "{worktree_path}"
-
-[post_create]
-# shell = "bash"
-# commands = [
-#   "uv venv",
-#   "uv run make dev_install",
-# ]
-"""
-
-    return header + "\n" + body.lstrip("\n")
+    return preset_file.read_text(encoding="utf-8")
