@@ -8,21 +8,21 @@ Manage `git` worktrees and Graphite (`gt`) stacks in a centralized directory wit
 
 Traditional `git` workflows involve switching branches in a fixed repo at a single file location. This worked well for human workflows, as humans can typically only work on one thing at a time.
 
-With the emergence of coding agents, there is now a new need for maintaining parallel copies of repos. `git` has worktrees, which theorectically enable this use case, but managing them is tedious and error-prone.
+With the emergence of coding agents, there is now a new need for maintaining parallel copies of repos. `git` has worktrees, which theoretically enable this use case, but managing them is tedious and error-prone.
 
-`workstack` is designed to have a simple, opinionated workflow around the creation of worktrees that allows fast switching and easy management. It was designed to be used for Python projects managed via `uv` (it relies on fast environment creation) and for projects that use `gt` (Graphite) to manages "stacks", but could be fairly easily generalized by a motivated user.
+`workstack` is designed to have a simple, opinionated workflow around the creation of worktrees that allows fast switching and easy management. It was designed to be used for Python projects managed via `uv` (it relies on fast environment creation) and for projects that use `gt` (Graphite) to manage "stacks", but could be fairly easily generalized by a motivated user.
 
-It does fallback to `git`-only operations when `gt` is not available.
+It falls back to `git`-only operations when `gt` is not available.
 
 ## How it works
 
-You configure a single location for all you worktress (e.g. `~/workstack/worktrees`). As you use `workstack` it creates a folder per repository.
+You configure a single location for all your worktrees (e.g. `~/workstack/worktrees`). As you use `workstack` it creates a folder per repository.
 
 - **Centralizes worktrees** in `~/worktrees/<repo>/<feature>/` (configurable).
 - **Auto-configures environments** with `.env`, virtual environments, and activation scripts. When you switch environments you can set new environment variables and run scripts for setup.
-- **CRUD operations via the cli**: `create`, `ls`, and `rm`.
+- **CRUD operations via the CLI**: `create`, `ls`, and `rm`.
 - **Fast switching**: Fast switching via the `switch` command.
-- **Opinioned workflow with planning.** `workstack create --plan`
+- **Opinionated workflow with planning.** `workstack create --plan`
 - **Works with Graphite** for stacked diffs (optional)
 
 ## Installation
@@ -45,13 +45,13 @@ workstack init
 # 2. Create a worktree
 workstack create user-auth
 
-# 3. Switch to it (workstack switch user-path prints out the below for easy copy pasting)
-source <(workstack switch user-auth --script)
+# 3. Switch to it (copy and paste the command into your shell)
+workstack switch user-auth | pbcopy
 
 # 4. Work on your feature...
 
-# 5. Switch back
-source <(workstack switch . --script)
+# 5. Switch back (copy and paste the command into your shell)
+workstack switch . | pbcopy
 
 # 6. Clean up
 workstack rm user-auth
@@ -61,12 +61,12 @@ workstack rm user-auth
 
 `workstack` comes with a simple, but opinionated workflow for plan-based development. The idea:
 
-- **Plan in master/main**. Leave all work for worktress. Since planning is read-only, you can do planning in parallel without creating multiple worktrees.
-- **Make the plan**: Prompt your agent to create a plan, iterate on it, and then save it as a `md` file at repo root.
+- **Plan in master/main**. Leave all work for worktrees. Since planning is read-only, you can do planning in parallel without creating multiple worktrees.
+- **Make the plan**: Prompt your agent to create a plan, iterate on it, and then save it as an `.md` file at repo root.
 - **Execute the plan**: Then create a `workstack` to execute the plan. `workstack create --plan your_plan.md` will
   - Automatically create a workstack. Name it based on the name of the plan file.
-  - It will move the plan to the workstack with the name .PLAN.md. On `init` workstack adds this filename to your `.gitignore`. We have found the checking in planning files confuses reviews and adds excessive bookkeeping. This way the agent has access to the plan without polluting source control.
-- **Switch quickly**: You can switch worktrees quickly. Python requires you to source an shell script to activate a virtual environment, so this forces a level of indirection. We recommend either:
+  - It will move the plan to the workstack with the name .PLAN.md. On `init` workstack adds this filename to your `.gitignore`. We have found that checking in planning files confuses reviews and adds excessive bookkeeping. This way the agent has access to the plan without polluting source control.
+- **Switch quickly**: You can switch worktrees quickly. Python requires you to source a shell script to activate a virtual environment, so this forces a level of indirection. We recommend either:
   - `workstack switch .` prints out `source <(workstack switch . --script)` which you can copy and paste or `workstack switch . | pbcopy`
 - **Move branches to a different worktree**: This is annoying without `workstack` because two worktrees cannot point to the same branch. This handles the swapping for you. `workstack move your-stack` just works.
 
@@ -228,8 +228,8 @@ claude "Create plan for user auth"  # Saves Add_User_Auth.md
 # 2. Create worktree from plan
 workstack create --plan Add_User_Auth.md
 
-# 3. Switch and launch Claude
-source <(workstack switch add-user-auth --script)
+# 3. Switch and launch Claude (copy and paste the command into your shell)
+workstack switch add-user-auth | pbcopy
 claude  # Reads .PLAN.md automatically
 ```
 
@@ -237,14 +237,14 @@ claude  # Reads .PLAN.md automatically
 
 ```bash
 workstack create feature-a
-source <(workstack switch feature-a --script)
+workstack switch feature-a | pbcopy  # Copy and paste into shell
 # ... work ...
 
 workstack create feature-b
-source <(workstack switch feature-b --script)
+workstack switch feature-b | pbcopy  # Copy and paste into shell
 # ... work ...
 
-source <(workstack switch feature-a --script)  # Back to A
+workstack switch feature-a | pbcopy  # Back to A - copy and paste into shell
 ```
 
 ### Testing PRs
@@ -252,7 +252,7 @@ source <(workstack switch feature-a --script)  # Back to A
 ```bash
 git fetch origin pull/123/head:pr-123
 workstack co pr-123
-source <(workstack switch pr-123 --script)
+workstack switch pr-123 | pbcopy  # Copy and paste into shell
 pytest
 workstack rm pr-123 -f
 ```
