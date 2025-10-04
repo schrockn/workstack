@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import json
 import subprocess
 from pathlib import Path
+
+import click
 
 
 def add_worktree(
@@ -136,3 +139,58 @@ def get_worktree_branches(repo_root: Path) -> dict[Path, str | None]:
         worktrees[current_path] = None
 
     return worktrees
+
+
+def get_pr_status(
+    repo_root: Path, branch: str, debug: bool = False
+) -> tuple[str | None, int | None, str | None]:
+    """Get PR status for a branch using GitHub CLI.
+
+    Returns tuple of (state, pr_number, title) where:
+    - state is "MERGED", "CLOSED", "OPEN", or None if no PR found
+    - pr_number is the PR number or None
+    - title is the PR title or None
+
+    Requires gh CLI to be installed.
+    """
+
+    def debug_print(msg: str) -> None:
+        if debug:
+            click.echo(click.style(msg, fg="bright_black"))
+
+    try:
+        # Check merged PRs first
+        for state in ["merged", "closed", "open"]:
+            cmd = [
+                "gh",
+                "pr",
+                "list",
+                "--state",
+                state,
+                "--head",
+                branch,
+                "--json",
+                "state,number,title",
+            ]
+
+            debug_print(f"  $ {' '.join(cmd)}")
+
+            result = subprocess.run(
+                cmd,
+                cwd=repo_root,
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+
+            prs = json.loads(result.stdout)
+            if prs:
+                # Take the first PR (should only be one per branch)
+                pr = prs[0]
+                return pr.get("state"), pr.get("number"), pr.get("title")
+
+        return None, None, None
+
+    except (subprocess.CalledProcessError, FileNotFoundError, json.JSONDecodeError):
+        # gh not installed, not authenticated, or other error
+        return None, None, None
