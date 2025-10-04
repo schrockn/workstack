@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from workstack.naming import (
     default_branch_for_worktree,
     sanitize_branch_component,

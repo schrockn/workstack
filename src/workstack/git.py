@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import json
 import subprocess
 from pathlib import Path
@@ -151,7 +149,11 @@ def get_pr_status(
     - pr_number is the PR number or None
     - title is the PR title or None
 
-    Requires gh CLI to be installed.
+    Returns (None, None, None) if gh CLI is not installed or not authenticated.
+
+    Note: Uses try/except as an acceptable error boundary for handling gh CLI
+    availability and authentication. We cannot reliably check gh installation
+    and authentication status a priori without duplicating gh's logic.
     """
 
     def debug_print(msg: str) -> None:
@@ -192,5 +194,5 @@ def get_pr_status(
         return None, None, None
 
     except (subprocess.CalledProcessError, FileNotFoundError, json.JSONDecodeError):
-        # gh not installed, not authenticated, or other error
+        # gh not installed, not authenticated, or JSON parsing failed
         return None, None, None

@@ -1,8 +1,7 @@
-from __future__ import annotations
-
+import subprocess
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Mapping
 
 from .config import LoadedConfig, load_global_config
 
@@ -26,8 +25,6 @@ def discover_repo_context(start: Path) -> RepoContext:
     Note: Properly handles git worktrees by finding the main repository root,
     not the worktree's .git file.
     """
-    import subprocess
-
     cur = start.resolve()
 
     # Use git to find the true repository root (handles worktrees correctly)

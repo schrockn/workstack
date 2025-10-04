@@ -1,9 +1,8 @@
-from __future__ import annotations
-
 import os
 import shlex
 import shutil
 import subprocess
+import sys
 from collections.abc import Iterable
 from pathlib import Path
 
@@ -31,7 +30,9 @@ from .git import (
     get_current_branch,
     get_pr_status,
     get_worktree_branches,
+    remove_worktree,
 )
+from .naming import default_branch_for_worktree, sanitize_worktree_name
 
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])  # terse help flags
 
@@ -66,9 +67,6 @@ def completion_bash() -> None:
     \b
     You will need to start a new shell for this setup to take effect.
     """
-    import shutil
-    import sys
-
     # Find the workstack executable
     workstack_exe = shutil.which("workstack")
     if not workstack_exe:
@@ -99,8 +97,6 @@ def completion_zsh() -> None:
     \b
     You will need to start a new shell for this setup to take effect.
     """
-    import sys
-
     # Find the workstack executable
     workstack_exe = shutil.which("workstack")
     if not workstack_exe:
@@ -123,13 +119,12 @@ def completion_fish() -> None:
 
     \b
     To load completions permanently:
-      mkdir -p ~/.config/fish/completions && workstack completion fish > ~/.config/fish/completions/workstack.fish
+      mkdir -p ~/.config/fish/completions && \\
+      workstack completion fish > ~/.config/fish/completions/workstack.fish
 
     \b
     You will need to start a new shell for this setup to take effect.
     """
-    import sys
-
     # Find the workstack executable
     workstack_exe = shutil.which("workstack")
     if not workstack_exe:
@@ -208,12 +203,12 @@ def create(
             current_branch = get_current_branch(Path.cwd())
         except ValueError as e:
             click.echo(f"Error: {e}", err=True)
-            raise SystemExit(1)
-        except subprocess.CalledProcessError:
+            raise SystemExit(1) from e
+        except subprocess.CalledProcessError as e:
             click.echo(
                 "Error: Not in a git repository or unable to determine current branch.", err=True
             )
-            raise SystemExit(1)
+            raise SystemExit(1) from e
 
         # Set branch to current branch and derive name if not provided
         if branch:
@@ -222,8 +217,6 @@ def create(
         branch = current_branch
 
         if not name:
-            from .naming import sanitize_worktree_name
-
             name = sanitize_worktree_name(current_branch)
 
     # Determine the worktree name (for non-move cases)
@@ -233,8 +226,6 @@ def create(
                 click.echo("Cannot specify both NAME and --plan. Use one or the other.")
                 raise SystemExit(1)
             # Derive name from plan filename (strip extension)
-            from .naming import sanitize_worktree_name
-
             plan_stem = plan_file.stem  # filename without extension
             name = sanitize_worktree_name(plan_stem)
         elif not name:
@@ -286,7 +277,7 @@ def create(
                         raise SystemExit(1)
             except Exception as e:
                 click.echo(f"Error determining default branch: {e}", err=True)
-                raise SystemExit(1)
+                raise SystemExit(1) from e
 
         # Switch current worktree to the target branch first
         checkout_branch(repo.root, to_branch)
@@ -296,8 +287,6 @@ def create(
     else:
         # Create worktree via git. If no branch provided, derive a sensible default.
         if branch is None:
-            from .naming import default_branch_for_worktree
-
             branch = default_branch_for_worktree(name)
 
         # Get graphite setting from global config
@@ -381,17 +370,15 @@ def move_cmd(name: str | None, to_branch: str | None, no_post: bool) -> None:
         current_branch = get_current_branch(Path.cwd())
     except ValueError as e:
         click.echo(f"Error: {e}", err=True)
-        raise SystemExit(1)
-    except subprocess.CalledProcessError:
+        raise SystemExit(1) from e
+    except subprocess.CalledProcessError as e:
         click.echo(
             "Error: Not in a git repository or unable to determine current branch.", err=True
         )
-        raise SystemExit(1)
+        raise SystemExit(1) from e
 
     # Determine the worktree name
     if not name:
-        from .naming import sanitize_worktree_name
-
         name = sanitize_worktree_name(current_branch)
 
     work_dir = ensure_work_dir(repo)
@@ -431,7 +418,7 @@ def move_cmd(name: str | None, to_branch: str | None, no_post: bool) -> None:
                     raise SystemExit(1)
         except Exception as e:
             click.echo(f"Error determining default branch: {e}", err=True)
-            raise SystemExit(1)
+            raise SystemExit(1) from e
 
     # Switch the current worktree to the target branch first
     # (must do this before creating the new worktree so the branch isn't locked)
@@ -461,7 +448,12 @@ def move_cmd(name: str | None, to_branch: str | None, no_post: bool) -> None:
 def complete_worktree_names(
     ctx: click.Context, param: click.Parameter, incomplete: str
 ) -> list[str]:
-    """Shell completion for worktree names. Includes '.' for root repo."""
+    """Shell completion for worktree names. Includes '.' for root repo.
+
+    This is a shell completion function, which is an acceptable error boundary.
+    Exceptions are caught to provide graceful degradation - if completion fails,
+    we return an empty list rather than breaking the user's shell experience.
+    """
     try:
         repo = discover_repo_context(Path.cwd())
         work_dir = repo.work_dir
@@ -477,6 +469,7 @@ def complete_worktree_names(
 
         return names
     except Exception:
+        # Shell completion error boundary: return empty list for graceful degradation
         return []
 
 
@@ -547,8 +540,6 @@ def _format_worktree_line(name: str, branch: str | None, is_root: bool = False) 
     root_label = click.style("(root)", fg="bright_black") if is_root else ""
     hint = f"(source <(workstack switch {name} --script))"
     hint_part = click.style(hint, fg="bright_black")
-    branch_spacing = " " if branch else ""
-    root_spacing = " " if is_root else ""
     parts = [name_part, branch_part, root_label, hint_part]
     return " ".join(p for p in parts if p)
 
@@ -682,8 +673,6 @@ def co_cmd(branch: str, name: str | None, no_post: bool) -> None:
 
     # Determine the worktree name
     if not name:
-        from .naming import sanitize_worktree_name
-
         name = sanitize_worktree_name(branch)
 
     work_dir = ensure_work_dir(repo)
@@ -715,7 +704,14 @@ def co_cmd(branch: str, name: str | None, no_post: bool) -> None:
 
 
 def _remove_worktree(name: str, force: bool) -> None:
-    """Internal function to remove a worktree."""
+    """Internal function to remove a worktree.
+
+    Uses git worktree remove when possible, but falls back to direct rmtree
+    if git fails (e.g., worktree already removed from git metadata but directory exists).
+    This is acceptable exception handling because there's no reliable way to check
+    a priori if git worktree remove will succeed - the worktree might be in various
+    states of partial removal.
+    """
     repo = discover_repo_context(Path.cwd())
     work_dir = ensure_work_dir(repo)
     wt_path = worktree_path_for(work_dir, name)
@@ -730,9 +726,8 @@ def _remove_worktree(name: str, force: bool) -> None:
             return
 
     # Try to remove via git first; ignore errors and fall back to rmtree
+    # This handles cases where worktree is already removed from git metadata
     try:
-        from .git import remove_worktree
-
         remove_worktree(repo.root, wt_path, force=force)
     except Exception:
         pass
@@ -765,7 +760,13 @@ def rm_cmd(name: str, force: bool) -> None:
 
 
 @cli.command("gc")
-@click.option("--debug", is_flag=True, default=True, help="Show commands being executed.")
+@click.option(
+    "--debug",
+    is_flag=True,
+    # debug=True: Feature in development, keep debug output enabled by default for user feedback
+    default=True,
+    help="Show commands being executed.",
+)
 def gc_cmd(debug: bool) -> None:
     """List workstacks that are safe to delete (merged/closed PRs).
 
@@ -806,7 +807,8 @@ def gc_cmd(debug: bool) -> None:
         # Check if this is a managed workstack
         if not wt_path.parent == work_dir:
             debug_print(
-                f"Skipping non-managed worktree: {wt_path} (parent: {wt_path.parent}, expected: {work_dir})"
+                f"Skipping non-managed worktree: {wt_path} "
+                f"(parent: {wt_path.parent}, expected: {work_dir})"
             )
             continue
 

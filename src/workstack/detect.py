@@ -1,8 +1,6 @@
-from __future__ import annotations
-
-from pathlib import Path
 import re
 import tomllib
+from pathlib import Path
 
 
 def detect_root_project_name(repo_root: Path) -> str | None:
@@ -14,24 +12,18 @@ def detect_root_project_name(repo_root: Path) -> str | None:
 
     root_pyproject = repo_root / "pyproject.toml"
     if root_pyproject.exists():
-        try:
-            data = tomllib.loads(root_pyproject.read_text(encoding="utf-8"))
-            project = data.get("project") or {}
-            name = project.get("name")
-            if isinstance(name, str) and name:
-                return name
-        except Exception:
-            pass
+        data = tomllib.loads(root_pyproject.read_text(encoding="utf-8"))
+        project = data.get("project") or {}
+        name = project.get("name")
+        if isinstance(name, str) and name:
+            return name
 
     setup_py = repo_root / "setup.py"
     if setup_py.exists():
-        try:
-            text = setup_py.read_text(encoding="utf-8")
-            m = re.search(r"name\s*=\s*['\"]([^'\"]+)['\"]", text)
-            if m:
-                return m.group(1)
-        except Exception:
-            pass
+        text = setup_py.read_text(encoding="utf-8")
+        m = re.search(r"name\s*=\s*['\"]([^'\"]+)['\"]", text)
+        if m:
+            return m.group(1)
 
     return None
 

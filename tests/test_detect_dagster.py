@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from pathlib import Path
 
 from workstack.detect import detect_root_project_name, is_repo_named

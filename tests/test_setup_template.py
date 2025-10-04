@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from workstack.config import render_config_template
 
 
