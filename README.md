@@ -178,6 +178,35 @@ List all worktrees.
 
 Remove worktree (with optional force). Supports shell completion for worktree names.
 
+### `workstack gc [--debug]`
+
+List worktrees that are safe to delete (branches with merged or closed PRs).
+
+```bash
+workstack gc  # Check all worktrees for merged/closed PRs
+```
+
+**Features:**
+
+- Uses GitHub CLI (`gh`) to check PR status for each worktree
+- Non-destructive - only lists candidates, doesn't delete anything
+- Shows PR number, state (merged/closed), and suggested cleanup command
+- Debug mode enabled by default during development
+
+**Example output:**
+
+```
+Workstacks safe to delete:
+
+  feature-x [work/feature-x] - merged (PR #123)
+    → workstack rm feature-x
+
+  old-fix [work/old-fix] - closed (PR #456)
+    → workstack rm old-fix
+```
+
+**Requirements:** GitHub CLI (`gh`) must be installed and authenticated.
+
 ### `workstack completion bash|zsh|fish`
 
 Generate shell completions.
