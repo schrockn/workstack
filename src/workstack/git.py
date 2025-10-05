@@ -73,15 +73,34 @@ def get_current_branch(cwd: Path) -> str | None:
 
 
 def detect_default_branch(repo_root: Path) -> str:
-    """Detect the default branch (main or master) for the repository.
+    """Detect the default branch for the repository.
 
-    Checks for 'main' first, then 'master'. Raises SystemExit if neither exists.
+    First tries to get the remote's default branch (origin/HEAD).
+    Falls back to checking if 'main' or 'master' exists.
+    Raises SystemExit if no default branch can be determined.
     """
+    # Try to get the remote's default branch
+    result = subprocess.run(
+        ["git", "symbolic-ref", "refs/remotes/origin/HEAD"],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode == 0:
+        # Format is "refs/remotes/origin/master" or "refs/remotes/origin/main"
+        remote_head = result.stdout.strip()
+        if remote_head.startswith("refs/remotes/origin/"):
+            branch = remote_head.replace("refs/remotes/origin/", "")
+            return branch
+
+    # Fall back to checking existence (for repos without remotes)
     result = subprocess.run(
         ["git", "rev-parse", "--verify", "main"],
         cwd=repo_root,
         capture_output=True,
         text=True,
+        check=False,
     )
     if result.returncode == 0:
         return "main"
@@ -91,6 +110,7 @@ def detect_default_branch(repo_root: Path) -> str:
         cwd=repo_root,
         capture_output=True,
         text=True,
+        check=False,
     )
     if result.returncode == 0:
         return "master"
