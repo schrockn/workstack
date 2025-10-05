@@ -27,7 +27,7 @@ workstack create user-auth
 workstack switch user-auth
 
 # Switch back and clean up
-workstack switch main
+workstack switch root
 workstack rm user-auth
 ```
 
@@ -66,12 +66,23 @@ workstack create --plan Add_Auth.md                # Creates worktree, moves pla
 ### Managing Worktrees
 
 ```bash
-workstack switch NAME            # Switch between worktrees (or 'main'/'master')
+workstack switch NAME            # Switch between worktrees (or 'root' for repo root)
 workstack ls                     # List all worktrees
 workstack rename OLD NEW         # Rename a worktree
 workstack rm NAME                # Remove worktree
 workstack gc                     # Find safe-to-delete worktrees (merged PRs)
 ```
+
+Example output:
+
+```bash
+$ workstack ls
+root [master]
+feature-a [feature-a]
+feature-b [work/feature-b]
+```
+
+Note: The repository root is displayed as `root` and can be accessed with `workstack switch root`.
 
 ### Configuration
 
@@ -135,8 +146,8 @@ workstack switch feature-a  # Instantly back to feature A
 **Workflow:**
 
 ```bash
-# 1. Stay in main branch for planning
-workstack switch main
+# 1. Stay in root repo for planning
+workstack switch root
 
 # 2. Create your plan and save it to disk (e.g. Add_User_Auth.md)
 
@@ -166,7 +177,7 @@ This workflow emerged from experience - checking in planning documents created n
 ```bash
 # Started work on main by accident?
 workstack create --from-current-branch
-# Creates worktree with current branch, switches you back to main
+# Creates worktree with current branch, switches you back to root
 ```
 
 ## Command Reference

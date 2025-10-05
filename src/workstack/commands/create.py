@@ -315,6 +315,11 @@ def create(
     # At this point, name should always be set
     assert name is not None, "name must be set by now"
 
+    # Validate that name is not a reserved word
+    if name.lower() == "root":
+        click.echo('Error: "root" is a reserved name and cannot be used for a worktree.', err=True)
+        raise SystemExit(1)
+
     repo = discover_repo_context(Path.cwd())
     work_dir = ensure_work_dir(repo)
     cfg = load_config(work_dir)

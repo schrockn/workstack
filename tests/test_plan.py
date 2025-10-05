@@ -140,3 +140,88 @@ def test_create_with_both_name_and_plan_fails(tmp_path: Path) -> None:
         "Cannot specify both NAME and --plan" in result.stdout
         or "Cannot specify both NAME and --plan" in result.stderr
     )
+
+
+def test_create_rejects_reserved_name_root(tmp_path: Path) -> None:
+    """Test that 'root' is rejected as a reserved worktree name."""
+    # Set up isolated global config
+    global_config_dir = tmp_path / ".workstack"
+    global_config_dir.mkdir()
+    workstacks_root = tmp_path / "workstacks"
+    (global_config_dir / "config.toml").write_text(
+        f'workstacks_root = "{workstacks_root}"\nuse_graphite = false\n'
+    )
+
+    # Set up a fake git repo
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    subprocess.run(["git", "init"], cwd=repo, check=True)
+    subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=repo, check=True)
+    subprocess.run(["git", "config", "user.name", "Test User"], cwd=repo, check=True)
+
+    # Create an initial commit
+    (repo / "README.md").write_text("test")
+    subprocess.run(["git", "add", "."], cwd=repo, check=True)
+    subprocess.run(["git", "commit", "-m", "Initial commit"], cwd=repo, check=True)
+
+    # Try to create a worktree named "root"
+    env = os.environ.copy()
+    env["HOME"] = str(tmp_path)
+    result = subprocess.run(
+        ["uv", "run", "workstack", "create", "root", "--no-post"],
+        cwd=repo,
+        capture_output=True,
+        text=True,
+        env=env,
+    )
+
+    # Should fail with reserved name error
+    assert result.returncode != 0
+    assert "root" in result.stderr.lower() and "reserved" in result.stderr.lower(), (
+        f"Expected error about 'root' being reserved, got: {result.stderr}"
+    )
+
+    # Verify worktree was not created
+    worktree_path = workstacks_root / "repo" / "root"
+    assert not worktree_path.exists()
+
+
+def test_create_rejects_reserved_name_root_case_insensitive(tmp_path: Path) -> None:
+    """Test that 'ROOT', 'Root', etc. are also rejected (case-insensitive)."""
+    # Set up isolated global config
+    global_config_dir = tmp_path / ".workstack"
+    global_config_dir.mkdir()
+    workstacks_root = tmp_path / "workstacks"
+    (global_config_dir / "config.toml").write_text(
+        f'workstacks_root = "{workstacks_root}"\nuse_graphite = false\n'
+    )
+
+    # Set up a fake git repo
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    subprocess.run(["git", "init"], cwd=repo, check=True)
+    subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=repo, check=True)
+    subprocess.run(["git", "config", "user.name", "Test User"], cwd=repo, check=True)
+
+    # Create an initial commit
+    (repo / "README.md").write_text("test")
+    subprocess.run(["git", "add", "."], cwd=repo, check=True)
+    subprocess.run(["git", "commit", "-m", "Initial commit"], cwd=repo, check=True)
+
+    # Test various cases of "root"
+    for name_variant in ["ROOT", "Root", "RoOt"]:
+        env = os.environ.copy()
+        env["HOME"] = str(tmp_path)
+        result = subprocess.run(
+            ["uv", "run", "workstack", "create", name_variant, "--no-post"],
+            cwd=repo,
+            capture_output=True,
+            text=True,
+            env=env,
+        )
+
+        # Should fail with reserved name error
+        assert result.returncode != 0, f"Expected failure for name '{name_variant}'"
+        assert "reserved" in result.stderr.lower(), (
+            f"Expected error about 'root' being reserved for '{name_variant}', got: {result.stderr}"
+        )

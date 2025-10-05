@@ -3,7 +3,6 @@ from pathlib import Path
 import click
 
 from workstack.core import discover_repo_context, ensure_work_dir, worktree_path_for
-from workstack.git import detect_default_branch
 
 
 def render_activation_script(*, worktree_path: Path) -> str:
@@ -48,7 +47,7 @@ def quote(s: str) -> str:
 def complete_worktree_names(
     ctx: click.Context, param: click.Parameter, incomplete: str
 ) -> list[str]:
-    """Shell completion for worktree names. Includes default branch (main/master) for root repo.
+    """Shell completion for worktree names. Includes 'root' for the repository root.
 
     This is a shell completion function, which is an acceptable error boundary.
     Exceptions are caught to provide graceful degradation - if completion fails,
@@ -58,11 +57,10 @@ def complete_worktree_names(
         repo = discover_repo_context(Path.cwd())
         work_dir = repo.work_dir
 
-        # Include default branch name (main or master) for root repo
+        # Include 'root' for root repo
         names = []
-        default_branch = detect_default_branch(repo.root)
-        if default_branch.startswith(incomplete):
-            names.append(default_branch)
+        if "root".startswith(incomplete):
+            names.append("root")
 
         # Add worktree directories
         if work_dir.exists():
@@ -93,26 +91,14 @@ def switch_cmd(name: str, script: bool) -> None:
     Without shell integration:
       source <(workstack switch NAME --script)
 
-    NAME can be a worktree name, or 'main'/'master' to switch to the root repo.
+    NAME can be a worktree name, or 'root' to switch to the root repo.
     This will cd to the worktree, create/activate .venv, and load .env variables.
     """
 
     repo = discover_repo_context(Path.cwd())
 
-    # Check if name refers to the default branch (main/master) which means root repo
-    default_branch = detect_default_branch(repo.root)
-
-    if name in ("main", "master"):
-        # User is trying to switch to root repo via branch name
-        if name != default_branch:
-            # User specified wrong branch name
-            click.echo(
-                f"Error: This repository uses '{default_branch}' as the default branch, "
-                f"not '{name}'.",
-                err=True,
-            )
-            raise SystemExit(1)
-
+    # Check if name refers to 'root' which means root repo
+    if name == "root":
         # Switch to root repo
         root_path = repo.root
         if script:
@@ -121,7 +107,7 @@ def switch_cmd(name: str, script: bool) -> None:
             venv_activate = venv_path / "bin" / "activate"
 
             lines = [
-                f"# work activate-script (root repo - {default_branch})",
+                "# work activate-script (root repo)",
                 f"cd '{str(root_path)}'",
                 "# Create venv if it doesn't exist",
                 f"if [ ! -d '{str(venv_path)}' ]; then",
@@ -135,14 +121,14 @@ def switch_cmd(name: str, script: bool) -> None:
                 "set -a",
                 "if [ -f ./.env ]; then . ./.env; fi",
                 "set +a",
-                f'echo "Switched to root repo ({default_branch}): $(pwd)"',
+                'echo "Switched to root repo: $(pwd)"',
             ]
             click.echo("\n".join(lines) + "\n", nl=True)
         else:
             click.echo(
                 "Shell integration not detected. Run 'workstack init --shell' to set up automatic activation."
             )
-            click.echo(f"\nOr use: source <(workstack switch {default_branch} --script)")
+            click.echo("\nOr use: source <(workstack switch root --script)")
         return
 
     work_dir = ensure_work_dir(repo)
