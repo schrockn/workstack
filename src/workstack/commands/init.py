@@ -324,10 +324,11 @@ def init_cmd(force: bool, preset: str, list_presets: bool, repo: bool, shell: bo
     cfg_path.write_text(content, encoding="utf-8")
     click.echo(f"Wrote {cfg_path}")
 
-    # Check for .gitignore and add .PLAN.md
+    # Check for .gitignore and add .PLAN.md and .env
     gitignore_path = repo_context.root / ".gitignore"
     if gitignore_path.exists():
         gitignore_content = gitignore_path.read_text(encoding="utf-8")
+        needs_update = False
 
         if ".PLAN.md" not in gitignore_content:
             if click.confirm(
@@ -337,8 +338,21 @@ def init_cmd(force: bool, preset: str, list_presets: bool, repo: bool, shell: bo
                 if not gitignore_content.endswith("\n"):
                     gitignore_content += "\n"
                 gitignore_content += ".PLAN.md\n"
-                gitignore_path.write_text(gitignore_content, encoding="utf-8")
-                click.echo(f"Added .PLAN.md to {gitignore_path}")
+                needs_update = True
+
+        if ".env" not in gitignore_content:
+            if click.confirm(
+                "Add .env to .gitignore?",
+                default=True,
+            ):
+                if not gitignore_content.endswith("\n"):
+                    gitignore_content += "\n"
+                gitignore_content += ".env\n"
+                needs_update = True
+
+        if needs_update:
+            gitignore_path.write_text(gitignore_content, encoding="utf-8")
+            click.echo(f"Updated {gitignore_path}")
 
     # On first-time init, offer shell setup if not already completed
     if first_time_init:

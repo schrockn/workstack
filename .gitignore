@@ -14,3 +14,4 @@ wheels/
 activate.sh
 .workstack
 .PLAN.md
+.env

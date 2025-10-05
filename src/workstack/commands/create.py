@@ -88,9 +88,7 @@ def add_worktree(
     if branch and use_existing_branch:
         # Check out an existing branch in the new worktree
         cmd = ["git", "worktree", "add", str(path), branch]
-        result = subprocess.run(
-            cmd, cwd=repo_root, check=True, capture_output=True, text=True
-        )
+        result = subprocess.run(cmd, cwd=repo_root, check=True, capture_output=True, text=True)
         # Only show the "Preparing worktree" line from git's output
         for line in result.stderr.splitlines():
             if line.startswith("Preparing worktree"):
