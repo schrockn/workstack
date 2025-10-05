@@ -4,8 +4,8 @@ from pathlib import Path
 
 import click
 
-from ..core import discover_repo_context, ensure_work_dir, worktree_path_for
-from .switch import complete_worktree_names
+from workstack.commands.switch import complete_worktree_names
+from workstack.core import discover_repo_context, ensure_work_dir, worktree_path_for
 
 
 def remove_worktree(repo_root: Path, path: Path, *, force: bool) -> None:

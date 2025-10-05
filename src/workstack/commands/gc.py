@@ -4,8 +4,8 @@ from pathlib import Path
 
 import click
 
-from ..core import discover_repo_context, ensure_work_dir
-from ..git import get_worktree_branches
+from workstack.core import discover_repo_context, ensure_work_dir
+from workstack.git import get_worktree_branches
 
 
 def get_pr_status(

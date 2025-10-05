@@ -2,8 +2,8 @@ from pathlib import Path
 
 import click
 
-from ..core import discover_repo_context, ensure_work_dir, worktree_path_for
-from ..git import detect_default_branch
+from workstack.core import discover_repo_context, ensure_work_dir, worktree_path_for
+from workstack.git import detect_default_branch
 
 
 def render_activation_script(*, worktree_path: Path) -> str:

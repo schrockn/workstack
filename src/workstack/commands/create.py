@@ -7,9 +7,9 @@ from pathlib import Path
 
 import click
 
-from ..config import LoadedConfig, load_config, load_global_config
-from ..core import discover_repo_context, ensure_work_dir, worktree_path_for
-from ..git import detect_default_branch
+from workstack.config import LoadedConfig, load_config, load_global_config
+from workstack.core import discover_repo_context, ensure_work_dir, worktree_path_for
+from workstack.git import detect_default_branch
 
 
 _SAFE_COMPONENT_RE = re.compile(r"[^A-Za-z0-9._/-]+")

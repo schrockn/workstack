@@ -4,7 +4,7 @@ This package provides a Click-based CLI for managing git worktrees in a
 global worktrees directory. See `workstack --help` for details.
 """
 
-from .cli import cli
+from workstack.cli import cli
 
 
 def main() -> None:

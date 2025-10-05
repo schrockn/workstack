@@ -1,13 +1,13 @@
 import click
 
-from .commands.completion import completion_group
-from .commands.config import config_group
-from .commands.create import create
-from .commands.gc import gc_cmd
-from .commands.init import init_cmd
-from .commands.list import list_cmd, ls_cmd
-from .commands.remove import remove_cmd, rm_cmd
-from .commands.switch import switch_cmd
+from workstack.commands.completion import completion_group
+from workstack.commands.config import config_group
+from workstack.commands.create import create
+from workstack.commands.gc import gc_cmd
+from workstack.commands.init import init_cmd
+from workstack.commands.list import list_cmd, ls_cmd
+from workstack.commands.remove import remove_cmd, rm_cmd
+from workstack.commands.switch import switch_cmd
 
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])  # terse help flags
 

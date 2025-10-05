@@ -5,8 +5,8 @@ from pathlib import Path
 
 import click
 
-from ..config import GLOBAL_CONFIG_PATH
-from ..core import discover_repo_context, ensure_work_dir
+from workstack.config import GLOBAL_CONFIG_PATH
+from workstack.core import discover_repo_context, ensure_work_dir
 
 
 def detect_root_project_name(repo_root: Path) -> str | None:

@@ -47,7 +47,7 @@ Imports must be organized in three groups (enforced by isort/ruff):
 
 1. **Standard library imports** (e.g., `import os`, `from pathlib import Path`)
 2. **Third-party imports** (e.g., `import click`)
-3. **Local imports** (e.g., `from .config import load_config`)
+3. **Local imports** (e.g., `from workstack.config import load_config`)
 
 Within each group, imports should be alphabetically sorted.
 
@@ -61,14 +61,15 @@ from pathlib import Path
 
 import click
 
-from .activation import render_activation_script
-from .config import load_config
-from .core import discover_repo_context
+from workstack.activation import render_activation_script
+from workstack.config import load_config
+from workstack.core import discover_repo_context
 ```
 
 #### Import Location and Aliasing
 
 - **ALWAYS use top-level (module-scoped) imports** - avoid function-scoped imports except in very rare cases
+- **ALWAYS use absolute imports** - never use relative imports (e.g., use `from workstack.config import load_config` instead of `from .config import load_config`)
 - **DO NOT alias imports with `as`** unless strictly required to resolve naming collisions with third-party packages
 - **Acceptable exceptions for function-scoped imports:**
   1. **TYPE_CHECKING blocks**: Imports only needed for type annotations

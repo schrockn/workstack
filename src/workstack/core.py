@@ -2,7 +2,7 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
-from .config import load_global_config
+from workstack.config import load_global_config
 
 
 @dataclass(frozen=True)
