@@ -38,22 +38,24 @@ uv tool install git+https://github.com/schrockn/workstack.git
 ## Quick Start
 
 ```bash
-# 1. Initialize in your repository
+# 1. Initialize in your repository (sets up shell integration)
 cd /path/to/your/repo
 workstack init
 
-# 2. Create a worktree
+# 2. Reload your shell or run: source ~/.zshrc (or ~/.bashrc)
+
+# 3. Create a worktree
 workstack create user-auth
 
-# 3. Switch to it (copy and paste the command into your shell)
-workstack switch user-auth | pbcopy
+# 4. Switch to it
+workstack switch user-auth
 
-# 4. Work on your feature...
+# 5. Work on your feature...
 
-# 5. Switch back to main/master (copy and paste the command into your shell)
-workstack switch main | pbcopy
+# 6. Switch back to main/master
+workstack switch main
 
-# 6. Clean up
+# 7. Clean up
 workstack rm user-auth
 ```
 
@@ -66,8 +68,7 @@ workstack rm user-auth
 - **Execute the plan**: Then create a `workstack` to execute the plan. `workstack create --plan your_plan.md` will
   - Automatically create a workstack. Name it based on the name of the plan file.
   - It will move the plan to the workstack with the name .PLAN.md. On `init` workstack adds this filename to your `.gitignore`. We have found that checking in planning files confuses reviews and adds excessive bookkeeping. This way the agent has access to the plan without polluting source control.
-- **Switch quickly**: You can switch worktrees quickly. Python requires you to source a shell script to activate a virtual environment, so this forces a level of indirection. We recommend either:
-  - `workstack switch main` prints out `source <(workstack switch main --script)` which you can copy and paste or `workstack switch main | pbcopy`
+- **Switch quickly**: Simply run `workstack switch NAME` to instantly switch worktrees and activate the environment.
 - **Move branches to a different worktree**: This is annoying without `workstack` because two worktrees cannot point to the same branch. This handles the swapping for you. `workstack move your-stack` just works.
 
 ## Core Concepts
@@ -158,17 +159,21 @@ workstack move --no-post           # Skip post-create commands
 
 Switch to worktree or root repo (using 'main' or 'master'). Supports shell completion for worktree names.
 
+**With shell integration (recommended):**
+
+```bash
+workstack switch feature-x
+workstack switch main
+```
+
+**Without shell integration:**
+
 ```bash
 source <(workstack switch feature-x --script)
 source <(workstack switch main --script)
 ```
 
-**Alias:**
-
-```bash
-# Create a shell function for easy switching
-ws() { source <(workstack switch "$1" --script); }
-```
+**Shell integration** is automatically set up during `workstack init`. To set up later or on a different machine, run `workstack init --shell`.
 
 ### `workstack list` / `workstack ls`
 
@@ -209,12 +214,20 @@ Workstacks safe to delete:
 
 ### `workstack completion bash|zsh|fish`
 
-Generate shell completions.
+Generate shell completions. Shell integration (completion + auto-activation) is automatically set up during `workstack init`.
+
+**Manual setup:**
 
 ```bash
 source <(workstack completion bash)  # Add to ~/.bashrc
 source <(workstack completion zsh)   # Add to ~/.zshrc
 workstack completion fish | source   # For fish shell
+```
+
+**Automatic setup:**
+
+```bash
+workstack init --shell  # Sets up both completion and auto-activation wrapper
 ```
 
 ## Workflows
@@ -228,8 +241,8 @@ claude "Create plan for user auth"  # Saves Add_User_Auth.md
 # 2. Create worktree from plan
 workstack create --plan Add_User_Auth.md
 
-# 3. Switch and launch Claude (copy and paste the command into your shell)
-workstack switch add-user-auth | pbcopy
+# 3. Switch and launch Claude
+workstack switch add-user-auth
 claude  # Reads .PLAN.md automatically
 ```
 
@@ -237,14 +250,14 @@ claude  # Reads .PLAN.md automatically
 
 ```bash
 workstack create feature-a
-workstack switch feature-a | pbcopy  # Copy and paste into shell
+workstack switch feature-a
 # ... work ...
 
 workstack create feature-b
-workstack switch feature-b | pbcopy  # Copy and paste into shell
+workstack switch feature-b
 # ... work ...
 
-workstack switch feature-a | pbcopy  # Back to A - copy and paste into shell
+workstack switch feature-a  # Back to A
 ```
 
 ### Testing PRs
@@ -252,7 +265,7 @@ workstack switch feature-a | pbcopy  # Back to A - copy and paste into shell
 ```bash
 git fetch origin pull/123/head:pr-123
 workstack co pr-123
-workstack switch pr-123 | pbcopy  # Copy and paste into shell
+workstack switch pr-123
 pytest
 workstack rm pr-123 -f
 ```
@@ -315,14 +328,14 @@ use_graphite = false  # Disable even if gt is installed
 
 ## Tips
 
-**Shell aliases:**
+**Shell integration:**
 
-```bash
-ws() { source <(workstack switch "$1" --script); }
-alias wc='workstack create'
-alias wl='workstack list'
-source <(workstack completion bash)
-```
+Shell integration is automatically set up during `workstack init`. This provides:
+
+- Tab completion for all commands
+- Automatic worktree activation with `workstack switch NAME`
+
+To set up on a new machine or shell: `workstack init --shell`
 
 **Naming:** Use lowercase with hyphens: `add-user-auth`, `fix-login-bug`
 

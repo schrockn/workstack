@@ -15,7 +15,7 @@ pyright:
 test:
 	uv run pytest
 
-all-ci: format pyright test
+all-ci: format prettier pyright test
 
 # Publish to PyPI. Token is read from ~/.pypirc
 publish:

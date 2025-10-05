@@ -10,10 +10,7 @@ def _format_worktree_line(name: str, branch: str | None, is_root: bool = False) 
     """Format a single worktree line with colorization."""
     name_part = click.style(name, fg="cyan", bold=True)
     branch_part = click.style(f"[{branch}]", fg="yellow") if branch else ""
-    root_label = click.style("(root)", fg="bright_black") if is_root else ""
-    hint = f"(source <(workstack switch {name} --script))"
-    hint_part = click.style(hint, fg="bright_black")
-    parts = [name_part, branch_part, root_label, hint_part]
+    parts = [name_part, branch_part]
     return " ".join(p for p in parts if p)
 
 

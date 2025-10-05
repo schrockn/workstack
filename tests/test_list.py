@@ -70,11 +70,10 @@ branch refs/heads/feature/bar
                 # First line should be root with branch
                 assert lines[0].startswith("main")
                 assert "[main]" in lines[0]
-                assert "root" in lines[0].lower()
 
                 # Remaining lines should be worktrees with branches, sorted
                 worktree_lines = sorted(lines[1:])
                 assert worktree_lines == [
-                    "bar [feature/bar] (source <(workstack switch bar --script))",
-                    "foo [foo] (source <(workstack switch foo --script))",
+                    "bar [feature/bar]",
+                    "foo [foo]",
                 ]

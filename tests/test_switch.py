@@ -188,6 +188,6 @@ def test_list_includes_root(tmp_path: Path) -> None:
     lines = clean_output.strip().split("\n")
     assert len(lines) >= 2
     assert lines[0].startswith("main")
-    assert "root" in lines[0].lower()
+    assert "[main]" in lines[0]
     # Should also show the worktree
     assert any("myfeature" in line for line in lines)
