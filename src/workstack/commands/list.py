@@ -86,7 +86,7 @@ def _list_worktrees(show_stacks: bool = False) -> None:
 
 
 @click.command("list")
-@click.option("--stacks", is_flag=True, help="Show graphite stacks for each worktree")
+@click.option("--stacks", "-s", is_flag=True, help="Show graphite stacks for each worktree")
 def list_cmd(stacks: bool) -> None:
     """List worktrees with activation hints (alias: ls)."""
     _list_worktrees(show_stacks=stacks)
@@ -94,7 +94,7 @@ def list_cmd(stacks: bool) -> None:
 
 # Register ls as a hidden alias (won't show in help)
 @click.command("ls", hidden=True)
-@click.option("--stacks", is_flag=True, help="Show graphite stacks for each worktree")
+@click.option("--stacks", "-s", is_flag=True, help="Show graphite stacks for each worktree")
 def ls_cmd(stacks: bool) -> None:
     """List worktrees with activation hints (alias of 'list')."""
     _list_worktrees(show_stacks=stacks)
