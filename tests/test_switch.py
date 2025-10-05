@@ -122,11 +122,11 @@ def test_switch_to_root(tmp_path: Path) -> None:
     subprocess.run(["git", "add", "."], cwd=repo, check=True)
     subprocess.run(["git", "commit", "-m", "Initial commit"], cwd=repo, check=True)
 
-    # Run switch command with "." and --script flag, using isolated config
+    # Run switch command with "main" and --script flag, using isolated config
     env = os.environ.copy()
     env["HOME"] = str(tmp_path)
     result = subprocess.run(
-        ["uv", "run", "workstack", "switch", ".", "--script"],
+        ["uv", "run", "workstack", "switch", "main", "--script"],
         cwd=repo,
         capture_output=True,
         text=True,
@@ -141,7 +141,7 @@ def test_switch_to_root(tmp_path: Path) -> None:
 
 
 def test_list_includes_root(tmp_path: Path) -> None:
-    """Test that list command shows root repo as '.'."""
+    """Test that list command shows root repo with branch name."""
     # Set up isolated global config
     global_config_dir = tmp_path / ".workstack"
     global_config_dir.mkdir()
@@ -183,11 +183,11 @@ def test_list_includes_root(tmp_path: Path) -> None:
     )
 
     assert result.returncode == 0
-    # Should show root as first entry
+    # Should show root as first entry with branch name
     clean_output = strip_ansi(result.stdout)
     lines = clean_output.strip().split("\n")
     assert len(lines) >= 2
-    assert lines[0].startswith(".")
+    assert lines[0].startswith("main")
     assert "root" in lines[0].lower()
     # Should also show the worktree
     assert any("myfeature" in line for line in lines)

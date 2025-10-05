@@ -139,6 +139,33 @@ def get_worktree_branches(repo_root: Path) -> dict[Path, str | None]:
     return worktrees
 
 
+def detect_default_branch(repo_root: Path) -> str:
+    """Detect the default branch (main or master) for the repository.
+
+    Checks for 'main' first, then 'master'. Raises SystemExit if neither exists.
+    """
+    result = subprocess.run(
+        ["git", "rev-parse", "--verify", "main"],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode == 0:
+        return "main"
+
+    result = subprocess.run(
+        ["git", "rev-parse", "--verify", "master"],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode == 0:
+        return "master"
+
+    click.echo("Error: Could not find 'main' or 'master' branch.", err=True)
+    raise SystemExit(1)
+
+
 def get_pr_status(
     repo_root: Path, branch: str, debug: bool = False
 ) -> tuple[str | None, int | None, str | None]:

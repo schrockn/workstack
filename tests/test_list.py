@@ -68,7 +68,7 @@ branch refs/heads/feature/bar
                 lines = result.output.strip().splitlines()
 
                 # First line should be root with branch
-                assert lines[0].startswith(".")
+                assert lines[0].startswith("main")
                 assert "[main]" in lines[0]
                 assert "root" in lines[0].lower()
 

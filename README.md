@@ -50,8 +50,8 @@ workstack switch user-auth | pbcopy
 
 # 4. Work on your feature...
 
-# 5. Switch back (copy and paste the command into your shell)
-workstack switch . | pbcopy
+# 5. Switch back to main/master (copy and paste the command into your shell)
+workstack switch main | pbcopy
 
 # 6. Clean up
 workstack rm user-auth
@@ -67,7 +67,7 @@ workstack rm user-auth
   - Automatically create a workstack. Name it based on the name of the plan file.
   - It will move the plan to the workstack with the name .PLAN.md. On `init` workstack adds this filename to your `.gitignore`. We have found that checking in planning files confuses reviews and adds excessive bookkeeping. This way the agent has access to the plan without polluting source control.
 - **Switch quickly**: You can switch worktrees quickly. Python requires you to source a shell script to activate a virtual environment, so this forces a level of indirection. We recommend either:
-  - `workstack switch .` prints out `source <(workstack switch . --script)` which you can copy and paste or `workstack switch . | pbcopy`
+  - `workstack switch main` prints out `source <(workstack switch main --script)` which you can copy and paste or `workstack switch main | pbcopy`
 - **Move branches to a different worktree**: This is annoying without `workstack` because two worktrees cannot point to the same branch. This handles the swapping for you. `workstack move your-stack` just works.
 
 ## Core Concepts
@@ -156,11 +156,11 @@ workstack move --no-post           # Skip post-create commands
 
 ### `workstack switch NAME [--script]`
 
-Switch to worktree (or `.` for root repo). Supports shell completion for worktree names.
+Switch to worktree or root repo (using 'main' or 'master'). Supports shell completion for worktree names.
 
 ```bash
 source <(workstack switch feature-x --script)
-source <(workstack switch . --script)
+source <(workstack switch main --script)
 ```
 
 **Alias:**

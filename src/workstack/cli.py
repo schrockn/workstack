@@ -29,6 +29,7 @@ from .detect import is_repo_named
 from .git import (
     add_worktree,
     checkout_branch,
+    detect_default_branch,
     get_current_branch,
     get_pr_status,
     get_worktree_branches,
@@ -250,36 +251,7 @@ def create(
     to_branch = None
     if move:
         # Determine which branch to switch to (use ref if provided, else main/master)
-        to_branch = ref
-        if to_branch is None:
-            # Try to find main or master
-            try:
-                result = subprocess.run(
-                    ["git", "rev-parse", "--verify", "main"],
-                    cwd=repo.root,
-                    capture_output=True,
-                    text=True,
-                )
-                if result.returncode == 0:
-                    to_branch = "main"
-                else:
-                    result = subprocess.run(
-                        ["git", "rev-parse", "--verify", "master"],
-                        cwd=repo.root,
-                        capture_output=True,
-                        text=True,
-                    )
-                    if result.returncode == 0:
-                        to_branch = "master"
-                    else:
-                        click.echo(
-                            "Error: Could not find 'main' or 'master' branch. "
-                            "Please specify --ref explicitly."
-                        )
-                        raise SystemExit(1)
-            except Exception as e:
-                click.echo(f"Error determining default branch: {e}", err=True)
-                raise SystemExit(1) from e
+        to_branch = ref if ref else detect_default_branch(repo.root)
 
         # Switch current worktree to the target branch first
         checkout_branch(repo.root, to_branch)
@@ -393,34 +365,7 @@ def move_cmd(name: str | None, to_branch: str | None, no_post: bool) -> None:
 
     # Determine which branch to switch the current worktree to
     if to_branch is None:
-        # Try to find main or master
-        try:
-            result = subprocess.run(
-                ["git", "rev-parse", "--verify", "main"],
-                cwd=repo.root,
-                capture_output=True,
-                text=True,
-            )
-            if result.returncode == 0:
-                to_branch = "main"
-            else:
-                result = subprocess.run(
-                    ["git", "rev-parse", "--verify", "master"],
-                    cwd=repo.root,
-                    capture_output=True,
-                    text=True,
-                )
-                if result.returncode == 0:
-                    to_branch = "master"
-                else:
-                    click.echo(
-                        "Error: Could not find 'main' or 'master' branch. "
-                        "Please specify --to-branch explicitly."
-                    )
-                    raise SystemExit(1)
-        except Exception as e:
-            click.echo(f"Error determining default branch: {e}", err=True)
-            raise SystemExit(1) from e
+        to_branch = detect_default_branch(repo.root)
 
     # Switch the current worktree to the target branch first
     # (must do this before creating the new worktree so the branch isn't locked)
@@ -450,7 +395,7 @@ def move_cmd(name: str | None, to_branch: str | None, no_post: bool) -> None:
 def complete_worktree_names(
     ctx: click.Context, param: click.Parameter, incomplete: str
 ) -> list[str]:
-    """Shell completion for worktree names. Includes '.' for root repo.
+    """Shell completion for worktree names. Includes default branch (main/master) for root repo.
 
     This is a shell completion function, which is an acceptable error boundary.
     Exceptions are caught to provide graceful degradation - if completion fails,
@@ -460,8 +405,11 @@ def complete_worktree_names(
         repo = discover_repo_context(Path.cwd())
         work_dir = repo.work_dir
 
-        # Always include "." for root repo
-        names = ["."] if ".".startswith(incomplete) else []
+        # Include default branch name (main or master) for root repo
+        names = []
+        default_branch = detect_default_branch(repo.root)
+        if default_branch.startswith(incomplete):
+            names.append(default_branch)
 
         # Add worktree directories
         if work_dir.exists():
@@ -485,14 +433,27 @@ def switch_cmd(name: str, script: bool) -> None:
 
     Usage: source <(workstack switch NAME --script)
 
-    Use '.' to switch to the root repo directory.
+    NAME can be a worktree name, or 'main'/'master' to switch to the root repo.
     This will cd to the worktree directory and source its activate.sh script.
     """
 
     repo = discover_repo_context(Path.cwd())
 
-    # Handle special case: "." means root repo
-    if name == ".":
+    # Check if name refers to the default branch (main/master) which means root repo
+    default_branch = detect_default_branch(repo.root)
+
+    if name in ("main", "master"):
+        # User is trying to switch to root repo via branch name
+        if name != default_branch:
+            # User specified wrong branch name
+            click.echo(
+                f"Error: This repository uses '{default_branch}' as the default branch, "
+                f"not '{name}'.",
+                err=True,
+            )
+            raise SystemExit(1)
+
+        # Switch to root repo
         root_path = repo.root
         if script:
             # Generate activation script for root repo (similar to worktrees)
@@ -500,7 +461,7 @@ def switch_cmd(name: str, script: bool) -> None:
             venv_activate = venv_path / "bin" / "activate"
 
             lines = [
-                "# work activate-script (root repo)",
+                f"# work activate-script (root repo - {default_branch})",
                 f"cd '{str(root_path)}'",
                 "# Create venv if it doesn't exist",
                 f"if [ ! -d '{str(venv_path)}' ]; then",
@@ -514,11 +475,11 @@ def switch_cmd(name: str, script: bool) -> None:
                 "set -a",
                 "if [ -f ./.env ]; then . ./.env; fi",
                 "set +a",
-                'echo "Switched to root repo: $(pwd)"',
+                f'echo "Switched to root repo ({default_branch}): $(pwd)"',
             ]
             click.echo("\n".join(lines) + "\n", nl=True)
         else:
-            click.echo("source <(workstack switch . --script)")
+            click.echo(f"source <(workstack switch {default_branch} --script)")
         return
 
     work_dir = ensure_work_dir(repo)
@@ -553,9 +514,9 @@ def _list_worktrees() -> None:
     # Get branch info for all worktrees
     branches = get_worktree_branches(repo.root)
 
-    # Show root repo first
+    # Show root repo first (using actual branch name instead of ".")
     root_branch = branches.get(repo.root)
-    click.echo(_format_worktree_line(".", root_branch, is_root=True))
+    click.echo(_format_worktree_line(root_branch or "HEAD", root_branch, is_root=True))
 
     # Show worktrees
     work_dir = ensure_work_dir(repo)
@@ -815,7 +776,7 @@ def config_list() -> None:
         click.echo(f"  use_graphite={str(global_config.use_graphite).lower()}")
     except FileNotFoundError:
         click.echo(click.style("Global configuration:", bold=True))
-        click.echo(f"  (not configured - run 'workstack init' to create)")
+        click.echo("  (not configured - run 'workstack init' to create)")
 
     # Try to load repo config
     try:
@@ -833,10 +794,10 @@ def config_list() -> None:
             click.echo(f"  post_create.commands={cfg.post_create_commands}")
 
         if not cfg.env and not cfg.post_create_shell and not cfg.post_create_commands:
-            click.echo(f"  (no configuration - run 'workstack init --repo' to create)")
+            click.echo("  (no configuration - run 'workstack init --repo' to create)")
     except Exception:
         click.echo(click.style("\nRepository configuration:", bold=True))
-        click.echo(f"  (not in a git repository)")
+        click.echo("  (not in a git repository)")
 
 
 @config_group.command("get")
@@ -854,9 +815,9 @@ def config_get(key: str) -> None:
                 click.echo(str(global_config.workstacks_root))
             elif parts[0] == "use_graphite":
                 click.echo(str(global_config.use_graphite).lower())
-        except FileNotFoundError:
+        except FileNotFoundError as e:
             click.echo(f"Global config not found at {GLOBAL_CONFIG_PATH}", err=True)
-            raise SystemExit(1)
+            raise SystemExit(1) from e
         return
 
     # Handle repo config keys
@@ -889,10 +850,10 @@ def config_get(key: str) -> None:
             raise SystemExit(1)
     except Exception as e:
         if "not in a git repository" in str(e).lower() or "not a git repository" in str(e).lower():
-            click.echo(f"Not in a git repository", err=True)
+            click.echo("Not in a git repository", err=True)
         else:
             click.echo(f"Error: {e}", err=True)
-        raise SystemExit(1)
+        raise SystemExit(1) from e
 
 
 @config_group.command("set")
@@ -906,11 +867,11 @@ def config_set(key: str, value: str) -> None:
     # Handle global config keys
     if parts[0] in ("workstacks_root", "use_graphite"):
         try:
-            global_config = load_global_config()
-        except FileNotFoundError:
+            load_global_config()
+        except FileNotFoundError as e:
             click.echo(f"Global config not found at {GLOBAL_CONFIG_PATH}", err=True)
             click.echo("Run 'workstack init' to create it.", err=True)
-            raise SystemExit(1)
+            raise SystemExit(1) from e
 
         # Read existing config
         data = tomllib.loads(GLOBAL_CONFIG_PATH.read_text(encoding="utf-8"))
@@ -934,7 +895,7 @@ use_graphite = {str(data["use_graphite"]).lower()}
         return
 
     # Handle repo config keys - not implemented yet
-    click.echo(f"Setting repo config keys not yet implemented", err=True)
+    click.echo("Setting repo config keys not yet implemented", err=True)
     raise SystemExit(1)
 
 
