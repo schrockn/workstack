@@ -33,7 +33,7 @@ workstack rm user-auth
 
 ## Overview
 
-`workstack` solves the pain of managing multiple `git` worktrees - essential for parallel development with AI agents or working on multiple features simultaneously.
+`workstack` solves the pain of managing multiple `git` worktrees for parallel agenetic coding sessions.
 
 **Key features:**
 
@@ -42,8 +42,6 @@ workstack rm user-auth
 - Simple CLI: `create`, `switch`, `rm`, `ls`
 - Plan-based development workflow
 - Optional Graphite integration for stacked diffs
-
-Traditional `git` workflows require branch switching in a single location. With AI agents and parallel development needs, `workstack` makes managing multiple worktrees effortless.
 
 ## Core Commands
 
@@ -81,7 +79,7 @@ workstack gc                     # Find safe-to-delete worktrees (merged PRs)
 workstack init                   # Initialize in repository
 workstack config list            # Show all configuration
 workstack config get KEY         # Get config value
-workstack config set KEY VALUE  # Set config value
+workstack config set KEY VALUE   # Set config value
 ```
 
 ## Configuration Files
