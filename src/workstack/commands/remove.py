@@ -1,11 +1,25 @@
 import shutil
+import subprocess
 from pathlib import Path
 
 import click
 
 from ..core import discover_repo_context, ensure_work_dir, worktree_path_for
-from ..git import remove_worktree
 from .switch import complete_worktree_names
+
+
+def remove_worktree(repo_root: Path, path: Path, *, force: bool) -> None:
+    """Remove a git worktree from the repository metadata.
+
+    Runs `git worktree remove [--force] <path>`. This may fail if the worktree has
+    uncommitted changes unless `force=True`.
+    """
+
+    cmd = ["git", "worktree", "remove"]
+    if force:
+        cmd.append("--force")
+    cmd.append(str(path))
+    subprocess.run(cmd, cwd=repo_root, check=True)
 
 
 def _remove_worktree(name: str, force: bool) -> None:

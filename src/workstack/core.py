@@ -1,9 +1,8 @@
 import subprocess
-from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 
-from .config import LoadedConfig, load_global_config
+from .config import load_global_config
 
 
 @dataclass(frozen=True)
@@ -71,38 +70,3 @@ def ensure_work_dir(repo: RepoContext) -> Path:
 def worktree_path_for(work_dir: Path, name: str) -> Path:
     """Return the absolute path for a named worktree."""
     return (work_dir / name).resolve()
-
-
-def make_env_content(cfg: LoadedConfig, *, worktree_path: Path, repo_root: Path, name: str) -> str:
-    """Render .env content using config templates.
-
-    Substitution variables:
-      - {worktree_path}
-      - {repo_root}
-      - {name}
-    """
-
-    variables: Mapping[str, str] = {
-        "worktree_path": str(worktree_path),
-        "repo_root": str(repo_root),
-        "name": name,
-    }
-
-    lines: list[str] = []
-    for key, template in cfg.env.items():
-        value = template.format(**variables)
-        # Quote value to be safe; dotenv parsers commonly accept quotes.
-        lines.append(f"{key}={quote_env_value(value)}")
-
-    # Always include these basics for convenience
-    lines.append(f"WORKTREE_PATH={quote_env_value(str(worktree_path))}")
-    lines.append(f"REPO_ROOT={quote_env_value(str(repo_root))}")
-    lines.append(f"WORKTREE_NAME={quote_env_value(name)}")
-
-    return "\n".join(lines) + "\n"
-
-
-def quote_env_value(value: str) -> str:
-    """Return a quoted value suitable for .env files."""
-    escaped = value.replace("\\", "\\\\").replace('"', '\\"')
-    return f'"{escaped}"'

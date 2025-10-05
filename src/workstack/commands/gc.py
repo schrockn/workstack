@@ -1,9 +1,70 @@
+import json
+import subprocess
 from pathlib import Path
 
 import click
 
 from ..core import discover_repo_context, ensure_work_dir
-from ..git import get_pr_status, get_worktree_branches
+from ..git import get_worktree_branches
+
+
+def get_pr_status(
+    repo_root: Path, branch: str, debug: bool = False
+) -> tuple[str | None, int | None, str | None]:
+    """Get PR status for a branch using GitHub CLI.
+
+    Returns tuple of (state, pr_number, title) where:
+    - state is "MERGED", "CLOSED", "OPEN", or None if no PR found
+    - pr_number is the PR number or None
+    - title is the PR title or None
+
+    Returns (None, None, None) if gh CLI is not installed or not authenticated.
+
+    Note: Uses try/except as an acceptable error boundary for handling gh CLI
+    availability and authentication. We cannot reliably check gh installation
+    and authentication status a priori without duplicating gh's logic.
+    """
+
+    def debug_print(msg: str) -> None:
+        if debug:
+            click.echo(click.style(msg, fg="bright_black"))
+
+    try:
+        # Check merged PRs first
+        for state in ["merged", "closed", "open"]:
+            cmd = [
+                "gh",
+                "pr",
+                "list",
+                "--state",
+                state,
+                "--head",
+                branch,
+                "--json",
+                "state,number,title",
+            ]
+
+            debug_print(f"  $ {' '.join(cmd)}")
+
+            result = subprocess.run(
+                cmd,
+                cwd=repo_root,
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+
+            prs = json.loads(result.stdout)
+            if prs:
+                # Take the first PR (should only be one per branch)
+                pr = prs[0]
+                return pr.get("state"), pr.get("number"), pr.get("title")
+
+        return None, None, None
+
+    except (subprocess.CalledProcessError, FileNotFoundError, json.JSONDecodeError):
+        # gh not installed, not authenticated, or JSON parsing failed
+        return None, None, None
 
 
 @click.command("gc")

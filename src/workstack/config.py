@@ -1,14 +1,8 @@
-import shutil
 import tomllib
 from dataclasses import dataclass
 from pathlib import Path
 
 GLOBAL_CONFIG_PATH = Path.home() / ".workstack" / "config.toml"
-
-
-def detect_graphite() -> bool:
-    """Detect if Graphite (gt) is installed and available in PATH."""
-    return shutil.which("gt") is not None
 
 
 @dataclass(frozen=True)
@@ -39,17 +33,6 @@ def load_global_config() -> GlobalConfig:
         workstacks_root=Path(root).expanduser().resolve(),
         use_graphite=bool(use_graphite),
     )
-
-
-def create_global_config(workstacks_root: Path) -> None:
-    """Create global config at ~/.workstack/config.toml."""
-    GLOBAL_CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
-    use_graphite = detect_graphite()
-    content = f"""# Global workstack configuration
-workstacks_root = "{workstacks_root}"
-use_graphite = {str(use_graphite).lower()}
-"""
-    GLOBAL_CONFIG_PATH.write_text(content, encoding="utf-8")
 
 
 @dataclass(frozen=True)
@@ -88,31 +71,3 @@ def load_config(config_dir: Path) -> LoadedConfig:
     if shell is not None:
         shell = str(shell)
     return LoadedConfig(env=env, post_create_commands=commands, post_create_shell=shell)
-
-
-def discover_presets() -> list[str]:
-    """Discover available preset names by scanning the presets directory.
-
-    Returns a list of preset names (without .toml extension).
-    """
-    presets_dir = Path(__file__).parent / "presets"
-    if not presets_dir.exists():
-        return []
-
-    return sorted(p.stem for p in presets_dir.glob("*.toml") if p.is_file())
-
-
-def render_config_template(preset: str | None = None) -> str:
-    """Return default config TOML content, optionally using a preset.
-
-    If preset is None, uses the "generic" preset by default.
-    Preset files are loaded from src/workstack/presets/<preset>.toml
-    """
-    preset_name = preset if preset is not None else "generic"
-    presets_dir = Path(__file__).parent / "presets"
-    preset_file = presets_dir / f"{preset_name}.toml"
-
-    if not preset_file.exists():
-        raise ValueError(f"Preset '{preset_name}' not found at {preset_file}")
-
-    return preset_file.read_text(encoding="utf-8")

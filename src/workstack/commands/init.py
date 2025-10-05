@@ -1,16 +1,87 @@
+import re
+import shutil
+import tomllib
 from pathlib import Path
 
 import click
 
-from ..config import (
-    GLOBAL_CONFIG_PATH,
-    create_global_config,
-    detect_graphite,
-    discover_presets,
-    render_config_template,
-)
+from ..config import GLOBAL_CONFIG_PATH
 from ..core import discover_repo_context, ensure_work_dir
-from ..detect import is_repo_named
+
+
+def detect_root_project_name(repo_root: Path) -> str | None:
+    """Return the declared project name at the repo root, if any.
+
+    Checks root `pyproject.toml`'s `[project].name`. If absent, tries to heuristically
+    extract from `setup.py` by matching `name="..."` or `name='...'`.
+    """
+
+    root_pyproject = repo_root / "pyproject.toml"
+    if root_pyproject.exists():
+        data = tomllib.loads(root_pyproject.read_text(encoding="utf-8"))
+        project = data.get("project") or {}
+        name = project.get("name")
+        if isinstance(name, str) and name:
+            return name
+
+    setup_py = repo_root / "setup.py"
+    if setup_py.exists():
+        text = setup_py.read_text(encoding="utf-8")
+        m = re.search(r"name\s*=\s*['\"]([^'\"]+)['\"]", text)
+        if m:
+            return m.group(1)
+
+    return None
+
+
+def is_repo_named(repo_root: Path, expected_name: str) -> bool:
+    """Return True if the root project name matches `expected_name` (case-insensitive)."""
+    name = detect_root_project_name(repo_root)
+    return (name or "").lower() == expected_name.lower()
+
+
+def detect_graphite() -> bool:
+    """Detect if Graphite (gt) is installed and available in PATH."""
+    return shutil.which("gt") is not None
+
+
+def create_global_config(workstacks_root: Path) -> None:
+    """Create global config at ~/.workstack/config.toml."""
+    GLOBAL_CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
+    use_graphite = detect_graphite()
+    content = f"""# Global workstack configuration
+workstacks_root = "{workstacks_root}"
+use_graphite = {str(use_graphite).lower()}
+"""
+    GLOBAL_CONFIG_PATH.write_text(content, encoding="utf-8")
+
+
+def discover_presets() -> list[str]:
+    """Discover available preset names by scanning the presets directory.
+
+    Returns a list of preset names (without .toml extension).
+    """
+    presets_dir = Path(__file__).parent.parent / "presets"
+    if not presets_dir.exists():
+        return []
+
+    return sorted(p.stem for p in presets_dir.glob("*.toml") if p.is_file())
+
+
+def render_config_template(preset: str | None = None) -> str:
+    """Return default config TOML content, optionally using a preset.
+
+    If preset is None, uses the "generic" preset by default.
+    Preset files are loaded from src/workstack/presets/<preset>.toml
+    """
+    preset_name = preset if preset is not None else "generic"
+    presets_dir = Path(__file__).parent.parent / "presets"
+    preset_file = presets_dir / f"{preset_name}.toml"
+
+    if not preset_file.exists():
+        raise ValueError(f"Preset '{preset_name}' not found at {preset_file}")
+
+    return preset_file.read_text(encoding="utf-8")
 
 
 @click.command("init")

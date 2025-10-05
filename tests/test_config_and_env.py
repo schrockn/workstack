@@ -3,13 +3,9 @@ from unittest import mock
 
 import pytest
 
-from workstack.config import (
-    create_global_config,
-    discover_presets,
-    load_config,
-    load_global_config,
-)
-from workstack.core import make_env_content
+from workstack.commands.create import make_env_content
+from workstack.commands.init import create_global_config, discover_presets
+from workstack.config import load_config, load_global_config
 
 
 def test_load_config_defaults(tmp_path: Path) -> None:
@@ -91,8 +87,8 @@ def test_load_global_config_use_graphite_defaults_false(tmp_path: Path) -> None:
 def test_create_global_config_creates_file(tmp_path: Path) -> None:
     config_file = tmp_path / ".workstack" / "config.toml"
 
-    with mock.patch("workstack.config.GLOBAL_CONFIG_PATH", config_file):
-        with mock.patch("workstack.config.detect_graphite", return_value=False):
+    with mock.patch("workstack.commands.init.GLOBAL_CONFIG_PATH", config_file):
+        with mock.patch("workstack.commands.init.detect_graphite", return_value=False):
             create_global_config(Path("/tmp/workstacks"))
 
     assert config_file.exists()
@@ -105,8 +101,8 @@ def test_create_global_config_creates_parent_directory(tmp_path: Path) -> None:
     config_file = tmp_path / ".workstack" / "config.toml"
     assert not config_file.parent.exists()
 
-    with mock.patch("workstack.config.GLOBAL_CONFIG_PATH", config_file):
-        with mock.patch("workstack.config.detect_graphite", return_value=False):
+    with mock.patch("workstack.commands.init.GLOBAL_CONFIG_PATH", config_file):
+        with mock.patch("workstack.commands.init.detect_graphite", return_value=False):
             create_global_config(Path("/tmp/workstacks"))
 
     assert config_file.parent.exists()
@@ -116,8 +112,8 @@ def test_create_global_config_creates_parent_directory(tmp_path: Path) -> None:
 def test_create_global_config_detects_graphite(tmp_path: Path) -> None:
     config_file = tmp_path / ".workstack" / "config.toml"
 
-    with mock.patch("workstack.config.GLOBAL_CONFIG_PATH", config_file):
-        with mock.patch("workstack.config.detect_graphite", return_value=True):
+    with mock.patch("workstack.commands.init.GLOBAL_CONFIG_PATH", config_file):
+        with mock.patch("workstack.commands.init.detect_graphite", return_value=True):
             create_global_config(Path("/tmp/workstacks"))
 
     content = config_file.read_text(encoding="utf-8")
@@ -125,6 +121,9 @@ def test_create_global_config_detects_graphite(tmp_path: Path) -> None:
 
 
 def test_discover_presets(tmp_path: Path) -> None:
+    # Create structure: tmp_path/commands/init.py (mocked) and tmp_path/presets/*.toml
+    commands_dir = tmp_path / "commands"
+    commands_dir.mkdir()
     presets_dir = tmp_path / "presets"
     presets_dir.mkdir()
     (presets_dir / "generic.toml").write_text("# generic preset\n", encoding="utf-8")
@@ -133,14 +132,18 @@ def test_discover_presets(tmp_path: Path) -> None:
     (presets_dir / "README.md").write_text("# readme\n", encoding="utf-8")
     (presets_dir / "subdir").mkdir()
 
-    with mock.patch("workstack.config.__file__", str(tmp_path / "config.py")):
+    with mock.patch("workstack.commands.init.__file__", str(commands_dir / "init.py")):
         presets = discover_presets()
 
     assert presets == ["custom", "dagster", "generic"]
 
 
 def test_discover_presets_missing_directory(tmp_path: Path) -> None:
-    with mock.patch("workstack.config.__file__", str(tmp_path / "config.py")):
+    # Create structure: tmp_path/commands/init.py (mocked) but no presets directory
+    commands_dir = tmp_path / "commands"
+    commands_dir.mkdir()
+
+    with mock.patch("workstack.commands.init.__file__", str(commands_dir / "init.py")):
         presets = discover_presets()
 
     assert presets == []

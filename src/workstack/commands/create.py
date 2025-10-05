@@ -1,15 +1,181 @@
+import re
 import shlex
 import shutil
 import subprocess
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from pathlib import Path
 
 import click
 
-from ..config import load_config, load_global_config
-from ..core import discover_repo_context, ensure_work_dir, make_env_content, worktree_path_for
-from ..git import add_worktree, checkout_branch, detect_default_branch, get_current_branch
-from ..naming import default_branch_for_worktree, sanitize_worktree_name
+from ..config import LoadedConfig, load_config, load_global_config
+from ..core import discover_repo_context, ensure_work_dir, worktree_path_for
+from ..git import detect_default_branch
+
+
+_SAFE_COMPONENT_RE = re.compile(r"[^A-Za-z0-9._/-]+")
+
+
+def sanitize_branch_component(name: str) -> str:
+    """Return a sanitized, predictable branch component from an arbitrary name.
+
+    - Lowercases input
+    - Replaces characters outside `[A-Za-z0-9._/-]` with `-`
+    - Collapses consecutive `-`
+    - Strips leading/trailing `-` and `/`
+    Returns `"work"` if the result is empty.
+    """
+
+    lowered = name.strip().lower()
+    replaced = _SAFE_COMPONENT_RE.sub("-", lowered)
+    collapsed = re.sub(r"-+", "-", replaced)
+    trimmed = collapsed.strip("-/")
+    return trimmed or "work"
+
+
+def sanitize_worktree_name(name: str) -> str:
+    """Sanitize a worktree name for use as a directory name.
+
+    - Lowercases input
+    - Replaces underscores with hyphens
+    - Replaces characters outside `[A-Za-z0-9.-]` with `-`
+    - Collapses consecutive `-`
+    - Strips leading/trailing `-`
+    Returns `"work"` if the result is empty.
+    """
+
+    lowered = name.strip().lower()
+    # Replace underscores with hyphens
+    replaced_underscores = lowered.replace("_", "-")
+    # Replace unsafe characters with hyphens
+    replaced = re.sub(r"[^a-z0-9.-]+", "-", replaced_underscores)
+    # Collapse consecutive hyphens
+    collapsed = re.sub(r"-+", "-", replaced)
+    # Strip leading/trailing hyphens
+    trimmed = collapsed.strip("-")
+    return trimmed or "work"
+
+
+def default_branch_for_worktree(name: str) -> str:
+    """Default branch name for a worktree with the given `name`.
+
+    Returns the sanitized name directly (without any prefix).
+    """
+
+    return sanitize_branch_component(name)
+
+
+def add_worktree(
+    repo_root: Path,
+    path: Path,
+    *,
+    branch: str | None,
+    ref: str | None,
+    use_existing_branch: bool = False,
+    use_graphite: bool = False,
+) -> None:
+    """Create a git worktree.
+
+    If `use_existing_branch` is True and `branch` is provided, checks out the existing branch
+    in the new worktree: `git worktree add <path> <branch>`.
+
+    If `use_existing_branch` is False and `branch` is provided, creates a new branch:
+    - With graphite: `gt create <branch>` followed by `git worktree add <path> <branch>`
+    - Without graphite: `git worktree add -b <branch> <path> <ref or HEAD>`
+
+    Otherwise, uses `git worktree add <path> <ref or HEAD>`.
+    """
+
+    if branch and use_existing_branch:
+        # Check out an existing branch in the new worktree
+        cmd = ["git", "worktree", "add", str(path), branch]
+        subprocess.run(cmd, cwd=repo_root, check=True)
+    elif branch:
+        # Create a new branch in the new worktree
+        if use_graphite:
+            # Use Graphite to create the branch (creates it in a stack)
+            base_ref = ref or "HEAD"
+            # First, create the branch with Graphite
+            subprocess.run(["gt", "create", branch, "--onto", base_ref], cwd=repo_root, check=True)
+            # Then add the worktree pointing to that branch
+            subprocess.run(["git", "worktree", "add", str(path), branch], cwd=repo_root, check=True)
+        else:
+            # Use standard git to create the branch
+            base_ref = ref or "HEAD"
+            cmd = [
+                "git",
+                "worktree",
+                "add",
+                "-b",
+                branch,
+                str(path),
+                base_ref,
+            ]
+            subprocess.run(cmd, cwd=repo_root, check=True)
+    else:
+        base_ref = ref or "HEAD"
+        cmd = ["git", "worktree", "add", str(path), base_ref]
+        subprocess.run(cmd, cwd=repo_root, check=True)
+
+
+def get_current_branch(cwd: Path) -> str:
+    """Get the name of the current branch.
+
+    Raises subprocess.CalledProcessError if HEAD is detached or not in a git repo.
+    """
+    result = subprocess.run(
+        ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+        cwd=cwd,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    branch = result.stdout.strip()
+    if branch == "HEAD":
+        raise ValueError("HEAD is detached (not on a branch)")
+    return branch
+
+
+def checkout_branch(repo_root: Path, branch: str) -> None:
+    """Checkout a branch in the current worktree.
+
+    Runs `git checkout <branch>`.
+    """
+    subprocess.run(["git", "checkout", branch], cwd=repo_root, check=True)
+
+
+def make_env_content(cfg: LoadedConfig, *, worktree_path: Path, repo_root: Path, name: str) -> str:
+    """Render .env content using config templates.
+
+    Substitution variables:
+      - {worktree_path}
+      - {repo_root}
+      - {name}
+    """
+
+    variables: Mapping[str, str] = {
+        "worktree_path": str(worktree_path),
+        "repo_root": str(repo_root),
+        "name": name,
+    }
+
+    lines: list[str] = []
+    for key, template in cfg.env.items():
+        value = template.format(**variables)
+        # Quote value to be safe; dotenv parsers commonly accept quotes.
+        lines.append(f"{key}={quote_env_value(value)}")
+
+    # Always include these basics for convenience
+    lines.append(f"WORKTREE_PATH={quote_env_value(str(worktree_path))}")
+    lines.append(f"REPO_ROOT={quote_env_value(str(repo_root))}")
+    lines.append(f"WORKTREE_NAME={quote_env_value(name)}")
+
+    return "\n".join(lines) + "\n"
+
+
+def quote_env_value(value: str) -> str:
+    """Return a quoted value suitable for .env files."""
+    escaped = value.replace("\\", "\\\\").replace('"', '\\"')
+    return f'"{escaped}"'
 
 
 @click.command("create")
