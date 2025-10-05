@@ -4,7 +4,7 @@ import click
 
 from workstack.config import load_global_config
 from workstack.core import discover_repo_context, ensure_work_dir
-from workstack.git import get_worktree_branches
+from workstack.git import get_current_branch, get_worktree_branches
 from workstack.graphite import get_branch_stack
 
 
@@ -41,8 +41,12 @@ def _list_worktrees(show_stacks: bool = False) -> None:
     if show_stacks and root_branch:
         stack = get_branch_stack(repo.root, root_branch)
         if stack:
+            # Get the actual checked-out branch in the root directory
+            actual_branch = get_current_branch(repo.root)
+            # Use the actual checked-out branch for highlighting, fall back to registered branch
+            highlight_branch = actual_branch if actual_branch else root_branch
             for branch in reversed(stack):
-                marker = "◉" if branch == root_branch else "◯"
+                marker = "◉" if branch == highlight_branch else "◯"
                 click.echo(f"  {marker}  {branch}")
 
     # Show worktrees
@@ -52,7 +56,15 @@ def _list_worktrees(show_stacks: bool = False) -> None:
     entries = sorted(p for p in work_dir.iterdir() if p.is_dir())
     for p in entries:
         name = p.name
-        wt_branch = branches.get(p)
+        # Find the actual worktree path from git worktree list
+        # The path p might be a symlink or different from the actual worktree path
+        wt_path = None
+        wt_branch = None
+        for branch_path, branch_name in branches.items():
+            if branch_path.resolve() == p.resolve():
+                wt_path = branch_path
+                wt_branch = branch_name
+                break
 
         # Add blank line before each worktree (except first) when showing stacks
         if show_stacks and (root_branch or entries.index(p) > 0):
@@ -60,11 +72,16 @@ def _list_worktrees(show_stacks: bool = False) -> None:
 
         click.echo(_format_worktree_line(name, wt_branch, is_root=False))
 
-        if show_stacks and wt_branch:
+        if show_stacks and wt_branch and wt_path:
             stack = get_branch_stack(repo.root, wt_branch)
             if stack:
+                # Get the actual checked-out branch in this worktree directory
+                # This may differ from wt_branch if someone did git checkout after creating the worktree
+                actual_branch = get_current_branch(wt_path)
+                # Use the actual checked-out branch for highlighting, fall back to registered branch
+                highlight_branch = actual_branch if actual_branch else wt_branch
                 for branch in reversed(stack):
-                    marker = "◉" if branch == wt_branch else "◯"
+                    marker = "◉" if branch == highlight_branch else "◯"
                     click.echo(f"  {marker}  {branch}")
 
 

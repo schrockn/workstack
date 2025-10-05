@@ -45,6 +45,33 @@ def get_worktree_branches(repo_root: Path) -> dict[Path, str | None]:
     return worktrees
 
 
+def get_current_branch(cwd: Path) -> str | None:
+    """Get the currently checked-out branch in the given directory.
+
+    Args:
+        cwd: The directory to check (usually Path.cwd())
+
+    Returns:
+        The current branch name, or None if in detached HEAD state
+    """
+    result = subprocess.run(
+        ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+        cwd=cwd,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        return None
+
+    branch = result.stdout.strip()
+    # "HEAD" means detached HEAD state
+    if branch == "HEAD":
+        return None
+
+    return branch
+
+
 def detect_default_branch(repo_root: Path) -> str:
     """Detect the default branch (main or master) for the repository.
 

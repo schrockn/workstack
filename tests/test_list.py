@@ -277,3 +277,147 @@ branch refs/heads/main
                 # Should not have any circle markers
                 assert "◉" not in output
                 assert "◯" not in output
+
+
+def test_list_with_stacks_highlights_current_branch_not_worktree_branch() -> None:
+    """
+    Regression test for bug where the worktree's checkout branch was highlighted
+    instead of the current working directory's checked-out branch.
+
+    When running `workstack ls --stacks` from a worktree that has switched branches
+    (e.g., temporal-stack worktree is on ts-phase-4, but current directory is on ts-phase-3),
+    the highlighted marker (◉) should show ts-phase-3, not ts-phase-4.
+    """
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        # Set up isolated environment
+        cwd = Path.cwd()
+        global_config_dir = cwd / ".workstack_config"
+        global_config_dir.mkdir()
+        workstacks_root = cwd / "workstacks"
+        (global_config_dir / "config.toml").write_text(
+            f'workstacks_root = "{workstacks_root}"\nuse_graphite = true\n'
+        )
+
+        # Create git repo structure
+        git_dir = Path(".git")
+        git_dir.mkdir()
+
+        # Create graphite cache with a linear stack
+        graphite_cache = {
+            "branches": [
+                [
+                    "main",
+                    {
+                        "validationResult": "TRUNK",
+                        "children": ["schrockn/ts-phase-1"],
+                    },
+                ],
+                [
+                    "schrockn/ts-phase-1",
+                    {"parentBranchName": "main", "children": ["schrockn/ts-phase-2"]},
+                ],
+                [
+                    "schrockn/ts-phase-2",
+                    {
+                        "parentBranchName": "schrockn/ts-phase-1",
+                        "children": ["schrockn/ts-phase-3"],
+                    },
+                ],
+                [
+                    "schrockn/ts-phase-3",
+                    {
+                        "parentBranchName": "schrockn/ts-phase-2",
+                        "children": ["schrockn/ts-phase-4"],
+                    },
+                ],
+                [
+                    "schrockn/ts-phase-4",
+                    {"parentBranchName": "schrockn/ts-phase-3", "children": []},
+                ],
+            ]
+        }
+        (git_dir / ".graphite_cache_persist").write_text(json.dumps(graphite_cache))
+
+        # Create worktree
+        repo_name = cwd.name
+        work_dir = workstacks_root / repo_name
+        temporal_stack_dir = work_dir / "temporal-stack"
+        temporal_stack_dir.mkdir(parents=True)
+
+        # Key setup: The worktree directory is checked out to ts-phase-4,
+        # but we'll simulate running the command from ts-phase-3
+        git_worktree_output = f"""worktree {cwd}
+HEAD abc123
+branch refs/heads/main
+
+worktree {temporal_stack_dir}
+HEAD def456
+branch refs/heads/schrockn/ts-phase-4
+
+"""
+
+        with mock.patch("workstack.config.GLOBAL_CONFIG_PATH", global_config_dir / "config.toml"):
+            original_run = subprocess.run
+
+            def selective_mock_run(cmd, *args, **kwargs):
+                if cmd == ["git", "worktree", "list", "--porcelain"]:
+                    mock_result = mock.Mock()
+                    mock_result.stdout = git_worktree_output
+                    mock_result.returncode = 0
+                    return mock_result
+                if cmd == ["git", "rev-parse", "--git-common-dir"]:
+                    mock_result = mock.Mock()
+                    mock_result.stdout = str(git_dir) + "\n"
+                    mock_result.returncode = 0
+                    return mock_result
+                return original_run(cmd, *args, **kwargs)
+
+            # Mock get_current_branch to simulate the worktree being on ts-phase-3
+            # even though git worktree list shows ts-phase-4
+            def mock_get_current_branch(cwd):
+                # When called with the temporal-stack worktree path, return the actual checked-out branch
+                if cwd == temporal_stack_dir:
+                    return "schrockn/ts-phase-3"
+                # For the main repo, return main
+                if cwd == cwd.parent:  # This won't match in practice, but needed for completeness
+                    return "main"
+                return None
+
+            with mock.patch("workstack.git.subprocess.run", side_effect=selective_mock_run):
+                # Patch get_current_branch in the commands.list module where it's imported
+                with mock.patch(
+                    "workstack.commands.list.get_current_branch",
+                    side_effect=mock_get_current_branch,
+                ):
+                    result = runner.invoke(cli, ["list", "--stacks"])
+                    assert result.exit_code == 0, result.output
+
+                    # Strip ANSI codes for easier assertion
+                    output = strip_ansi(result.output)
+
+                    # The stack visualization should highlight ts-phase-3 (actual current branch)
+                    # NOT ts-phase-4 (the worktree's registered branch from git worktree list)
+                    lines = output.splitlines()
+
+                    # Find the stack visualization lines
+                    phase_3_line = None
+                    phase_4_line = None
+                    for line in lines:
+                        if "schrockn/ts-phase-3" in line and line.strip().startswith("◉"):
+                            phase_3_line = line
+                        if "schrockn/ts-phase-4" in line and line.strip().startswith("◉"):
+                            phase_4_line = line
+
+                    # FIXED: ts-phase-3 should be highlighted because that's the actual checked-out branch
+                    assert phase_3_line is not None, (
+                        "Expected ts-phase-3 to be highlighted with ◉, "
+                        f"but it wasn't found in output:\n{output}"
+                    )
+
+                    # ts-phase-4 should NOT be highlighted
+                    assert phase_4_line is None, (
+                        "ts-phase-4 should NOT be highlighted with ◉ "
+                        "because it's only the registered branch, not the actual checked-out branch. "
+                        f"Output:\n{output}"
+                    )
