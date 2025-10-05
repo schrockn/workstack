@@ -41,7 +41,7 @@ branch refs/heads/main
 
 worktree {work_dir / "foo"}
 HEAD def456
-branch refs/heads/work/foo
+branch refs/heads/foo
 
 worktree {work_dir / "bar"}
 HEAD ghi789
@@ -76,5 +76,5 @@ branch refs/heads/feature/bar
                 worktree_lines = sorted(lines[1:])
                 assert worktree_lines == [
                     "bar [feature/bar] (source <(workstack switch bar --script))",
-                    "foo [work/foo] (source <(workstack switch foo --script))",
+                    "foo [foo] (source <(workstack switch foo --script))",
                 ]

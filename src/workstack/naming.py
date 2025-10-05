@@ -46,7 +46,7 @@ def sanitize_worktree_name(name: str) -> str:
 def default_branch_for_worktree(name: str) -> str:
     """Default branch name for a worktree with the given `name`.
 
-    Uses the pattern `work/<sanitized-name>`.
+    Returns the sanitized name directly (without any prefix).
     """
 
-    return f"work/{sanitize_branch_component(name)}"
+    return sanitize_branch_component(name)

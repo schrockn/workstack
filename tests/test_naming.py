@@ -13,8 +13,8 @@ def test_sanitize_branch_component_basic() -> None:
 
 
 def test_default_branch_for_worktree() -> None:
-    assert default_branch_for_worktree("feature X") == "work/feature-x"
-    assert default_branch_for_worktree("/ / ") == "work/work"
+    assert default_branch_for_worktree("feature X") == "feature-x"
+    assert default_branch_for_worktree("/ / ") == "work"
 
 
 def test_sanitize_worktree_name() -> None:
