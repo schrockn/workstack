@@ -93,9 +93,15 @@ def add_worktree(
         # Create a new branch in the new worktree
         if use_graphite:
             # Use Graphite to create the branch (creates it in a stack)
-            base_ref = ref or "HEAD"
-            # First, create the branch with Graphite
-            subprocess.run(["gt", "create", branch, "--onto", base_ref], cwd=repo_root, check=True)
+            # Note: ref is ignored when using graphite - branch is created stacked on current branch
+            cwd = Path.cwd()
+            # Save current branch so we can switch back
+            original_branch = get_current_branch(cwd)
+            # Create the branch with Graphite (runs in current worktree to stack on current branch)
+            # This will check out the new branch in the current worktree
+            subprocess.run(["gt", "create", branch], cwd=cwd, check=True)
+            # Switch back to original branch so we can add a worktree for the new branch
+            subprocess.run(["git", "checkout", original_branch], cwd=cwd, check=True)
             # Then add the worktree pointing to that branch
             subprocess.run(["git", "worktree", "add", str(path), branch], cwd=repo_root, check=True)
         else:

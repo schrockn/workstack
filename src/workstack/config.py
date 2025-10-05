@@ -11,6 +11,7 @@ class GlobalConfig:
 
     workstacks_root: Path
     use_graphite: bool
+    shell_setup_complete: bool
 
 
 def load_global_config() -> GlobalConfig:
@@ -28,10 +29,12 @@ def load_global_config() -> GlobalConfig:
 
     # Default to False for backward compatibility with existing configs
     use_graphite = data.get("use_graphite", False)
+    shell_setup_complete = data.get("shell_setup_complete", False)
 
     return GlobalConfig(
         workstacks_root=Path(root).expanduser().resolve(),
         use_graphite=bool(use_graphite),
+        shell_setup_complete=bool(shell_setup_complete),
     )
 
 

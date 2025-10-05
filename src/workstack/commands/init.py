@@ -1,3 +1,4 @@
+import os
 import re
 import shutil
 import tomllib
@@ -5,7 +6,7 @@ from pathlib import Path
 
 import click
 
-from workstack.config import GLOBAL_CONFIG_PATH
+from workstack.config import GLOBAL_CONFIG_PATH, load_global_config
 from workstack.core import discover_repo_context, ensure_work_dir
 
 
@@ -45,13 +46,14 @@ def detect_graphite() -> bool:
     return shutil.which("gt") is not None
 
 
-def create_global_config(workstacks_root: Path) -> None:
+def create_global_config(workstacks_root: Path, shell_setup_complete: bool = False) -> None:
     """Create global config at ~/.workstack/config.toml."""
     GLOBAL_CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
     use_graphite = detect_graphite()
     content = f"""# Global workstack configuration
 workstacks_root = "{workstacks_root}"
 use_graphite = {str(use_graphite).lower()}
+shell_setup_complete = {str(shell_setup_complete).lower()}
 """
     GLOBAL_CONFIG_PATH.write_text(content, encoding="utf-8")
 
@@ -84,6 +86,139 @@ def render_config_template(preset: str | None = None) -> str:
     return preset_file.read_text(encoding="utf-8")
 
 
+def detect_shell() -> tuple[str, Path] | None:
+    """Detect current shell and return (shell_name, rc_file_path).
+
+    Returns None if shell cannot be detected or is unsupported.
+    """
+    shell_path = os.environ.get("SHELL", "")
+    if not shell_path:
+        return None
+
+    shell_name = Path(shell_path).name
+
+    if shell_name == "bash":
+        rc_file = Path.home() / ".bashrc"
+        return ("bash", rc_file)
+    if shell_name == "zsh":
+        rc_file = Path.home() / ".zshrc"
+        return ("zsh", rc_file)
+    if shell_name == "fish":
+        rc_file = Path.home() / ".config" / "fish" / "config.fish"
+        return ("fish", rc_file)
+
+    return None
+
+
+def get_shell_wrapper_content(shell: str) -> str:
+    """Load the shell wrapper function for the given shell type."""
+    shell_integration_dir = Path(__file__).parent.parent / "shell_integration"
+
+    if shell == "fish":
+        wrapper_file = shell_integration_dir / "fish_wrapper.fish"
+    else:
+        wrapper_file = shell_integration_dir / f"{shell}_wrapper.sh"
+
+    if not wrapper_file.exists():
+        raise ValueError(f"Shell wrapper not found for {shell}")
+
+    return wrapper_file.read_text(encoding="utf-8")
+
+
+def update_shell_setup_complete(complete: bool) -> None:
+    """Update the shell_setup_complete flag in global config."""
+    if not GLOBAL_CONFIG_PATH.exists():
+        return
+
+    # Read current config
+    content = GLOBAL_CONFIG_PATH.read_text(encoding="utf-8")
+    data = tomllib.loads(content)
+
+    # Update shell_setup_complete
+    workstacks_root = data.get("workstacks_root", "")
+    use_graphite = data.get("use_graphite", False)
+
+    # Write updated config
+    new_content = f"""# Global workstack configuration
+workstacks_root = "{workstacks_root}"
+use_graphite = {str(use_graphite).lower()}
+shell_setup_complete = {str(complete).lower()}
+"""
+    GLOBAL_CONFIG_PATH.write_text(new_content, encoding="utf-8")
+
+
+def perform_shell_setup() -> bool:
+    """Interactively set up shell integration (completion + wrapper function).
+
+    Returns True if setup was completed, False if skipped.
+    """
+    shell_info = detect_shell()
+    if not shell_info:
+        click.echo("Unable to detect shell. Skipping shell integration setup.")
+        return False
+
+    shell, rc_file = shell_info
+
+    click.echo(f"\nDetected shell: {shell}")
+    click.echo("Shell integration provides:")
+    click.echo("  - Tab completion for workstack commands")
+    click.echo("  - Automatic worktree activation on 'workstack switch'")
+
+    if not click.confirm("\nSet up shell integration?", default=True):
+        click.echo("Skipping shell integration. You can run 'workstack init --shell' later.")
+        return False
+
+    # Step 1: Completion setup
+    click.echo(f"\n1. Setting up tab completion for {shell}...")
+    completion_line = f"source <(workstack completion {shell})"
+
+    if rc_file.exists():
+        rc_content = rc_file.read_text(encoding="utf-8")
+        if completion_line in rc_content:
+            click.echo(f"   ✓ Completion already configured in {rc_file}")
+        else:
+            if click.confirm(f"   Add completion to {rc_file}?", default=True):
+                rc_file.write_text(
+                    rc_content + f"\n# Workstack completion\n{completion_line}\n", encoding="utf-8"
+                )
+                click.echo(f"   ✓ Added completion to {rc_file}")
+            else:
+                click.echo(f"   To set up manually, add to {rc_file}:")
+                click.echo(f"   {completion_line}")
+    else:
+        click.echo(f"   {rc_file} not found. To set up manually, add:")
+        click.echo(f"   {completion_line}")
+
+    # Step 2: Shell wrapper function
+    click.echo(f"\n2. Setting up auto-activation wrapper for {shell}...")
+    wrapper_content = get_shell_wrapper_content(shell)
+
+    if rc_file.exists():
+        rc_content = rc_file.read_text(encoding="utf-8")
+        if "workstack shell integration" in rc_content.lower():
+            click.echo(f"   ✓ Wrapper already configured in {rc_file}")
+        else:
+            if click.confirm(f"   Add wrapper function to {rc_file}?", default=True):
+                rc_file.write_text(rc_content + f"\n{wrapper_content}\n", encoding="utf-8")
+                click.echo(f"   ✓ Added wrapper to {rc_file}")
+            else:
+                click.echo(f"   To set up manually, add to {rc_file}:")
+                click.echo(f"\n{wrapper_content}")
+    else:
+        rc_file.parent.mkdir(parents=True, exist_ok=True)
+        if click.confirm(f"   Create {rc_file} with wrapper function?", default=True):
+            rc_file.write_text(f"{wrapper_content}\n", encoding="utf-8")
+            click.echo(f"   ✓ Created {rc_file} with wrapper")
+        else:
+            click.echo(f"   To set up manually, create {rc_file} with:")
+            click.echo(f"\n{wrapper_content}")
+
+    click.echo("\n✓ Shell integration setup complete!")
+    click.echo(f"Run 'source {rc_file}' or start a new shell to activate.")
+
+    return True
+
+
 @click.command("init")
 @click.option("--force", is_flag=True, help="Overwrite existing repo config if present.")
 @click.option(
@@ -105,8 +240,20 @@ def render_config_template(preset: str | None = None) -> str:
     is_flag=True,
     help="Initialize repository-level config only (skip global config setup).",
 )
-def init_cmd(force: bool, preset: str, list_presets: bool, repo: bool) -> None:
+@click.option(
+    "--shell",
+    is_flag=True,
+    help="Set up shell integration only (completion + auto-activation wrapper).",
+)
+def init_cmd(force: bool, preset: str, list_presets: bool, repo: bool, shell: bool) -> None:
     """Initialize workstack for this repo and scaffold config.toml."""
+
+    # Handle --shell flag: only do shell setup
+    if shell:
+        setup_complete = perform_shell_setup()
+        if setup_complete:
+            update_shell_setup_complete(complete=True)
+        return
 
     # Discover available presets on demand
     available_presets = discover_presets()
@@ -124,8 +271,12 @@ def init_cmd(force: bool, preset: str, list_presets: bool, repo: bool) -> None:
         click.echo(f"Invalid preset '{preset}'. Available options: {', '.join(valid_choices)}")
         raise SystemExit(1)
 
+    # Track if this is the first time init is run
+    first_time_init = False
+
     # Check for global config first (unless --repo flag is set)
     if not repo and not GLOBAL_CONFIG_PATH.exists():
+        first_time_init = True
         click.echo(f"Global config not found at {GLOBAL_CONFIG_PATH}")
         click.echo("Please provide the path where you want to store all worktrees.")
         click.echo("(This directory will contain subdirectories for each repository)")
@@ -188,3 +339,11 @@ def init_cmd(force: bool, preset: str, list_presets: bool, repo: bool) -> None:
                 gitignore_content += ".PLAN.md\n"
                 gitignore_path.write_text(gitignore_content, encoding="utf-8")
                 click.echo(f"Added .PLAN.md to {gitignore_path}")
+
+    # On first-time init, offer shell setup if not already completed
+    if first_time_init:
+        global_config = load_global_config()
+        if not global_config.shell_setup_complete:
+            setup_complete = perform_shell_setup()
+            if setup_complete:
+                update_shell_setup_complete(complete=True)

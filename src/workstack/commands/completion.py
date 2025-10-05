@@ -16,6 +16,10 @@ def completion_bash() -> None:
     """Generate bash completion script.
 
     \b
+    For automatic setup of both completion and auto-activation:
+      workstack init --shell
+
+    \b
     To load completions in your current shell session:
       source <(workstack completion bash)
 
@@ -47,6 +51,10 @@ def completion_zsh() -> None:
     """Generate zsh completion script.
 
     \b
+    For automatic setup of both completion and auto-activation:
+      workstack init --shell
+
+    \b
     To load completions in your current shell session:
       source <(workstack completion zsh)
 
@@ -75,6 +83,10 @@ def completion_zsh() -> None:
 @completion_group.command("fish")
 def completion_fish() -> None:
     """Generate fish completion script.
+
+    \b
+    For automatic setup of both completion and auto-activation:
+      workstack init --shell
 
     \b
     To load completions in your current shell session:
