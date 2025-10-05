@@ -597,7 +597,12 @@ def ls_cmd() -> None:
     is_flag=True,
     help="List available presets and exit.",
 )
-def init_cmd(force: bool, preset: str, list_presets: bool) -> None:
+@click.option(
+    "--repo",
+    is_flag=True,
+    help="Initialize repository-level config only (skip global config setup).",
+)
+def init_cmd(force: bool, preset: str, list_presets: bool, repo: bool) -> None:
     """Initialize workstack for this repo and scaffold config.toml."""
 
     # Discover available presets on demand
@@ -616,8 +621,8 @@ def init_cmd(force: bool, preset: str, list_presets: bool) -> None:
         click.echo(f"Invalid preset '{preset}'. Available options: {', '.join(valid_choices)}")
         raise SystemExit(1)
 
-    # Check for global config first
-    if not GLOBAL_CONFIG_PATH.exists():
+    # Check for global config first (unless --repo flag is set)
+    if not repo and not GLOBAL_CONFIG_PATH.exists():
         click.echo(f"Global config not found at {GLOBAL_CONFIG_PATH}")
         click.echo("Please provide the path where you want to store all worktrees.")
         click.echo("(This directory will contain subdirectories for each repository)")
@@ -632,10 +637,23 @@ def init_cmd(force: bool, preset: str, list_presets: bool) -> None:
         else:
             click.echo("Graphite (gt) not detected - will use 'git' for branch creation")
 
+    # When --repo is set, verify that global config exists
+    if repo and not GLOBAL_CONFIG_PATH.exists():
+        click.echo(f"Global config not found at {GLOBAL_CONFIG_PATH}", err=True)
+        click.echo("Run 'workstack init' without --repo to create global config first.", err=True)
+        raise SystemExit(1)
+
     # Now proceed with repo-specific setup
-    repo = discover_repo_context(Path.cwd())
-    work_dir = ensure_work_dir(repo)
-    cfg_path = work_dir / "config.toml"
+    repo_context = discover_repo_context(Path.cwd())
+
+    # Determine config path based on --repo flag
+    if repo:
+        # Repository-level config goes in repo root
+        cfg_path = repo_context.root / "config.toml"
+    else:
+        # Worktree-level config goes in work_dir
+        work_dir = ensure_work_dir(repo_context)
+        cfg_path = work_dir / "config.toml"
 
     if cfg_path.exists() and not force:
         click.echo(f"Config already exists: {cfg_path}. Use --force to overwrite.")
@@ -644,7 +662,7 @@ def init_cmd(force: bool, preset: str, list_presets: bool) -> None:
     effective_preset: str | None
     choice = preset.lower()
     if choice == "auto":
-        effective_preset = "dagster" if is_repo_named(repo.root, "dagster") else "generic"
+        effective_preset = "dagster" if is_repo_named(repo_context.root, "dagster") else "generic"
     else:
         effective_preset = choice
 
@@ -653,7 +671,7 @@ def init_cmd(force: bool, preset: str, list_presets: bool) -> None:
     click.echo(f"Wrote {cfg_path}")
 
     # Check for .gitignore and add .PLAN.md
-    gitignore_path = repo.root / ".gitignore"
+    gitignore_path = repo_context.root / ".gitignore"
     if gitignore_path.exists():
         gitignore_content = gitignore_path.read_text(encoding="utf-8")
 
@@ -815,7 +833,7 @@ def config_list() -> None:
             click.echo(f"  post_create.commands={cfg.post_create_commands}")
 
         if not cfg.env and not cfg.post_create_shell and not cfg.post_create_commands:
-            click.echo(f"  (no configuration - run 'workstack init' to create)")
+            click.echo(f"  (no configuration - run 'workstack init --repo' to create)")
     except Exception:
         click.echo(click.style("\nRepository configuration:", bold=True))
         click.echo(f"  (not in a git repository)")
@@ -908,8 +926,8 @@ def config_set(key: str, value: str) -> None:
 
         # Write back
         content = f"""# Global workstack configuration
-workstacks_root = "{data['workstacks_root']}"
-use_graphite = {str(data['use_graphite']).lower()}
+workstacks_root = "{data["workstacks_root"]}"
+use_graphite = {str(data["use_graphite"]).lower()}
 """
         GLOBAL_CONFIG_PATH.write_text(content, encoding="utf-8")
         click.echo(f"Set {key}={value}")

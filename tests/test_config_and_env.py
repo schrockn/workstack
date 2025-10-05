@@ -70,7 +70,7 @@ def test_load_global_config_missing_file(tmp_path: Path) -> None:
 
 def test_load_global_config_missing_workstacks_root(tmp_path: Path) -> None:
     config_file = tmp_path / "config.toml"
-    config_file.write_text('use_graphite = true\n', encoding="utf-8")
+    config_file.write_text("use_graphite = true\n", encoding="utf-8")
 
     with mock.patch("workstack.config.GLOBAL_CONFIG_PATH", config_file):
         with pytest.raises(ValueError, match="Missing 'workstacks_root'"):
