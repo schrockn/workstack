@@ -6,9 +6,17 @@ workstack() {
   if [ -n "$_WORKSTACK_COMPLETE" ]; then
     command workstack "$@"
   elif [ "$1" = "switch" ]; then
-    # Auto-activate worktree on switch
+    # Check if __switch returns the passthrough marker
     shift
-    eval "$(command workstack switch --script "$@")"
+    local output
+    output=$(command workstack __switch "$@")
+    if [ "$output" = "__WORKSTACK_PASSTHROUGH__" ]; then
+      # Pass through to regular command
+      command workstack switch "$@"
+    else
+      # Eval the activation script
+      eval "$output"
+    fi
   else
     # Pass through all other commands
     command workstack "$@"

@@ -8,7 +8,7 @@ from workstack.commands.init import init_cmd
 from workstack.commands.list import list_cmd, ls_cmd
 from workstack.commands.remove import remove_cmd, rm_cmd
 from workstack.commands.rename import rename_cmd
-from workstack.commands.switch import switch_cmd
+from workstack.commands.switch import hidden_switch_cmd, switch_cmd
 
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])  # terse help flags
 
@@ -23,6 +23,7 @@ def cli() -> None:
 cli.add_command(completion_group)
 cli.add_command(create)
 cli.add_command(switch_cmd)
+cli.add_command(hidden_switch_cmd)
 cli.add_command(list_cmd)
 cli.add_command(ls_cmd)
 cli.add_command(init_cmd)
