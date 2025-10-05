@@ -88,7 +88,13 @@ def add_worktree(
     if branch and use_existing_branch:
         # Check out an existing branch in the new worktree
         cmd = ["git", "worktree", "add", str(path), branch]
-        subprocess.run(cmd, cwd=repo_root, check=True)
+        result = subprocess.run(
+            cmd, cwd=repo_root, check=True, capture_output=True, text=True
+        )
+        # Only show the "Preparing worktree" line from git's output
+        for line in result.stderr.splitlines():
+            if line.startswith("Preparing worktree"):
+                click.echo(line)
     elif branch:
         # Create a new branch in the new worktree
         if use_graphite:
@@ -146,7 +152,13 @@ def checkout_branch(repo_root: Path, branch: str) -> None:
 
     Runs `git checkout <branch>`.
     """
-    subprocess.run(["git", "checkout", branch], cwd=repo_root, check=True)
+    subprocess.run(
+        ["git", "checkout", branch],
+        cwd=repo_root,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
 
 
 def make_env_content(cfg: LoadedConfig, *, worktree_path: Path, repo_root: Path, name: str) -> str:
@@ -358,13 +370,7 @@ def create(
             shell=cfg.post_create_shell,
         )
 
-    if from_current_branch:
-        click.echo(f"Moved branch '{branch}' to worktree: {wt_path}")
-        click.echo(f"Current worktree switched to branch: {to_branch}")
-        click.echo(f"To activate the new worktree: source <(workstack switch {name} --script)")
-    else:
-        click.echo(str(wt_path))
-        click.echo(f"source <(workstack switch {name} --script)")
+    click.echo(f"Created workstack at {wt_path} checked out at branch '{branch}'")
 
 
 def run_commands_in_worktree(

@@ -1,29 +1,8 @@
 # `workstack`
 
-**A CLI that enables the effortless management of multiple `git` worktrees to parallelize development, primarily for agentic workflows.**
+**Effortless `git` worktree management for parallel development.**
 
-Manage `git` worktrees and Graphite (`gt`) stacks in a centralized directory with automatic environment setup and per-worktree configuration.
-
-## Why?
-
-Traditional `git` workflows involve switching branches in a fixed repo at a single file location. This worked well for human workflows, as humans can typically only work on one thing at a time.
-
-With the emergence of coding agents, there is now a new need for maintaining parallel copies of repos. `git` has worktrees, which theoretically enable this use case, but managing them is tedious and error-prone.
-
-`workstack` is designed to have a simple, opinionated workflow around the creation of worktrees that allows fast switching and easy management. It was designed to be used for Python projects managed via `uv` (it relies on fast environment creation) and for projects that use `gt` (Graphite) to manage "stacks", but could be fairly easily generalized by a motivated user.
-
-It falls back to `git`-only operations when `gt` is not available.
-
-## How it works
-
-You configure a single location for all your worktrees (e.g. `~/workstack/worktrees`). As you use `workstack` it creates a folder per repository.
-
-- **Centralizes worktrees** in `~/worktrees/<repo>/<feature>/` (configurable).
-- **Auto-configures environments** with `.env`, virtual environments, and activation scripts. When you switch environments you can set new environment variables and run scripts for setup.
-- **CRUD operations via the CLI**: `create`, `ls`, and `rm`.
-- **Fast switching**: Fast switching via the `switch` command.
-- **Opinionated workflow with planning.** `workstack create --plan`
-- **Works with Graphite** for stacked diffs (optional)
+Create, switch, and manage multiple worktrees from a centralized location with automatic environment setup.
 
 ## Installation
 
@@ -38,68 +17,87 @@ uv tool install git+https://github.com/schrockn/workstack.git
 ## Quick Start
 
 ```bash
-# 1. Initialize in your repository (sets up shell integration)
+# Initialize in your repo
 cd /path/to/your/repo
 workstack init
+source ~/.zshrc  # or ~/.bashrc
 
-# 2. Reload your shell or run: source ~/.zshrc (or ~/.bashrc)
-
-# 3. Create a worktree
+# Create and switch to a worktree
 workstack create user-auth
-
-# 4. Switch to it
 workstack switch user-auth
 
-# 5. Work on your feature...
-
-# 6. Switch back to main/master
+# Switch back and clean up
 workstack switch main
-
-# 7. Clean up
 workstack rm user-auth
 ```
 
-## Plan-oriented development
+## Overview
 
-`workstack` comes with a simple, but opinionated workflow for plan-based development. The idea:
+`workstack` solves the pain of managing multiple `git` worktrees - essential for parallel development with AI agents or working on multiple features simultaneously.
 
-- **Plan in master/main**. Leave all work for worktrees. Since planning is read-only, you can do planning in parallel without creating multiple worktrees.
-- **Make the plan**: Prompt your agent to create a plan, iterate on it, and then save it as an `.md` file at repo root.
-- **Execute the plan**: Then create a `workstack` to execute the plan. `workstack create --plan your_plan.md` will
-  - Automatically create a workstack. Name it based on the name of the plan file.
-  - It will move the plan to the workstack with the name .PLAN.md. On `init` workstack adds this filename to your `.gitignore`. We have found that checking in planning files confuses reviews and adds excessive bookkeeping. This way the agent has access to the plan without polluting source control.
-- **Switch quickly**: Simply run `workstack switch NAME` to instantly switch worktrees and activate the environment.
-- **Move branches to a different worktree**: This is annoying without `workstack` because two worktrees cannot point to the same branch. This handles the swapping for you. `workstack move your-stack` just works.
+**Key features:**
 
-## Core Concepts
+- Centralized worktrees in `~/worktrees/<repo>/<feature>/`
+- Automatic environment setup (`.env`, virtual environments, activation scripts)
+- Simple CLI: `create`, `switch`, `rm`, `ls`
+- Plan-based development workflow
+- Optional Graphite integration for stacked diffs
 
-### Architecture
+Traditional `git` workflows require branch switching in a single location. With AI agents and parallel development needs, `workstack` makes managing multiple worktrees effortless.
 
+## Core Commands
+
+### Creating Worktrees
+
+```bash
+# New feature branch
+workstack create feature-x                          # Creates worktree 'feature-x' with branch 'feature-x'
+workstack create fix --branch hotfix/bug           # Creates worktree 'fix' with branch 'hotfix/bug'
+
+# From existing branch
+workstack create --from-branch feature/login       # Creates worktree from existing branch 'feature/login'
+workstack create login --from-branch feature/login # Creates worktree 'login' from branch 'feature/login'
+
+# Move current work
+workstack create --from-current-branch             # Move current branch to new worktree
+
+# From a plan file
+workstack create --plan Add_Auth.md                # Creates worktree, moves plan to .PLAN.md
 ```
-~/.workstack/config.toml          # Global config (worktree root location)
-~/worktrees/
-  your-repo/
-    config.toml                   # Repo-specific config
-    user-auth/                    # Worktree
-      .git, .env, .venv/, .PLAN.md, <source>
-    refactor-api/
-      ...
+
+### Managing Worktrees
+
+```bash
+workstack switch NAME            # Switch between worktrees (or 'main'/'master')
+workstack ls                     # List all worktrees
+workstack rename OLD NEW         # Rename a worktree
+workstack rm NAME                # Remove worktree
+workstack gc                     # Find safe-to-delete worktrees (merged PRs)
 ```
 
 ### Configuration
+
+```bash
+workstack init                   # Initialize in repository
+workstack config list            # Show all configuration
+workstack config get KEY         # Get config value
+workstack config set KEY VALUE  # Set config value
+```
+
+## Configuration Files
 
 **Global** (`~/.workstack/config.toml`):
 
 ```toml
 workstacks_root = "/Users/you/worktrees"
-use_graphite = true  # Auto-detected (requires gt CLI)
+use_graphite = true  # Auto-detected if gt CLI installed
 ```
 
-**Per-Repo** (`~/worktrees/<repo>/config.toml`):
+**Per-Repository** (`~/worktrees/<repo>/config.toml`):
 
 ```toml
 [env]
-# Variables: {worktree_path}, {repo_root}, {name}
+# Template variables: {worktree_path}, {repo_root}, {name}
 DATABASE_URL = "postgresql://localhost/{name}_db"
 
 [post_create]
@@ -110,183 +108,104 @@ commands = [
 ]
 ```
 
-## Commands
+## Common Workflows
 
-### `workstack init [--preset auto|generic|dagster]`
-
-Initialize workstack for current repository. Creates config, adds to `.gitignore`.
-
-### `workstack create NAME [--branch BRANCH] [--ref REF] [--plan FILE] [--move] [--no-post]`
-
-Create worktree with new branch.
-
-```bash
-workstack create feature-x                          # Branch: work/feature-x
-workstack create fix --branch hotfix/bug --ref main
-workstack create --plan Add_Auth.md                 # Moves plan to .PLAN.md in new worktree
-workstack create --move                             # Move current branch to worktree, switch to main
-workstack create feature-x --no-post                # Skip post-create commands
-```
-
-**Options:**
-
-- `--move`: Move current branch to new worktree, switch current worktree to main/master
-- `--no-post`: Skip running post-create commands from config.toml
-
-### `workstack co BRANCH [--name NAME] [--no-post]`
-
-Checkout existing branch into worktree.
-
-```bash
-workstack co feature/login
-workstack co feature/login --name login-work
-workstack co pr-123 --no-post                       # Skip post-create commands
-```
-
-### `workstack move [NAME] [--to-branch BRANCH] [--no-post]`
-
-Move current branch to worktree, switch to different branch.
-
-```bash
-workstack move                     # Move to worktree, switch to main
-workstack move feat --to-branch develop
-workstack move --no-post           # Skip post-create commands
-```
-
-**Note:** You can also use `workstack create --move` as an alternative.
-
-### `workstack switch NAME [--script]`
-
-Switch to worktree or root repo (using 'main' or 'master'). Supports shell completion for worktree names.
-
-**With shell integration (recommended):**
-
-```bash
-workstack switch feature-x
-workstack switch main
-```
-
-**Without shell integration:**
-
-```bash
-source <(workstack switch feature-x --script)
-source <(workstack switch main --script)
-```
-
-**Shell integration** is automatically set up during `workstack init`. To set up later or on a different machine, run `workstack init --shell`.
-
-### `workstack list` / `workstack ls`
-
-List all worktrees.
-
-### `workstack rm NAME [-f]`
-
-Remove worktree (with optional force). Supports shell completion for worktree names.
-
-### `workstack gc [--debug]`
-
-List worktrees that are safe to delete (branches with merged or closed PRs).
-
-```bash
-workstack gc  # Check all worktrees for merged/closed PRs
-```
-
-**Features:**
-
-- Uses GitHub CLI (`gh`) to check PR status for each worktree
-- Non-destructive - only lists candidates, doesn't delete anything
-- Shows PR number, state (merged/closed), and suggested cleanup command
-- Debug mode enabled by default during development
-
-**Example output:**
-
-```
-Workstacks safe to delete:
-
-  feature-x [work/feature-x] - merged (PR #123)
-    → workstack rm feature-x
-
-  old-fix [work/old-fix] - closed (PR #456)
-    → workstack rm old-fix
-```
-
-**Requirements:** GitHub CLI (`gh`) must be installed and authenticated.
-
-### `workstack completion bash|zsh|fish`
-
-Generate shell completions. Shell integration (completion + auto-activation) is automatically set up during `workstack init`.
-
-**Manual setup:**
-
-```bash
-source <(workstack completion bash)  # Add to ~/.bashrc
-source <(workstack completion zsh)   # Add to ~/.zshrc
-workstack completion fish | source   # For fish shell
-```
-
-**Automatic setup:**
-
-```bash
-workstack init --shell  # Sets up both completion and auto-activation wrapper
-```
-
-## Workflows
-
-### AI Development with Claude
-
-```bash
-# 1. Create plan (Claude generates this)
-claude "Create plan for user auth"  # Saves Add_User_Auth.md
-
-# 2. Create worktree from plan
-workstack create --plan Add_User_Auth.md
-
-# 3. Switch and launch Claude
-workstack switch add-user-auth
-claude  # Reads .PLAN.md automatically
-```
-
-### Parallel Features
+### Parallel Feature Development
 
 ```bash
 workstack create feature-a
 workstack switch feature-a
-# ... work ...
+# ... work on feature A ...
 
 workstack create feature-b
 workstack switch feature-b
-# ... work ...
+# ... work on feature B ...
 
-workstack switch feature-a  # Back to A
+workstack switch feature-a  # Instantly back to feature A
 ```
 
-### Testing PRs
+### Plan-Based Development
+
+`workstack` promotes an opinionated workflow that separates planning from implementation:
+
+**Core principles:**
+
+- **Plan in main/master** - Keep your main branch "read-only" for planning. Since planning doesn't modify code, you can create multiple plans in parallel without worktrees.
+- **Execute in worktrees** - All code changes happen in dedicated worktrees, keeping work isolated and switchable.
+- **Plans as artifacts** - Each plan is a markdown file that travels with its worktree.
+
+**Workflow:**
 
 ```bash
-git fetch origin pull/123/head:pr-123
-workstack co pr-123
-workstack switch pr-123
-pytest
-workstack rm pr-123 -f
+# 1. Stay in main branch for planning
+workstack switch main
+
+# 2. Create your plan and save it to disk (e.g. Add_User_Auth.md)
+
+# 3. Create worktree from plan
+workstack create --plan Add_User_Auth.md
+# This automatically:
+#   - Creates worktree named 'add-user-auth'
+#   - Moves Add_User_Auth.md to worktree as .PLAN.md
+#   - .PLAN.md is already in .gitignore (added by workstack init)
+
+# 4. Switch and execute
+workstack switch add-user-auth
+# Your plan is now at .PLAN.md for reference during implementation
 ```
 
-### Repository-Specific Setup
+**Why this works:**
 
-**Django:**
+- Plans don't clutter PR reviews (`.PLAN.md` in `.gitignore`)
+- Each worktree has its own plan context
+- Clean separation between thinking and doing
+- Workflow guides user to start implementation with clean context with just the .PLAN.md.
 
-```toml
-[env]
-DATABASE_URL = "postgresql://localhost/myproject_{name}"
+This workflow emerged from experience - checking in planning documents created noise in reviews and maintenance overhead without clear benefits.
 
-[post_create]
-shell = "bash"
-commands = [
-  "python -m venv .venv",
-  "source .venv/bin/activate && pip install -e .[dev]",
-  "createdb myproject_{name}",
-  "python manage.py migrate",
-]
+### Moving Current Work
+
+```bash
+# Started work on main by accident?
+workstack create --from-current-branch
+# Creates worktree with current branch, switches you back to main
 ```
+
+## Command Reference
+
+### `create` Options
+
+| Option                  | Description                         |
+| ----------------------- | ----------------------------------- |
+| `--branch BRANCH`       | Specify branch name (default: NAME) |
+| `--ref REF`             | Base ref (default: current HEAD)    |
+| `--plan FILE`           | Create from plan file               |
+| `--from-current-branch` | Move current branch to worktree     |
+| `--from-branch BRANCH`  | Create from existing branch         |
+| `--no-post`             | Skip post-create commands           |
+
+### Environment Variables
+
+Always exported when switching:
+
+- `WORKTREE_PATH` - Absolute path to current worktree
+- `REPO_ROOT` - Absolute path to repository root
+- `WORKTREE_NAME` - Name of current worktree
+
+## Advanced Features
+
+### Graphite Integration
+
+If [Graphite CLI](https://graphite.dev/) is installed, `workstack` automatically uses `gt create` for proper stack tracking.
+
+```bash
+brew install withgraphite/tap/graphite
+workstack init  # Auto-detects gt
+```
+
+Disable in `~/.workstack/config.toml`: `use_graphite = false`
+
+### Repository Presets
 
 **Dagster:**
 
@@ -295,76 +214,35 @@ commands = [
 DAGSTER_GIT_REPO_DIR = "{worktree_path}"
 
 [post_create]
-shell = "bash"
 commands = ["uv venv", "uv run make dev_install"]
 ```
 
-## Environment Variables
+### Garbage Collection
 
-**Template Variables** (use in `config.toml`):
-
-- `{worktree_path}` - Absolute path to worktree
-- `{repo_root}` - Absolute path to repository root
-- `{name}` - Worktree name
-
-**Always Available** (exported when using `workstack switch`):
-
-- `WORKTREE_PATH`, `REPO_ROOT`, `WORKTREE_NAME`
-
-## Graphite Integration
-
-If [Graphite CLI](https://graphite.dev/) (`gt`) is installed, `workstack` uses `gt create` instead of `git branch` for new worktrees, ensuring proper stack tracking.
+Find and clean up merged/closed PR branches:
 
 ```bash
-brew install withgraphite/tap/graphite
-workstack init  # Auto-detects gt
+workstack gc
+# Output:
+#   feature-x [work/feature-x] - merged (PR #123)
+#     → workstack rm feature-x
 ```
 
-Manual override in `~/.workstack/config.toml`:
-
-```toml
-use_graphite = false  # Disable even if gt is installed
-```
-
-## Tips
-
-**Shell integration:**
-
-Shell integration is automatically set up during `workstack init`. This provides:
-
-- Tab completion for all commands
-- Automatic worktree activation with `workstack switch NAME`
-
-To set up on a new machine or shell: `workstack init --shell`
-
-**Naming:** Use lowercase with hyphens: `add-user-auth`, `fix-login-bug`
-
-**Cleanup:** `workstack list` → `workstack rm old-feature -f`
-
-## Development
-
-```bash
-git clone https://github.com/schrockn/workstack.git
-cd workstack
-uv sync --group dev
-uv run pytest
-uv run ruff check
-uv run pyright
-```
+Requires GitHub CLI (`gh`) installed and authenticated.
 
 ## FAQ
 
-**vs git worktree?** Adds centralized management, auto environment setup, templates, and AI integration.
+**Q: How is this different from `git worktree`?**  
+A: Adds centralized management, automatic environment setup, and seamless switching.
 
-**Python version?** 3.13+ (earlier may work).
+**Q: Does it work with non-Python projects?**  
+A: Yes! Configure `post_create` commands for any stack.
 
-**Non-Python projects?** Yes! Configure `post_create` for any stack.
-
-**Without Graphite?** Works fine, uses standard git commands.
+**Q: What if I don't use Graphite?**  
+A: Works perfectly with standard git commands.
 
 ## Links
 
-- **PyPI:** https://pypi.org/project/workstack/
 - **GitHub:** https://github.com/schrockn/workstack
 - **Issues:** https://github.com/schrockn/workstack/issues
 
