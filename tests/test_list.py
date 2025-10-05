@@ -1,3 +1,4 @@
+import json
 import re
 import subprocess
 from pathlib import Path
@@ -77,3 +78,202 @@ branch refs/heads/feature/bar
                     "bar [feature/bar]",
                     "foo [foo]",
                 ]
+
+
+def test_list_with_stacks_flag() -> None:
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        # Set up isolated environment
+        cwd = Path.cwd()
+        global_config_dir = cwd / ".workstack_config"
+        global_config_dir.mkdir()
+        workstacks_root = cwd / "workstacks"
+        (global_config_dir / "config.toml").write_text(
+            f'workstacks_root = "{workstacks_root}"\nuse_graphite = true\n'
+        )
+
+        # Create git repo structure
+        git_dir = Path(".git")
+        git_dir.mkdir()
+
+        # Create graphite cache persist file with a linear stack
+        # AND a sibling branch to verify it's NOT included
+        graphite_cache = {
+            "branches": [
+                [
+                    "main",
+                    {
+                        "validationResult": "TRUNK",
+                        "children": ["schrockn/ts-phase-1", "sibling-branch"],
+                    },
+                ],
+                [
+                    "schrockn/ts-phase-1",
+                    {"parentBranchName": "main", "children": ["schrockn/ts-phase-2"]},
+                ],
+                [
+                    "schrockn/ts-phase-2",
+                    {
+                        "parentBranchName": "schrockn/ts-phase-1",
+                        "children": ["schrockn/ts-phase-3"],
+                    },
+                ],
+                [
+                    "schrockn/ts-phase-3",
+                    {"parentBranchName": "schrockn/ts-phase-2", "children": []},
+                ],
+                ["sibling-branch", {"parentBranchName": "main", "children": []}],
+            ]
+        }
+        (git_dir / ".graphite_cache_persist").write_text(json.dumps(graphite_cache))
+
+        # Create worktrees
+        repo_name = cwd.name
+        work_dir = workstacks_root / repo_name
+        (work_dir / "ts").mkdir(parents=True)
+
+        # Mock git worktree list
+        git_worktree_output = f"""worktree {cwd}
+HEAD abc123
+branch refs/heads/main
+
+worktree {work_dir / "ts"}
+HEAD def456
+branch refs/heads/schrockn/ts-phase-2
+
+"""
+
+        # Mock GLOBAL_CONFIG_PATH
+        with mock.patch("workstack.config.GLOBAL_CONFIG_PATH", global_config_dir / "config.toml"):
+            original_run = subprocess.run
+
+            def selective_mock_run(cmd, *args, **kwargs):
+                if cmd == ["git", "worktree", "list", "--porcelain"]:
+                    mock_result = mock.Mock()
+                    mock_result.stdout = git_worktree_output
+                    mock_result.returncode = 0
+                    return mock_result
+                if cmd == ["git", "rev-parse", "--git-common-dir"]:
+                    mock_result = mock.Mock()
+                    mock_result.stdout = str(git_dir) + "\n"
+                    mock_result.returncode = 0
+                    return mock_result
+                return original_run(cmd, *args, **kwargs)
+
+            with mock.patch("workstack.git.subprocess.run", side_effect=selective_mock_run):
+                result = runner.invoke(cli, ["list", "--stacks"])
+                assert result.exit_code == 0, result.output
+
+                # Strip ANSI codes for easier assertion
+                output = strip_ansi(result.output)
+
+                # Check ts worktree stack shows linear chain in reversed order
+                # (descendants at top, trunk at bottom)
+                assert "ts [schrockn/ts-phase-2]" in output
+                assert "◯  schrockn/ts-phase-3" in output
+                assert "◉  schrockn/ts-phase-2" in output
+                assert "◯  schrockn/ts-phase-1" in output
+                assert "◯  main" in output
+
+                # Verify sibling branch is NOT shown (regression test)
+                assert "sibling-branch" not in output
+
+                # Verify order: phase-3 should appear before phase-2, phase-2 before phase-1, etc.
+                phase_3_idx = output.index("schrockn/ts-phase-3")
+                phase_2_idx = output.index("schrockn/ts-phase-2")
+                phase_1_idx = output.index("schrockn/ts-phase-1")
+                main_in_stack_idx = output.rindex(
+                    "◯  main"
+                )  # Last occurrence (in stack, not header)
+
+                assert phase_3_idx < phase_2_idx < phase_1_idx < main_in_stack_idx
+
+
+def test_list_with_stacks_graphite_disabled() -> None:
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        # Set up isolated environment
+        cwd = Path.cwd()
+        global_config_dir = cwd / ".workstack_config"
+        global_config_dir.mkdir()
+        workstacks_root = cwd / "workstacks"
+        (global_config_dir / "config.toml").write_text(
+            f'workstacks_root = "{workstacks_root}"\nuse_graphite = false\n'
+        )
+
+        # Create git repo
+        Path(".git").mkdir()
+
+        # Mock git worktree list
+        git_worktree_output = f"""worktree {cwd}
+HEAD abc123
+branch refs/heads/main
+
+"""
+
+        with mock.patch("workstack.config.GLOBAL_CONFIG_PATH", global_config_dir / "config.toml"):
+            original_run = subprocess.run
+
+            def selective_mock_run(cmd, *args, **kwargs):
+                if cmd == ["git", "worktree", "list", "--porcelain"]:
+                    mock_result = mock.Mock()
+                    mock_result.stdout = git_worktree_output
+                    mock_result.returncode = 0
+                    return mock_result
+                return original_run(cmd, *args, **kwargs)
+
+            with mock.patch("workstack.git.subprocess.run", side_effect=selective_mock_run):
+                result = runner.invoke(cli, ["list", "--stacks"])
+                assert result.exit_code == 1
+                assert "Error: --stacks requires graphite to be enabled" in result.output
+
+
+def test_list_with_stacks_no_graphite_cache() -> None:
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        # Set up isolated environment
+        cwd = Path.cwd()
+        global_config_dir = cwd / ".workstack_config"
+        global_config_dir.mkdir()
+        workstacks_root = cwd / "workstacks"
+        (global_config_dir / "config.toml").write_text(
+            f'workstacks_root = "{workstacks_root}"\nuse_graphite = true\n'
+        )
+
+        # Create git repo but no graphite cache file
+        git_dir = Path(".git")
+        git_dir.mkdir()
+
+        # Mock git worktree list
+        git_worktree_output = f"""worktree {cwd}
+HEAD abc123
+branch refs/heads/main
+
+"""
+
+        with mock.patch("workstack.config.GLOBAL_CONFIG_PATH", global_config_dir / "config.toml"):
+            original_run = subprocess.run
+
+            def selective_mock_run(cmd, *args, **kwargs):
+                if cmd == ["git", "worktree", "list", "--porcelain"]:
+                    mock_result = mock.Mock()
+                    mock_result.stdout = git_worktree_output
+                    mock_result.returncode = 0
+                    return mock_result
+                if cmd == ["git", "rev-parse", "--git-common-dir"]:
+                    mock_result = mock.Mock()
+                    mock_result.stdout = str(git_dir) + "\n"
+                    mock_result.returncode = 0
+                    return mock_result
+                return original_run(cmd, *args, **kwargs)
+
+            with mock.patch("workstack.git.subprocess.run", side_effect=selective_mock_run):
+                # Should succeed but not show stack info (graceful degradation)
+                result = runner.invoke(cli, ["list", "--stacks"])
+                assert result.exit_code == 0, result.output
+                output = strip_ansi(result.output)
+                # Should show worktree but no stack visualization
+                assert "main [main]" in output
+                # Should not have any circle markers
+                assert "◉" not in output
+                assert "◯" not in output
