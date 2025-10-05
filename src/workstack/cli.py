@@ -3,6 +3,7 @@ import shlex
 import shutil
 import subprocess
 import sys
+import tomllib
 from collections.abc import Iterable
 from pathlib import Path
 
@@ -777,6 +778,146 @@ def remove_cmd(name: str, force: bool) -> None:
 def rm_cmd(name: str, force: bool) -> None:
     """Remove the worktree directory (alias of 'remove')."""
     _remove_worktree(name, force)
+
+
+@cli.group("config")
+def config_group() -> None:
+    """Manage workstack configuration."""
+
+
+@config_group.command("list")
+def config_list() -> None:
+    """Print a list of configuration keys and values."""
+    # Try to load global config
+    global_config = None
+    try:
+        global_config = load_global_config()
+        click.echo(click.style("Global configuration:", bold=True))
+        click.echo(f"  workstacks_root={global_config.workstacks_root}")
+        click.echo(f"  use_graphite={str(global_config.use_graphite).lower()}")
+    except FileNotFoundError:
+        click.echo(click.style("Global configuration:", bold=True))
+        click.echo(f"  (not configured - run 'workstack init' to create)")
+
+    # Try to load repo config
+    try:
+        repo = discover_repo_context(Path.cwd())
+        work_dir = ensure_work_dir(repo)
+        cfg = load_config(work_dir)
+
+        click.echo(click.style("\nRepository configuration:", bold=True))
+        if cfg.env:
+            for key, value in cfg.env.items():
+                click.echo(f"  env.{key}={value}")
+        if cfg.post_create_shell:
+            click.echo(f"  post_create.shell={cfg.post_create_shell}")
+        if cfg.post_create_commands:
+            click.echo(f"  post_create.commands={cfg.post_create_commands}")
+
+        if not cfg.env and not cfg.post_create_shell and not cfg.post_create_commands:
+            click.echo(f"  (no configuration - run 'workstack init' to create)")
+    except Exception:
+        click.echo(click.style("\nRepository configuration:", bold=True))
+        click.echo(f"  (not in a git repository)")
+
+
+@config_group.command("get")
+@click.argument("key", metavar="KEY")
+def config_get(key: str) -> None:
+    """Print the value of a given configuration key."""
+    # Parse key into parts
+    parts = key.split(".")
+
+    # Handle global config keys
+    if parts[0] in ("workstacks_root", "use_graphite"):
+        try:
+            global_config = load_global_config()
+            if parts[0] == "workstacks_root":
+                click.echo(str(global_config.workstacks_root))
+            elif parts[0] == "use_graphite":
+                click.echo(str(global_config.use_graphite).lower())
+        except FileNotFoundError:
+            click.echo(f"Global config not found at {GLOBAL_CONFIG_PATH}", err=True)
+            raise SystemExit(1)
+        return
+
+    # Handle repo config keys
+    try:
+        repo = discover_repo_context(Path.cwd())
+        work_dir = ensure_work_dir(repo)
+        cfg = load_config(work_dir)
+
+        if parts[0] == "env" and len(parts) == 2:
+            if parts[1] in cfg.env:
+                click.echo(cfg.env[parts[1]])
+            else:
+                click.echo(f"Key not found: {key}", err=True)
+                raise SystemExit(1)
+        elif parts[0] == "post_create":
+            if len(parts) == 2:
+                if parts[1] == "shell" and cfg.post_create_shell:
+                    click.echo(cfg.post_create_shell)
+                elif parts[1] == "commands":
+                    for cmd in cfg.post_create_commands:
+                        click.echo(cmd)
+                else:
+                    click.echo(f"Key not found: {key}", err=True)
+                    raise SystemExit(1)
+            else:
+                click.echo(f"Invalid key: {key}", err=True)
+                raise SystemExit(1)
+        else:
+            click.echo(f"Invalid key: {key}", err=True)
+            raise SystemExit(1)
+    except Exception as e:
+        if "not in a git repository" in str(e).lower() or "not a git repository" in str(e).lower():
+            click.echo(f"Not in a git repository", err=True)
+        else:
+            click.echo(f"Error: {e}", err=True)
+        raise SystemExit(1)
+
+
+@config_group.command("set")
+@click.argument("key", metavar="KEY")
+@click.argument("value", metavar="VALUE")
+def config_set(key: str, value: str) -> None:
+    """Update configuration with a value for the given key."""
+    # Parse key into parts
+    parts = key.split(".")
+
+    # Handle global config keys
+    if parts[0] in ("workstacks_root", "use_graphite"):
+        try:
+            global_config = load_global_config()
+        except FileNotFoundError:
+            click.echo(f"Global config not found at {GLOBAL_CONFIG_PATH}", err=True)
+            click.echo("Run 'workstack init' to create it.", err=True)
+            raise SystemExit(1)
+
+        # Read existing config
+        data = tomllib.loads(GLOBAL_CONFIG_PATH.read_text(encoding="utf-8"))
+
+        # Update value
+        if parts[0] == "workstacks_root":
+            data["workstacks_root"] = str(Path(value).expanduser().resolve())
+        elif parts[0] == "use_graphite":
+            if value.lower() not in ("true", "false"):
+                click.echo(f"Invalid boolean value: {value}", err=True)
+                raise SystemExit(1)
+            data["use_graphite"] = value.lower() == "true"
+
+        # Write back
+        content = f"""# Global workstack configuration
+workstacks_root = "{data['workstacks_root']}"
+use_graphite = {str(data['use_graphite']).lower()}
+"""
+        GLOBAL_CONFIG_PATH.write_text(content, encoding="utf-8")
+        click.echo(f"Set {key}={value}")
+        return
+
+    # Handle repo config keys - not implemented yet
+    click.echo(f"Setting repo config keys not yet implemented", err=True)
+    raise SystemExit(1)
 
 
 @cli.command("gc")
