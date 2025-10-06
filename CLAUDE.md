@@ -215,6 +215,81 @@ def create_context_engine():
 - **Private functions:** prefix with `_` (e.g., `_remove_worktree`, `_list_worktrees`)
 - **CLI commands:** kebab-case (e.g., `workstack create`, `workstack switch`)
 
+### Code Indentation and Nesting
+
+**NEVER exceed 4 levels of indentation** in production code (5 is acceptable only in test data structures):
+
+- **Use early returns and guard clauses** to reduce nesting depth
+- **Extract helper functions** when logic becomes deeply nested
+- **Prefer early continue/break** over nested conditionals in loops
+- **Flatten if-else chains** by handling error cases early
+
+**Anti-pattern (excessive nesting):**
+
+```python
+def process_data(data):
+    if data:                           # Level 1
+        if validate(data):             # Level 2
+            result = transform(data)
+            if result:                 # Level 3
+                if result.is_valid:    # Level 4
+                    if save(result):   # Level 5 - TOO DEEP!
+                        return True
+    return False
+```
+
+**Preferred pattern (early returns):**
+
+```python
+def process_data(data):
+    if not data:
+        return False
+
+    if not validate(data):
+        return False
+
+    result = transform(data)
+    if not result:
+        return False
+
+    if not result.is_valid:
+        return False
+
+    return save(result)
+```
+
+**Preferred pattern (extraction):**
+
+```python
+def _validate_and_transform(data):
+    """Validate and transform data, returning None on failure."""
+    if not validate(data):
+        return None
+
+    result = transform(data)
+    if not result or not result.is_valid:
+        return None
+
+    return result
+
+def process_data(data):
+    if not data:
+        return False
+
+    result = _validate_and_transform(data)
+    if result is None:
+        return False
+
+    return save(result)
+```
+
+**When extracting functions to reduce nesting:**
+
+- Name extracted functions with descriptive verbs (e.g., `_validate_input`, `_load_configuration`)
+- Keep extracted functions close to their usage (typically just above the calling function)
+- Document what None/empty returns mean for error handling
+- Prefix internal helpers with `_` to indicate they're not part of the public API
+
 ### Module Exports
 
 - **DO NOT use `__all__` in `__init__.py` files** - avoid explicit export control in package initialization

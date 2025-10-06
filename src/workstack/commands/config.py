@@ -2,9 +2,53 @@ from pathlib import Path
 
 import click
 
-from workstack.config import load_config
+from workstack.config import LoadedConfig, load_config
 from workstack.context import WorkstackContext
 from workstack.core import discover_repo_context, ensure_work_dir
+
+
+def _get_env_value(cfg: LoadedConfig, parts: list[str], key: str) -> None:
+    """Handle env.* configuration keys.
+
+    Prints the value or exits with error if key not found.
+    """
+    if len(parts) != 2:
+        click.echo(f"Invalid key: {key}", err=True)
+        raise SystemExit(1)
+
+    if parts[1] not in cfg.env:
+        click.echo(f"Key not found: {key}", err=True)
+        raise SystemExit(1)
+
+    click.echo(cfg.env[parts[1]])
+
+
+def _get_post_create_value(cfg: LoadedConfig, parts: list[str], key: str) -> None:
+    """Handle post_create.* configuration keys.
+
+    Prints the value or exits with error if key not found.
+    """
+    if len(parts) != 2:
+        click.echo(f"Invalid key: {key}", err=True)
+        raise SystemExit(1)
+
+    # Handle shell subkey
+    if parts[1] == "shell":
+        if not cfg.post_create_shell:
+            click.echo(f"Key not found: {key}", err=True)
+            raise SystemExit(1)
+        click.echo(cfg.post_create_shell)
+        return
+
+    # Handle commands subkey
+    if parts[1] == "commands":
+        for cmd in cfg.post_create_commands:
+            click.echo(cmd)
+        return
+
+    # Unknown subkey
+    click.echo(f"Key not found: {key}", err=True)
+    raise SystemExit(1)
 
 
 @click.group("config")
@@ -54,7 +98,6 @@ def config_list(ctx: WorkstackContext) -> None:
 @click.pass_obj
 def config_get(ctx: WorkstackContext, key: str) -> None:
     """Print the value of a given configuration key."""
-    # Parse key into parts
     parts = key.split(".")
 
     # Handle global config keys
@@ -75,28 +118,17 @@ def config_get(ctx: WorkstackContext, key: str) -> None:
         work_dir = ensure_work_dir(repo)
         cfg = load_config(work_dir)
 
-        if parts[0] == "env" and len(parts) == 2:
-            if parts[1] in cfg.env:
-                click.echo(cfg.env[parts[1]])
-            else:
-                click.echo(f"Key not found: {key}", err=True)
-                raise SystemExit(1)
-        elif parts[0] == "post_create":
-            if len(parts) == 2:
-                if parts[1] == "shell" and cfg.post_create_shell:
-                    click.echo(cfg.post_create_shell)
-                elif parts[1] == "commands":
-                    for cmd in cfg.post_create_commands:
-                        click.echo(cmd)
-                else:
-                    click.echo(f"Key not found: {key}", err=True)
-                    raise SystemExit(1)
-            else:
-                click.echo(f"Invalid key: {key}", err=True)
-                raise SystemExit(1)
-        else:
-            click.echo(f"Invalid key: {key}", err=True)
-            raise SystemExit(1)
+        if parts[0] == "env":
+            _get_env_value(cfg, parts, key)
+            return
+
+        if parts[0] == "post_create":
+            _get_post_create_value(cfg, parts, key)
+            return
+
+        click.echo(f"Invalid key: {key}", err=True)
+        raise SystemExit(1)
+
     except Exception as e:
         if "not in a git repository" in str(e).lower() or "not a git repository" in str(e).lower():
             click.echo("Not in a git repository", err=True)
