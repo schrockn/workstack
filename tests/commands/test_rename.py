@@ -6,6 +6,7 @@ from tests.fakes.gitops import FakeGitOps
 from tests.fakes.global_config_ops import FakeGlobalConfigOps
 from workstack.cli import cli
 from workstack.context import WorkstackContext
+from workstack.gitops import DryRunGitOps
 
 
 def test_rename_successful() -> None:
@@ -34,7 +35,9 @@ def test_rename_successful() -> None:
             workstacks_root=workstacks_root,
             use_graphite=False,
         )
-        test_ctx = WorkstackContext(git_ops=git_ops, global_config_ops=global_config_ops)
+        test_ctx = WorkstackContext(
+            git_ops=git_ops, global_config_ops=global_config_ops, dry_run=False
+        )
 
         result = runner.invoke(cli, ["rename", "old-name", "new-name"], obj=test_ctx)
 
@@ -64,7 +67,9 @@ def test_rename_old_worktree_not_found() -> None:
             workstacks_root=workstacks_root,
             use_graphite=False,
         )
-        test_ctx = WorkstackContext(git_ops=git_ops, global_config_ops=global_config_ops)
+        test_ctx = WorkstackContext(
+            git_ops=git_ops, global_config_ops=global_config_ops, dry_run=False
+        )
 
         result = runner.invoke(cli, ["rename", "nonexistent", "new-name"], obj=test_ctx)
         assert result.exit_code == 1
@@ -96,7 +101,9 @@ def test_rename_new_name_already_exists() -> None:
             workstacks_root=workstacks_root,
             use_graphite=False,
         )
-        test_ctx = WorkstackContext(git_ops=git_ops, global_config_ops=global_config_ops)
+        test_ctx = WorkstackContext(
+            git_ops=git_ops, global_config_ops=global_config_ops, dry_run=False
+        )
 
         result = runner.invoke(cli, ["rename", "old-name", "new-name"], obj=test_ctx)
         assert result.exit_code == 1
@@ -127,7 +134,9 @@ def test_rename_sanitizes_new_name() -> None:
             workstacks_root=workstacks_root,
             use_graphite=False,
         )
-        test_ctx = WorkstackContext(git_ops=git_ops, global_config_ops=global_config_ops)
+        test_ctx = WorkstackContext(
+            git_ops=git_ops, global_config_ops=global_config_ops, dry_run=False
+        )
 
         # Use a name with special characters that should be sanitized
         result = runner.invoke(cli, ["rename", "old-name", "New_Name_123"], obj=test_ctx)
@@ -161,7 +170,9 @@ def test_rename_regenerates_env_file() -> None:
             workstacks_root=workstacks_root,
             use_graphite=False,
         )
-        test_ctx = WorkstackContext(git_ops=git_ops, global_config_ops=global_config_ops)
+        test_ctx = WorkstackContext(
+            git_ops=git_ops, global_config_ops=global_config_ops, dry_run=False
+        )
 
         result = runner.invoke(cli, ["rename", "old-name", "new-name"], obj=test_ctx)
         assert result.exit_code == 0, result.output
@@ -172,3 +183,56 @@ def test_rename_regenerates_env_file() -> None:
         assert 'WORKTREE_NAME="new-name"' in env_content
         assert str(new_wt) in env_content
         assert "old-name" not in env_content
+
+
+def test_rename_dry_run_does_not_move() -> None:
+    """Test dry-run mode prints but doesn't actually rename or modify files."""
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        # Set up isolated environment
+        cwd = Path.cwd()
+        workstacks_root = cwd / "workstacks"
+
+        # Create git repo
+        git_dir = cwd / ".git"
+        git_dir.mkdir()
+
+        # Create worktree with .env file
+        repo_name = cwd.name
+        old_wt = workstacks_root / repo_name / "old-name"
+        old_wt.mkdir(parents=True)
+        old_env_content = 'WORKTREE_NAME="old-name"\n'
+        (old_wt / ".env").write_text(old_env_content, encoding="utf-8")
+
+        # Build fake git ops wrapped with dry-run
+        fake_git_ops = FakeGitOps(git_common_dirs={cwd: git_dir})
+        git_ops = DryRunGitOps(fake_git_ops)
+
+        global_config_ops = FakeGlobalConfigOps(
+            workstacks_root=workstacks_root,
+            use_graphite=False,
+        )
+
+        test_ctx = WorkstackContext(
+            git_ops=git_ops, global_config_ops=global_config_ops, dry_run=True
+        )
+
+        result = runner.invoke(cli, ["rename", "old-name", "new-name"], obj=test_ctx)
+        assert result.exit_code == 0, result.output
+
+        # Verify dry-run messages printed
+        assert "[DRY RUN]" in result.output
+        assert "Would run: git worktree move" in result.output
+        assert "Would write .env file" in result.output
+
+        # Verify nothing was actually changed
+        # Old directory should still exist
+        assert old_wt.exists()
+
+        # New directory should NOT exist (move didn't happen)
+        new_wt = workstacks_root / repo_name / "new-name"
+        assert not new_wt.exists()
+
+        # .env file should still have old content
+        env_content = (old_wt / ".env").read_text(encoding="utf-8")
+        assert env_content == old_env_content

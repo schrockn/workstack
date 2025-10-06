@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 
-from workstack.gitops import GitOps, RealGitOps
+from workstack.gitops import DryRunGitOps, GitOps, RealGitOps
 from workstack.global_config_ops import GlobalConfigOps, RealGlobalConfigOps
 
 
@@ -16,13 +16,17 @@ class WorkstackContext:
 
     git_ops: GitOps
     global_config_ops: GlobalConfigOps
+    dry_run: bool
 
 
-def create_context() -> WorkstackContext:
+def create_context(*, dry_run: bool = False) -> WorkstackContext:
     """Create production context with real implementations.
 
     Called at CLI entry point to create the context for the entire
     command execution.
+
+    Args:
+        dry_run: If True, wrap GitOps with DryRunGitOps to print instead of execute
 
     Returns:
         WorkstackContext with real implementations (RealGitOps, RealGlobalConfigOps, etc.)
@@ -30,6 +34,12 @@ def create_context() -> WorkstackContext:
     Example:
         >>> ctx = create_context()
         >>> worktrees = ctx.git_ops.list_worktrees(Path("/repo"))
-        >>> config = ctx.global_config_ops.load()
+        >>> workstacks_root = ctx.global_config_ops.get_workstacks_root()
     """
-    return WorkstackContext(git_ops=RealGitOps(), global_config_ops=RealGlobalConfigOps())
+    git_ops: GitOps = RealGitOps()
+    if dry_run:
+        git_ops = DryRunGitOps(git_ops)
+
+    return WorkstackContext(
+        git_ops=git_ops, global_config_ops=RealGlobalConfigOps(), dry_run=dry_run
+    )

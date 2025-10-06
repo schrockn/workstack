@@ -82,7 +82,9 @@ def test_list_with_stacks_flag() -> None:
             use_graphite=True,
         )
 
-        test_ctx = WorkstackContext(git_ops=git_ops, global_config_ops=global_config_ops)
+        test_ctx = WorkstackContext(
+            git_ops=git_ops, global_config_ops=global_config_ops, dry_run=False
+        )
 
         result = runner.invoke(cli, ["list", "--stacks"], obj=test_ctx)
         assert result.exit_code == 0, result.output
@@ -150,7 +152,9 @@ def test_list_with_stacks_graphite_disabled() -> None:
             use_graphite=False,
         )
 
-        test_ctx = WorkstackContext(git_ops=git_ops, global_config_ops=global_config_ops)
+        test_ctx = WorkstackContext(
+            git_ops=git_ops, global_config_ops=global_config_ops, dry_run=False
+        )
 
         result = runner.invoke(cli, ["list", "--stacks"], obj=test_ctx)
         assert result.exit_code == 1
@@ -180,7 +184,9 @@ def test_list_with_stacks_no_graphite_cache() -> None:
             use_graphite=True,
         )
 
-        test_ctx = WorkstackContext(git_ops=git_ops, global_config_ops=global_config_ops)
+        test_ctx = WorkstackContext(
+            git_ops=git_ops, global_config_ops=global_config_ops, dry_run=False
+        )
 
         # Should succeed but not show stack info (graceful degradation)
         result = runner.invoke(cli, ["list", "--stacks"], obj=test_ctx)
@@ -280,7 +286,9 @@ def test_list_with_stacks_highlights_current_branch_not_worktree_branch() -> Non
             use_graphite=True,
         )
 
-        test_ctx = WorkstackContext(git_ops=git_ops, global_config_ops=global_config_ops)
+        test_ctx = WorkstackContext(
+            git_ops=git_ops, global_config_ops=global_config_ops, dry_run=False
+        )
 
         result = runner.invoke(cli, ["list", "--stacks"], obj=test_ctx)
         assert result.exit_code == 0, result.output
@@ -362,7 +370,9 @@ def test_list_with_stacks_root_repo_does_not_duplicate_branch() -> None:
             use_graphite=True,
         )
 
-        test_ctx = WorkstackContext(git_ops=git_ops, global_config_ops=global_config_ops)
+        test_ctx = WorkstackContext(
+            git_ops=git_ops, global_config_ops=global_config_ops, dry_run=False
+        )
 
         result = runner.invoke(cli, ["list", "--stacks"], obj=test_ctx)
         assert result.exit_code == 0, result.output
@@ -451,7 +461,9 @@ def test_list_with_stacks_filters_branches_in_other_worktrees() -> None:
             use_graphite=True,
         )
 
-        test_ctx = WorkstackContext(git_ops=git_ops, global_config_ops=global_config_ops)
+        test_ctx = WorkstackContext(
+            git_ops=git_ops, global_config_ops=global_config_ops, dry_run=False
+        )
 
         result = runner.invoke(cli, ["list", "--stacks"], obj=test_ctx)
         assert result.exit_code == 0, result.output
