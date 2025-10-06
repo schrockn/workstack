@@ -22,7 +22,7 @@ def test_switch_command(tmp_path: Path) -> None:
     # Set up a fake git repo
     repo = tmp_path / "repo"
     repo.mkdir()
-    subprocess.run(["git", "init"], cwd=repo, check=True)
+    subprocess.run(["git", "init", "-b", "main"], cwd=repo, check=True)
     subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=repo, check=True)
     subprocess.run(["git", "config", "user.name", "Test User"], cwd=repo, check=True)
 
@@ -65,7 +65,7 @@ def test_switch_nonexistent_worktree(tmp_path: Path) -> None:
     # Set up a fake git repo
     repo = tmp_path / "repo"
     repo.mkdir()
-    subprocess.run(["git", "init"], cwd=repo, check=True)
+    subprocess.run(["git", "init", "-b", "main"], cwd=repo, check=True)
     subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=repo, check=True)
     subprocess.run(["git", "config", "user.name", "Test User"], cwd=repo, check=True)
 
@@ -113,7 +113,7 @@ def test_switch_to_root(tmp_path: Path) -> None:
     # Set up a fake git repo
     repo = tmp_path / "repo"
     repo.mkdir()
-    subprocess.run(["git", "init"], cwd=repo, check=True)
+    subprocess.run(["git", "init", "-b", "main"], cwd=repo, check=True)
     subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=repo, check=True)
     subprocess.run(["git", "config", "user.name", "Test User"], cwd=repo, check=True)
 
@@ -153,7 +153,7 @@ def test_list_includes_root(tmp_path: Path) -> None:
     # Set up a fake git repo
     repo = tmp_path / "repo"
     repo.mkdir()
-    subprocess.run(["git", "init"], cwd=repo, check=True)
+    subprocess.run(["git", "init", "-b", "main"], cwd=repo, check=True)
     subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=repo, check=True)
     subprocess.run(["git", "config", "user.name", "Test User"], cwd=repo, check=True)
 
