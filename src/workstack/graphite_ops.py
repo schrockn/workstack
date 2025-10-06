@@ -27,12 +27,16 @@ class GraphiteOps(ABC):
     """
 
     @abstractmethod
-    def sync(self, cwd: Path, force: bool = False) -> None:
+    def sync(
+        self,
+        cwd: Path,
+        force: bool,
+    ) -> None:
         """Run gt sync command.
 
         Args:
             cwd: Directory to run command from
-            force: Whether to use --force flag
+            force: Whether to use --force flag (False requires user confirmation for safety)
 
         Raises:
             FileNotFoundError: If gt command is not installed
@@ -52,7 +56,7 @@ class RealGraphiteOps(GraphiteOps):
     All graphite operations execute actual CLI commands via subprocess.
     """
 
-    def sync(self, cwd: Path, force: bool = False) -> None:
+    def sync(self, cwd: Path, force: bool) -> None:
         """Run gt sync command.
 
         Args:
@@ -102,7 +106,7 @@ class DryRunGraphiteOps(GraphiteOps):
         """
         self._wrapped = wrapped
 
-    def sync(self, cwd: Path, force: bool = False) -> None:
+    def sync(self, cwd: Path, force: bool) -> None:
         """Print dry-run message instead of running gt sync."""
         force_flag = "-f " if force else ""
         click.echo(f"[DRY RUN] Would run: gt sync {force_flag}".strip())

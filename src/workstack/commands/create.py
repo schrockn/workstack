@@ -70,8 +70,8 @@ def add_worktree(
     *,
     branch: str | None,
     ref: str | None,
-    use_existing_branch: bool = False,
-    use_graphite: bool = False,
+    use_existing_branch: bool,
+    use_graphite: bool,
 ) -> None:
     """Create a git worktree.
 
@@ -86,7 +86,7 @@ def add_worktree(
     """
 
     if branch and use_existing_branch:
-        ctx.git_ops.add_worktree(repo_root, path, branch=branch, create_branch=False)
+        ctx.git_ops.add_worktree(repo_root, path, branch=branch, ref=None, create_branch=False)
     elif branch:
         if use_graphite:
             cwd = Path.cwd()
@@ -95,11 +95,11 @@ def add_worktree(
                 raise ValueError("Cannot create graphite branch from detached HEAD")
             subprocess.run(["gt", "create", branch], cwd=cwd, check=True)
             ctx.git_ops.checkout_branch(cwd, original_branch)
-            ctx.git_ops.add_worktree(repo_root, path, branch=branch, create_branch=False)
+            ctx.git_ops.add_worktree(repo_root, path, branch=branch, ref=None, create_branch=False)
         else:
             ctx.git_ops.add_worktree(repo_root, path, branch=branch, ref=ref, create_branch=True)
     else:
-        ctx.git_ops.add_worktree(repo_root, path, ref=ref, create_branch=False)
+        ctx.git_ops.add_worktree(repo_root, path, branch=None, ref=ref, create_branch=False)
 
 
 def make_env_content(cfg: LoadedConfig, *, worktree_path: Path, repo_root: Path, name: str) -> str:
@@ -288,10 +288,26 @@ def create(
         ctx.git_ops.checkout_branch(repo.root, to_branch)
 
         # Create worktree with existing branch
-        add_worktree(ctx, repo.root, wt_path, branch=branch, ref=None, use_existing_branch=True)
+        add_worktree(
+            ctx,
+            repo.root,
+            wt_path,
+            branch=branch,
+            ref=None,
+            use_existing_branch=True,
+            use_graphite=False,
+        )
     elif from_branch:
         # Create worktree with existing branch
-        add_worktree(ctx, repo.root, wt_path, branch=branch, ref=None, use_existing_branch=True)
+        add_worktree(
+            ctx,
+            repo.root,
+            wt_path,
+            branch=branch,
+            ref=None,
+            use_existing_branch=True,
+            use_graphite=False,
+        )
     else:
         # Create worktree via git. If no branch provided, derive a sensible default.
         if branch is None:
@@ -299,7 +315,15 @@ def create(
 
         # Get graphite setting from global config
         use_graphite = ctx.global_config_ops.get_use_graphite()
-        add_worktree(ctx, repo.root, wt_path, branch=branch, ref=ref, use_graphite=use_graphite)
+        add_worktree(
+            ctx,
+            repo.root,
+            wt_path,
+            branch=branch,
+            ref=ref,
+            use_graphite=use_graphite,
+            use_existing_branch=False,
+        )
 
     # Write .env based on config
     env_content = make_env_content(cfg, worktree_path=wt_path, repo_root=repo.root, name=name)

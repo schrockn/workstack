@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import click
+from click.testing import CliRunner
 
 from workstack.context import WorkstackContext, create_context
 from workstack.core import discover_repo_context, ensure_work_dir, worktree_path_for
@@ -61,7 +62,7 @@ def complete_worktree_names(
         workstack_ctx = ctx.obj if isinstance(ctx.obj, WorkstackContext) else ctx.find_root().obj
         if not isinstance(workstack_ctx, WorkstackContext):
             # Create context for shell completion (CLI group callback not run yet)
-            workstack_ctx = create_context()
+            workstack_ctx = create_context(dry_run=False)
 
         repo = discover_repo_context(workstack_ctx, Path.cwd())
         work_dir = repo.work_dir
@@ -203,10 +204,8 @@ def hidden_switch_cmd(args: tuple[str, ...]) -> None:
     name = args[0]
 
     # Use the regular switch logic with --script flag
-    from click.testing import CliRunner
-
     runner = CliRunner()
-    result = runner.invoke(switch_cmd, [name, "--script"], obj=create_context())
+    result = runner.invoke(switch_cmd, [name, "--script"], obj=create_context(dry_run=False))
 
     # If the command failed, output passthrough marker so the shell wrapper
     # will call the regular command instead of trying to eval the error message

@@ -29,7 +29,11 @@ class GithubOps(ABC):
 
     @abstractmethod
     def get_pr_status(
-        self, repo_root: Path, branch: str, debug: bool = False
+        self,
+        repo_root: Path,
+        branch: str,
+        # debug=False: Suppresses verbose CLI output by default for cleaner UX
+        debug: bool = False,
     ) -> tuple[str | None, int | None, str | None]:
         """Get PR status for a branch using GitHub CLI.
 
