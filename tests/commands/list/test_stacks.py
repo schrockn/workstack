@@ -1,74 +1,14 @@
 import json
-import re
 from pathlib import Path
 
 from click.testing import CliRunner
 
+from tests.commands.list import strip_ansi
 from tests.fakes.gitops import FakeGitOps
 from tests.fakes.global_config_ops import FakeGlobalConfigOps
 from workstack.cli import cli
 from workstack.context import WorkstackContext
 from workstack.gitops import WorktreeInfo
-
-
-def strip_ansi(text: str) -> str:
-    """Remove ANSI escape codes from text."""
-    return re.sub(r"\x1b\[[0-9;]*m", "", text)
-
-
-def test_list_outputs_names_not_paths() -> None:
-    runner = CliRunner()
-    with runner.isolated_filesystem():
-        # Set up isolated environment
-        cwd = Path.cwd()
-        workstacks_root = cwd / "workstacks"
-
-        # Create git repo
-        Path(".git").mkdir()
-
-        # Create worktrees in the location determined by global config
-        repo_name = cwd.name
-        work_dir = workstacks_root / repo_name
-        (work_dir / "foo").mkdir(parents=True)
-        (work_dir / "bar").mkdir(parents=True)
-
-        # Build fake git ops with worktree info
-        git_ops = FakeGitOps(
-            worktrees={
-                cwd: [
-                    WorktreeInfo(path=cwd, branch="main"),
-                    WorktreeInfo(path=work_dir / "foo", branch="foo"),
-                    WorktreeInfo(path=work_dir / "bar", branch="feature/bar"),
-                ],
-            },
-            git_common_dirs={cwd: cwd / ".git"},
-        )
-
-        # Build fake global config ops
-        global_config_ops = FakeGlobalConfigOps(
-            workstacks_root=workstacks_root,
-            use_graphite=False,
-        )
-
-        test_ctx = WorkstackContext(git_ops=git_ops, global_config_ops=global_config_ops)
-
-        result = runner.invoke(cli, ["list"], obj=test_ctx)
-        assert result.exit_code == 0, result.output
-
-        # Strip ANSI codes for easier comparison
-        output = strip_ansi(result.output)
-        lines = output.strip().splitlines()
-
-        # First line should be root with branch
-        assert lines[0].startswith("root")
-        assert "[main]" in lines[0]
-
-        # Remaining lines should be worktrees with branches, sorted
-        worktree_lines = sorted(lines[1:])
-        assert worktree_lines == [
-            "bar [feature/bar]",
-            "foo [foo]",
-        ]
 
 
 def test_list_with_stacks_flag() -> None:
