@@ -99,6 +99,10 @@ class FakeGitOps(GitOps):
         """Track which branches were deleted (mutates internal state)."""
         self._deleted_branches.append(branch)
 
+    def prune_worktrees(self, repo_root: Path) -> None:
+        """Prune stale worktree metadata (no-op for in-memory fake)."""
+        pass
+
     @property
     def deleted_branches(self) -> list[str]:
         """Get the list of branches that have been deleted.

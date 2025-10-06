@@ -90,6 +90,11 @@ class GitOps(ABC):
         """Delete a branch using Graphite's gt delete command."""
         ...
 
+    @abstractmethod
+    def prune_worktrees(self, repo_root: Path) -> None:
+        """Prune stale worktree metadata."""
+        ...
+
 
 # ============================================================================
 # Production Implementation
@@ -251,6 +256,10 @@ class RealGitOps(GitOps):
             cmd.insert(2, "-f")
         subprocess.run(cmd, cwd=repo_root, check=True)
 
+    def prune_worktrees(self, repo_root: Path) -> None:
+        """Prune stale worktree metadata."""
+        subprocess.run(["git", "worktree", "prune"], cwd=repo_root, check=True)
+
 
 # ============================================================================
 # Dry-Run Wrapper
@@ -338,3 +347,7 @@ class DryRunGitOps(GitOps):
         """Print dry-run message instead of deleting branch."""
         force_flag = "-f " if force else ""
         click.echo(f"[DRY RUN] Would run: gt delete {force_flag}{branch}", err=True)
+
+    def prune_worktrees(self, repo_root: Path) -> None:
+        """Print dry-run message instead of pruning worktrees."""
+        click.echo("[DRY RUN] Would run: git worktree prune", err=True)

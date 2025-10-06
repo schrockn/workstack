@@ -5,20 +5,31 @@ import click
 from workstack.commands.create import make_env_content, sanitize_worktree_name
 from workstack.commands.switch import complete_worktree_names
 from workstack.config import load_config
-from workstack.context import WorkstackContext
+from workstack.context import WorkstackContext, create_context
 from workstack.core import discover_repo_context, ensure_work_dir, worktree_path_for
 
 
 @click.command("rename")
 @click.argument("old_name", metavar="OLD_NAME", shell_complete=complete_worktree_names)
 @click.argument("new_name", metavar="NEW_NAME")
+@click.option(
+    "--dry-run",
+    is_flag=True,
+    # dry_run=False: Allow destructive operations by default
+    default=False,
+    help="Print what would be done without executing destructive operations.",
+)
 @click.pass_obj
-def rename_cmd(ctx: WorkstackContext, old_name: str, new_name: str) -> None:
+def rename_cmd(ctx: WorkstackContext, old_name: str, new_name: str, dry_run: bool) -> None:
     """Rename a worktree directory.
 
     Renames the worktree directory and updates git metadata.
     The .env file is regenerated with updated paths and name.
     """
+    # Create dry-run context if needed
+    if dry_run:
+        ctx = create_context(dry_run=True)
+
     # Sanitize new name
     sanitized_new_name = sanitize_worktree_name(new_name)
 

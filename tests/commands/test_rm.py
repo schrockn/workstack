@@ -186,3 +186,111 @@ def test_rm_dry_run_with_delete_stack() -> None:
 
         # Directory should still exist
         assert wt.exists()
+
+
+def test_rm_rejects_dot_dot() -> None:
+    """Test that rm rejects '..' as a worktree name."""
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        cwd = Path.cwd()
+        workstacks_root = cwd / "workstacks"
+
+        # Create git repo
+        git_dir = cwd / ".git"
+        git_dir.mkdir()
+
+        git_ops = FakeGitOps(git_common_dirs={cwd: git_dir})
+        global_config_ops = FakeGlobalConfigOps(
+            workstacks_root=workstacks_root,
+            use_graphite=False,
+        )
+
+        test_ctx = WorkstackContext(
+            git_ops=git_ops, global_config_ops=global_config_ops, dry_run=False
+        )
+
+        result = runner.invoke(cli, ["rm", "..", "-f"], obj=test_ctx)
+        assert result.exit_code == 1
+        assert "Error: Cannot remove '..'" in result.output
+        assert "directory references not allowed" in result.output
+
+
+def test_rm_rejects_root_slash() -> None:
+    """Test that rm rejects '/' as a worktree name."""
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        cwd = Path.cwd()
+        workstacks_root = cwd / "workstacks"
+
+        # Create git repo
+        git_dir = cwd / ".git"
+        git_dir.mkdir()
+
+        git_ops = FakeGitOps(git_common_dirs={cwd: git_dir})
+        global_config_ops = FakeGlobalConfigOps(
+            workstacks_root=workstacks_root,
+            use_graphite=False,
+        )
+
+        test_ctx = WorkstackContext(
+            git_ops=git_ops, global_config_ops=global_config_ops, dry_run=False
+        )
+
+        result = runner.invoke(cli, ["rm", "/", "-f"], obj=test_ctx)
+        assert result.exit_code == 1
+        assert "Error: Cannot remove '/'" in result.output
+        assert "absolute paths not allowed" in result.output
+
+
+def test_rm_rejects_path_with_slash() -> None:
+    """Test that rm rejects worktree names containing path separators."""
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        cwd = Path.cwd()
+        workstacks_root = cwd / "workstacks"
+
+        # Create git repo
+        git_dir = cwd / ".git"
+        git_dir.mkdir()
+
+        git_ops = FakeGitOps(git_common_dirs={cwd: git_dir})
+        global_config_ops = FakeGlobalConfigOps(
+            workstacks_root=workstacks_root,
+            use_graphite=False,
+        )
+
+        test_ctx = WorkstackContext(
+            git_ops=git_ops, global_config_ops=global_config_ops, dry_run=False
+        )
+
+        result = runner.invoke(cli, ["rm", "foo/bar", "-f"], obj=test_ctx)
+        assert result.exit_code == 1
+        assert "Error: Cannot remove 'foo/bar'" in result.output
+        assert "path separators not allowed" in result.output
+
+
+def test_rm_rejects_root_name() -> None:
+    """Test that rm rejects 'root' as a worktree name."""
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        cwd = Path.cwd()
+        workstacks_root = cwd / "workstacks"
+
+        # Create git repo
+        git_dir = cwd / ".git"
+        git_dir.mkdir()
+
+        git_ops = FakeGitOps(git_common_dirs={cwd: git_dir})
+        global_config_ops = FakeGlobalConfigOps(
+            workstacks_root=workstacks_root,
+            use_graphite=False,
+        )
+
+        test_ctx = WorkstackContext(
+            git_ops=git_ops, global_config_ops=global_config_ops, dry_run=False
+        )
+
+        result = runner.invoke(cli, ["rm", "root", "-f"], obj=test_ctx)
+        assert result.exit_code == 1
+        assert "Error: Cannot remove 'root'" in result.output
+        assert "root worktree name not allowed" in result.output
