@@ -107,6 +107,16 @@ def switch_cmd(ctx: WorkstackContext, name: str, script: bool) -> None:
 
     repo = discover_repo_context(ctx, Path.cwd())
 
+    # Check if user is trying to switch to main/master (should use root instead)
+    if name.lower() in ("main", "master"):
+        click.echo(
+            f'Error: "{name}" cannot be used as a worktree name.\n'
+            f"To switch to the {name} branch in the root repository, use:\n"
+            f"  workstack switch root",
+            err=True,
+        )
+        raise SystemExit(1)
+
     # Check if name refers to 'root' which means root repo
     if name == "root":
         # Switch to root repo
@@ -197,5 +207,12 @@ def hidden_switch_cmd(args: tuple[str, ...]) -> None:
 
     runner = CliRunner()
     result = runner.invoke(switch_cmd, [name, "--script"], obj=create_context())
+
+    # If the command failed, output passthrough marker so the shell wrapper
+    # will call the regular command instead of trying to eval the error message
+    if result.exit_code != 0:
+        click.echo("__WORKSTACK_PASSTHROUGH__")
+        raise SystemExit(result.exit_code)
+
     click.echo(result.output, nl=False)
     raise SystemExit(result.exit_code)

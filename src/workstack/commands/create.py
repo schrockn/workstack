@@ -259,6 +259,16 @@ def create(
         click.echo('Error: "root" is a reserved name and cannot be used for a worktree.', err=True)
         raise SystemExit(1)
 
+    # Validate that name is not main or master (common branch names that should use root)
+    if name.lower() in ("main", "master"):
+        click.echo(
+            f'Error: "{name}" cannot be used as a worktree name.\n'
+            f"To switch to the {name} branch in the root repository, use:\n"
+            f"  workstack switch root",
+            err=True,
+        )
+        raise SystemExit(1)
+
     repo = discover_repo_context(ctx, Path.cwd())
     work_dir = ensure_work_dir(repo)
     cfg = load_config(work_dir)
