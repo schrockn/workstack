@@ -5,7 +5,7 @@ from unittest import mock
 
 from click.testing import CliRunner
 
-from tests.builders.gitops import FakeGitOpsBuilder
+from tests.fakes.gitops import FakeGitOps
 from workstack.cli import cli
 from workstack.context import WorkstackContext
 from workstack.gitops import WorktreeInfo
@@ -38,18 +38,15 @@ def test_list_outputs_names_not_paths() -> None:
         (work_dir / "bar").mkdir(parents=True)
 
         # Build fake git ops with worktree info
-        git_ops = (
-            FakeGitOpsBuilder()
-            .with_worktrees(
-                cwd,
-                [
+        git_ops = FakeGitOps(
+            worktrees={
+                cwd: [
                     WorktreeInfo(path=cwd, branch="main"),
                     WorktreeInfo(path=work_dir / "foo", branch="foo"),
                     WorktreeInfo(path=work_dir / "bar", branch="feature/bar"),
                 ],
-            )
-            .with_git_common_dir(cwd, cwd / ".git")
-            .build()
+            },
+            git_common_dirs={cwd: cwd / ".git"},
         )
 
         test_ctx = WorkstackContext(git_ops=git_ops)
@@ -128,20 +125,21 @@ def test_list_with_stacks_flag() -> None:
         (work_dir / "ts").mkdir(parents=True)
 
         # Build fake git ops
-        git_ops = (
-            FakeGitOpsBuilder()
-            .with_worktrees(
-                cwd,
-                [
+        git_ops = FakeGitOps(
+            worktrees={
+                cwd: [
                     WorktreeInfo(path=cwd, branch="main"),
                     WorktreeInfo(path=work_dir / "ts", branch="schrockn/ts-phase-2"),
                 ],
-            )
-            .with_git_common_dir(cwd, git_dir)
-            .with_git_common_dir(work_dir / "ts", git_dir)
-            .with_current_branch(cwd, "main")
-            .with_current_branch(work_dir / "ts", "schrockn/ts-phase-2")
-            .build()
+            },
+            git_common_dirs={
+                cwd: git_dir,
+                work_dir / "ts": git_dir,
+            },
+            current_branches={
+                cwd: "main",
+                work_dir / "ts": "schrockn/ts-phase-2",
+            },
         )
 
         test_ctx = WorkstackContext(git_ops=git_ops)
@@ -208,11 +206,9 @@ def test_list_with_stacks_graphite_disabled() -> None:
         Path(".git").mkdir()
 
         # Build fake git ops
-        git_ops = (
-            FakeGitOpsBuilder()
-            .with_worktrees(cwd, [WorktreeInfo(path=cwd, branch="main")])
-            .with_git_common_dir(cwd, cwd / ".git")
-            .build()
+        git_ops = FakeGitOps(
+            worktrees={cwd: [WorktreeInfo(path=cwd, branch="main")]},
+            git_common_dirs={cwd: cwd / ".git"},
         )
 
         test_ctx = WorkstackContext(git_ops=git_ops)
@@ -240,11 +236,9 @@ def test_list_with_stacks_no_graphite_cache() -> None:
         git_dir.mkdir()
 
         # Build fake git ops
-        git_ops = (
-            FakeGitOpsBuilder()
-            .with_worktrees(cwd, [WorktreeInfo(path=cwd, branch="main")])
-            .with_git_common_dir(cwd, git_dir)
-            .build()
+        git_ops = FakeGitOps(
+            worktrees={cwd: [WorktreeInfo(path=cwd, branch="main")]},
+            git_common_dirs={cwd: git_dir},
         )
 
         test_ctx = WorkstackContext(git_ops=git_ops)
@@ -330,20 +324,21 @@ def test_list_with_stacks_highlights_current_branch_not_worktree_branch() -> Non
         # Build fake git ops
         # Key setup: The worktree is registered with ts-phase-4,
         # but currently checked out to ts-phase-3
-        git_ops = (
-            FakeGitOpsBuilder()
-            .with_worktrees(
-                cwd,
-                [
+        git_ops = FakeGitOps(
+            worktrees={
+                cwd: [
                     WorktreeInfo(path=cwd, branch="main"),
                     WorktreeInfo(path=temporal_stack_dir, branch="schrockn/ts-phase-4"),
                 ],
-            )
-            .with_git_common_dir(cwd, git_dir)
-            .with_git_common_dir(temporal_stack_dir, git_dir)
-            .with_current_branch(cwd, "main")
-            .with_current_branch(temporal_stack_dir, "schrockn/ts-phase-3")  # Actually on phase-3
-            .build()
+            },
+            git_common_dirs={
+                cwd: git_dir,
+                temporal_stack_dir: git_dir,
+            },
+            current_branches={
+                cwd: "main",
+                temporal_stack_dir: "schrockn/ts-phase-3",  # Actually on phase-3
+            },
         )
 
         test_ctx = WorkstackContext(git_ops=git_ops)
@@ -422,12 +417,10 @@ def test_list_with_stacks_root_repo_does_not_duplicate_branch() -> None:
         (git_dir / ".graphite_cache_persist").write_text(json.dumps(graphite_cache))
 
         # Build fake git ops - only root repo on master
-        git_ops = (
-            FakeGitOpsBuilder()
-            .with_worktrees(cwd, [WorktreeInfo(path=cwd, branch="master")])
-            .with_git_common_dir(cwd, git_dir)
-            .with_current_branch(cwd, "master")
-            .build()
+        git_ops = FakeGitOps(
+            worktrees={cwd: [WorktreeInfo(path=cwd, branch="master")]},
+            git_common_dirs={cwd: git_dir},
+            current_branches={cwd: "master"},
         )
 
         test_ctx = WorkstackContext(git_ops=git_ops)
@@ -502,20 +495,21 @@ def test_list_with_stacks_filters_branches_in_other_worktrees() -> None:
         foo_worktree_dir.mkdir(parents=True)
 
         # Build fake git ops - root on master, foo worktree on foo branch
-        git_ops = (
-            FakeGitOpsBuilder()
-            .with_worktrees(
-                cwd,
-                [
+        git_ops = FakeGitOps(
+            worktrees={
+                cwd: [
                     WorktreeInfo(path=cwd, branch="master"),
                     WorktreeInfo(path=foo_worktree_dir, branch="foo"),
                 ],
-            )
-            .with_git_common_dir(cwd, git_dir)
-            .with_git_common_dir(foo_worktree_dir, git_dir)
-            .with_current_branch(cwd, "master")
-            .with_current_branch(foo_worktree_dir, "foo")
-            .build()
+            },
+            git_common_dirs={
+                cwd: git_dir,
+                foo_worktree_dir: git_dir,
+            },
+            current_branches={
+                cwd: "master",
+                foo_worktree_dir: "foo",
+            },
         )
 
         test_ctx = WorkstackContext(git_ops=git_ops)

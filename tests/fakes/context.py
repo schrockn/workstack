@@ -1,28 +1,28 @@
 """Factory functions for creating test contexts."""
 
-from tests.builders.gitops import FakeGitOpsBuilder
+from tests.fakes.gitops import FakeGitOps
 from workstack.context import WorkstackContext
 
 
-def create_test_context(git_ops_builder: FakeGitOpsBuilder | None = None) -> WorkstackContext:
-    """Create test context with optional pre-configured builder.
+def create_test_context(git_ops: FakeGitOps | None = None) -> WorkstackContext:
+    """Create test context with optional pre-configured git ops.
 
     Args:
-        git_ops_builder: Optional FakeGitOpsBuilder with test configuration.
-                        If None, creates empty FakeGitOps.
+        git_ops: Optional FakeGitOps with test configuration.
+                If None, creates empty FakeGitOps.
 
     Returns:
         Frozen WorkstackContext for use in tests
 
     Example:
-        # With builder
-        >>> builder = FakeGitOpsBuilder().with_default_branch(Path("/repo"), "main")
-        >>> ctx = create_test_context(builder)
+        # With pre-configured git ops
+        >>> git_ops = FakeGitOps(default_branches={Path("/repo"): "main"})
+        >>> ctx = create_test_context(git_ops)
 
-        # Without builder (empty fake)
+        # Without git ops (empty fake)
         >>> ctx = create_test_context()
     """
-    if git_ops_builder is None:
-        git_ops_builder = FakeGitOpsBuilder()
+    if git_ops is None:
+        git_ops = FakeGitOps()
 
-    return WorkstackContext(git_ops=git_ops_builder.build())
+    return WorkstackContext(git_ops=git_ops)
