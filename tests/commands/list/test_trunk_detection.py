@@ -3,8 +3,10 @@ from pathlib import Path
 
 from click.testing import CliRunner
 
+from tests.fakes.github_ops import FakeGithubOps
 from tests.fakes.gitops import FakeGitOps
 from tests.fakes.global_config_ops import FakeGlobalConfigOps
+from tests.fakes.graphite_ops import FakeGraphiteOps
 from workstack.commands.list import _is_trunk_branch
 from workstack.context import WorkstackContext
 
@@ -31,7 +33,14 @@ def test_trunk_branch_with_validation_result_trunk() -> None:
             workstacks_root=Path("/tmp/workstacks"),
             use_graphite=True,
         )
-        ctx = WorkstackContext(git_ops=git_ops, global_config_ops=global_config_ops, dry_run=False)
+        graphite_ops = FakeGraphiteOps()
+        ctx = WorkstackContext(
+            git_ops=git_ops,
+            global_config_ops=global_config_ops,
+            graphite_ops=graphite_ops,
+            github_ops=FakeGithubOps(),
+            dry_run=False,
+        )
 
         assert _is_trunk_branch(ctx, repo_root, "main") is True
 
@@ -58,7 +67,14 @@ def test_non_trunk_branch_with_no_parent() -> None:
             workstacks_root=Path("/tmp/workstacks"),
             use_graphite=True,
         )
-        ctx = WorkstackContext(git_ops=git_ops, global_config_ops=global_config_ops, dry_run=False)
+        graphite_ops = FakeGraphiteOps()
+        ctx = WorkstackContext(
+            git_ops=git_ops,
+            global_config_ops=global_config_ops,
+            graphite_ops=graphite_ops,
+            github_ops=FakeGithubOps(),
+            dry_run=False,
+        )
 
         assert _is_trunk_branch(ctx, repo_root, "orphan") is True
 
@@ -85,7 +101,14 @@ def test_branch_with_parent() -> None:
             workstacks_root=Path("/tmp/workstacks"),
             use_graphite=True,
         )
-        ctx = WorkstackContext(git_ops=git_ops, global_config_ops=global_config_ops, dry_run=False)
+        graphite_ops = FakeGraphiteOps()
+        ctx = WorkstackContext(
+            git_ops=git_ops,
+            global_config_ops=global_config_ops,
+            graphite_ops=graphite_ops,
+            github_ops=FakeGithubOps(),
+            dry_run=False,
+        )
 
         assert _is_trunk_branch(ctx, repo_root, "feature-1") is False
 
@@ -111,7 +134,14 @@ def test_branch_not_in_cache() -> None:
             workstacks_root=Path("/tmp/workstacks"),
             use_graphite=True,
         )
-        ctx = WorkstackContext(git_ops=git_ops, global_config_ops=global_config_ops, dry_run=False)
+        graphite_ops = FakeGraphiteOps()
+        ctx = WorkstackContext(
+            git_ops=git_ops,
+            global_config_ops=global_config_ops,
+            graphite_ops=graphite_ops,
+            github_ops=FakeGithubOps(),
+            dry_run=False,
+        )
 
         assert _is_trunk_branch(ctx, repo_root, "unknown-branch") is False
 
@@ -126,7 +156,14 @@ def test_missing_git_directory() -> None:
         workstacks_root=Path("/tmp/workstacks"),
         use_graphite=True,
     )
-    ctx = WorkstackContext(git_ops=git_ops, global_config_ops=global_config_ops, dry_run=False)
+    graphite_ops = FakeGraphiteOps()
+    ctx = WorkstackContext(
+        git_ops=git_ops,
+        global_config_ops=global_config_ops,
+        graphite_ops=graphite_ops,
+        github_ops=FakeGithubOps(),
+        dry_run=False,
+    )
 
     assert _is_trunk_branch(ctx, repo_root, "main") is False
 
@@ -146,7 +183,14 @@ def test_missing_cache_file() -> None:
             workstacks_root=Path("/tmp/workstacks"),
             use_graphite=True,
         )
-        ctx = WorkstackContext(git_ops=git_ops, global_config_ops=global_config_ops, dry_run=False)
+        graphite_ops = FakeGraphiteOps()
+        ctx = WorkstackContext(
+            git_ops=git_ops,
+            global_config_ops=global_config_ops,
+            graphite_ops=graphite_ops,
+            github_ops=FakeGithubOps(),
+            dry_run=False,
+        )
 
         assert _is_trunk_branch(ctx, repo_root, "main") is False
 
@@ -161,7 +205,14 @@ def test_cache_data_optimization() -> None:
         workstacks_root=Path("/tmp/workstacks"),
         use_graphite=True,
     )
-    ctx = WorkstackContext(git_ops=git_ops, global_config_ops=global_config_ops, dry_run=False)
+    graphite_ops = FakeGraphiteOps()
+    ctx = WorkstackContext(
+        git_ops=git_ops,
+        global_config_ops=global_config_ops,
+        graphite_ops=graphite_ops,
+        github_ops=FakeGithubOps(),
+        dry_run=False,
+    )
 
     # Pre-loaded cache data
     cache_data = {
