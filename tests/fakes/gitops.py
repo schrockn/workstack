@@ -1,7 +1,7 @@
 """Fake git operations for testing.
 
 FakeGitOps is an in-memory implementation that accepts pre-configured state
-in its constructor. Use GitOpsBuilder to construct instances for tests.
+in its constructor. Construct instances directly with keyword arguments.
 """
 
 from pathlib import Path
@@ -14,8 +14,8 @@ from workstack.gitops import GitOps, WorktreeInfo
 class FakeGitOps(GitOps):
     """In-memory fake implementation of git operations.
 
-    This class has NO public setup methods. All state is provided via constructor.
-    Use GitOpsBuilder to create instances with test data.
+    This class has NO public setup methods. All state is provided via constructor
+    using keyword arguments with sensible defaults (empty dicts).
     """
 
     def __init__(

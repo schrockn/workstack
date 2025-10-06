@@ -3,7 +3,7 @@ from unittest import mock
 
 from click.testing import CliRunner
 
-from tests.builders.gitops import FakeGitOpsBuilder
+from tests.fakes.gitops import FakeGitOps
 from workstack.cli import cli
 from workstack.context import WorkstackContext
 
@@ -34,7 +34,7 @@ def test_rename_successful() -> None:
         )
 
         # Build fake git ops
-        git_ops = FakeGitOpsBuilder().with_git_common_dir(cwd, git_dir).build()
+        git_ops = FakeGitOps(git_common_dirs={cwd: git_dir})
         test_ctx = WorkstackContext(git_ops=git_ops)
 
         # Mock GLOBAL_CONFIG_PATH
@@ -67,7 +67,7 @@ def test_rename_old_worktree_not_found() -> None:
         (workstacks_root / repo_name).mkdir(parents=True)
 
         # Build fake git ops
-        git_ops = FakeGitOpsBuilder().with_git_common_dir(cwd, git_dir).build()
+        git_ops = FakeGitOps(git_common_dirs={cwd: git_dir})
         test_ctx = WorkstackContext(git_ops=git_ops)
 
         # Mock GLOBAL_CONFIG_PATH
@@ -102,7 +102,7 @@ def test_rename_new_name_already_exists() -> None:
         new_wt.mkdir(parents=True)
 
         # Build fake git ops
-        git_ops = FakeGitOpsBuilder().with_git_common_dir(cwd, git_dir).build()
+        git_ops = FakeGitOps(git_common_dirs={cwd: git_dir})
         test_ctx = WorkstackContext(git_ops=git_ops)
 
         # Mock GLOBAL_CONFIG_PATH
@@ -136,7 +136,7 @@ def test_rename_sanitizes_new_name() -> None:
         (old_wt / ".env").write_text('WORKTREE_NAME="old-name"\n', encoding="utf-8")
 
         # Build fake git ops
-        git_ops = FakeGitOpsBuilder().with_git_common_dir(cwd, git_dir).build()
+        git_ops = FakeGitOps(git_common_dirs={cwd: git_dir})
         test_ctx = WorkstackContext(git_ops=git_ops)
 
         # Mock GLOBAL_CONFIG_PATH
@@ -173,7 +173,7 @@ def test_rename_regenerates_env_file() -> None:
         (old_wt / ".env").write_text('WORKTREE_NAME="old-name"\n', encoding="utf-8")
 
         # Build fake git ops
-        git_ops = FakeGitOpsBuilder().with_git_common_dir(cwd, git_dir).build()
+        git_ops = FakeGitOps(git_common_dirs={cwd: git_dir})
         test_ctx = WorkstackContext(git_ops=git_ops)
 
         # Mock GLOBAL_CONFIG_PATH
