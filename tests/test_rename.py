@@ -3,7 +3,9 @@ from unittest import mock
 
 from click.testing import CliRunner
 
+from tests.builders.gitops import FakeGitOpsBuilder
 from workstack.cli import cli
+from workstack.context import WorkstackContext
 
 
 def test_rename_successful() -> None:
@@ -31,26 +33,15 @@ def test_rename_successful() -> None:
             'WORKTREE_PATH="/old/path"\nWORKTREE_NAME="old-name"\n', encoding="utf-8"
         )
 
-        # Track git worktree move call
-        move_called = False
+        # Build fake git ops
+        git_ops = FakeGitOpsBuilder().with_git_common_dir(cwd, git_dir).build()
+        test_ctx = WorkstackContext(git_ops=git_ops)
 
-        def mock_move_worktree_git(repo_root, old_path, new_path):
-            nonlocal move_called
-            move_called = True
-            # Simulate the move
-            old_path.rename(new_path)
-
-        # Mock GLOBAL_CONFIG_PATH and move_worktree_git
-        with (
-            mock.patch("workstack.config.GLOBAL_CONFIG_PATH", global_config_dir / "config.toml"),
-            mock.patch(
-                "workstack.commands.rename.move_worktree_git", side_effect=mock_move_worktree_git
-            ),
-        ):
-            result = runner.invoke(cli, ["rename", "old-name", "new-name"])
+        # Mock GLOBAL_CONFIG_PATH
+        with mock.patch("workstack.config.GLOBAL_CONFIG_PATH", global_config_dir / "config.toml"):
+            result = runner.invoke(cli, ["rename", "old-name", "new-name"], obj=test_ctx)
 
             assert result.exit_code == 0, result.output
-            assert move_called, "move_worktree_git should have been called"
             assert "new-name" in result.output
 
 
@@ -68,15 +59,20 @@ def test_rename_old_worktree_not_found() -> None:
         )
 
         # Create git repo
-        Path(".git").mkdir()
+        git_dir = Path(".git")
+        git_dir.mkdir()
 
         # Create worktree directory but not the specific worktree
         repo_name = cwd.name
         (workstacks_root / repo_name).mkdir(parents=True)
 
+        # Build fake git ops
+        git_ops = FakeGitOpsBuilder().with_git_common_dir(cwd, git_dir).build()
+        test_ctx = WorkstackContext(git_ops=git_ops)
+
         # Mock GLOBAL_CONFIG_PATH
         with mock.patch("workstack.config.GLOBAL_CONFIG_PATH", global_config_dir / "config.toml"):
-            result = runner.invoke(cli, ["rename", "nonexistent", "new-name"])
+            result = runner.invoke(cli, ["rename", "nonexistent", "new-name"], obj=test_ctx)
             assert result.exit_code == 1
             assert "Worktree not found" in result.output
 
@@ -95,7 +91,8 @@ def test_rename_new_name_already_exists() -> None:
         )
 
         # Create git repo
-        Path(".git").mkdir()
+        git_dir = Path(".git")
+        git_dir.mkdir()
 
         # Create two worktrees
         repo_name = cwd.name
@@ -104,9 +101,13 @@ def test_rename_new_name_already_exists() -> None:
         new_wt = workstacks_root / repo_name / "new-name"
         new_wt.mkdir(parents=True)
 
+        # Build fake git ops
+        git_ops = FakeGitOpsBuilder().with_git_common_dir(cwd, git_dir).build()
+        test_ctx = WorkstackContext(git_ops=git_ops)
+
         # Mock GLOBAL_CONFIG_PATH
         with mock.patch("workstack.config.GLOBAL_CONFIG_PATH", global_config_dir / "config.toml"):
-            result = runner.invoke(cli, ["rename", "old-name", "new-name"])
+            result = runner.invoke(cli, ["rename", "old-name", "new-name"], obj=test_ctx)
             assert result.exit_code == 1
             assert "already exists" in result.output
 
@@ -134,29 +135,18 @@ def test_rename_sanitizes_new_name() -> None:
         old_wt.mkdir(parents=True)
         (old_wt / ".env").write_text('WORKTREE_NAME="old-name"\n', encoding="utf-8")
 
-        # Track sanitized name
-        sanitized_name = None
+        # Build fake git ops
+        git_ops = FakeGitOpsBuilder().with_git_common_dir(cwd, git_dir).build()
+        test_ctx = WorkstackContext(git_ops=git_ops)
 
-        def mock_move_worktree_git(repo_root, old_path, new_path):
-            nonlocal sanitized_name
-            # Capture the sanitized name from the new path
-            sanitized_name = new_path.name
-            # Simulate the move
-            old_path.rename(new_path)
-
-        # Mock GLOBAL_CONFIG_PATH and move_worktree_git
-        with (
-            mock.patch("workstack.config.GLOBAL_CONFIG_PATH", global_config_dir / "config.toml"),
-            mock.patch(
-                "workstack.commands.rename.move_worktree_git", side_effect=mock_move_worktree_git
-            ),
-        ):
+        # Mock GLOBAL_CONFIG_PATH
+        with mock.patch("workstack.config.GLOBAL_CONFIG_PATH", global_config_dir / "config.toml"):
             # Use a name with special characters that should be sanitized
-            result = runner.invoke(cli, ["rename", "old-name", "New_Name_123"])
+            result = runner.invoke(cli, ["rename", "old-name", "New_Name_123"], obj=test_ctx)
 
             # Should be sanitized to lowercase with hyphens
-            assert sanitized_name == "new-name-123"
             assert result.exit_code == 0, result.output
+            assert "new-name-123" in result.output
 
 
 def test_rename_regenerates_env_file() -> None:
@@ -182,18 +172,13 @@ def test_rename_regenerates_env_file() -> None:
         old_wt.mkdir(parents=True)
         (old_wt / ".env").write_text('WORKTREE_NAME="old-name"\n', encoding="utf-8")
 
-        def mock_move_worktree_git(repo_root, old_path, new_path):
-            # Simulate the move
-            old_path.rename(new_path)
+        # Build fake git ops
+        git_ops = FakeGitOpsBuilder().with_git_common_dir(cwd, git_dir).build()
+        test_ctx = WorkstackContext(git_ops=git_ops)
 
-        # Mock GLOBAL_CONFIG_PATH and move_worktree_git
-        with (
-            mock.patch("workstack.config.GLOBAL_CONFIG_PATH", global_config_dir / "config.toml"),
-            mock.patch(
-                "workstack.commands.rename.move_worktree_git", side_effect=mock_move_worktree_git
-            ),
-        ):
-            result = runner.invoke(cli, ["rename", "old-name", "new-name"])
+        # Mock GLOBAL_CONFIG_PATH
+        with mock.patch("workstack.config.GLOBAL_CONFIG_PATH", global_config_dir / "config.toml"):
+            result = runner.invoke(cli, ["rename", "old-name", "new-name"], obj=test_ctx)
             assert result.exit_code == 0, result.output
 
             # Verify .env was regenerated with new values

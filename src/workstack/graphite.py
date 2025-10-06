@@ -76,9 +76,10 @@ to find the shared git directory where `.graphite_cache_persist` is stored.
 """
 
 import json
-import subprocess
 from pathlib import Path
 from typing import TypedDict
+
+from workstack.context import WorkstackContext
 
 
 class BranchInfo(TypedDict):
@@ -95,7 +96,7 @@ class BranchInfo(TypedDict):
     is_trunk: bool
 
 
-def get_branch_stack(repo_root: Path, branch: str) -> list[str] | None:
+def get_branch_stack(ctx: WorkstackContext, repo_root: Path, branch: str) -> list[str] | None:
     """Get the linear graphite stack for a given branch.
 
     This function reads graphite's cache file and builds the linear chain of branches
@@ -104,6 +105,7 @@ def get_branch_stack(repo_root: Path, branch: str) -> list[str] | None:
     - All descendant branches from current down to the leaf
 
     Args:
+        ctx: Workstack context with git operations
         repo_root: Path to the repository root (or worktree root)
         branch: Name of the branch to get the stack for
 
@@ -116,7 +118,7 @@ def get_branch_stack(repo_root: Path, branch: str) -> list[str] | None:
         - Branch is not tracked by graphite
 
     Algorithm:
-        1. Find the common git directory using `git rev-parse --git-common-dir`
+        1. Find the common git directory using ctx.git_ops.get_git_common_dir()
            (This handles both main repos and worktrees correctly)
 
         2. Load and parse `.graphite_cache_persist` JSON file
@@ -142,7 +144,7 @@ def get_branch_stack(repo_root: Path, branch: str) -> list[str] | None:
              └─ feature-b-1
                   └─ feature-b-2
 
-        And you call get_branch_stack(root, "feature-b-2"), you get:
+        And you call get_branch_stack(ctx, root, "feature-b-2"), you get:
             ["main", "feature-b-1", "feature-b-2"]
 
         Not: ["main", "feature-a", "feature-b-1", "feature-b-2"]
@@ -151,26 +153,13 @@ def get_branch_stack(repo_root: Path, branch: str) -> list[str] | None:
         in the same stack as the target branch, rather than always taking the first child.
 
     Example:
-        >>> stack = get_branch_stack(Path("/repo"), "feature/phase-2")
+        >>> stack = get_branch_stack(ctx, Path("/repo"), "feature/phase-2")
         >>> print(stack)
         ["main", "feature/phase-1", "feature/phase-2", "feature/phase-3"]
     """
-    # Step 1: Find the common git directory (handles both main repo and worktrees)
-    # Worktrees have their .git as a file pointing to the real git dir, so we need
-    # to find the actual shared git directory where graphite stores its cache
-    result = subprocess.run(
-        ["git", "rev-parse", "--git-common-dir"],
-        cwd=repo_root,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    if result.returncode != 0:
+    git_dir = ctx.git_ops.get_git_common_dir(repo_root)
+    if git_dir is None:
         return None
-
-    git_dir = Path(result.stdout.strip())
-    if not git_dir.is_absolute():
-        git_dir = repo_root / git_dir
 
     # Step 2: Check if graphite cache file exists
     cache_file = git_dir / ".graphite_cache_persist"

@@ -8,9 +8,8 @@ from pathlib import Path
 import click
 
 from workstack.config import LoadedConfig, load_config, load_global_config
+from workstack.context import WorkstackContext
 from workstack.core import discover_repo_context, ensure_work_dir, worktree_path_for
-from workstack.git import detect_default_branch
-
 
 _SAFE_COMPONENT_RE = re.compile(r"[^A-Za-z0-9._/-]+")
 
@@ -65,6 +64,7 @@ def default_branch_for_worktree(name: str) -> str:
 
 
 def add_worktree(
+    ctx: WorkstackContext,
     repo_root: Path,
     path: Path,
     *,
@@ -86,77 +86,20 @@ def add_worktree(
     """
 
     if branch and use_existing_branch:
-        # Check out an existing branch in the new worktree
-        cmd = ["git", "worktree", "add", str(path), branch]
-        result = subprocess.run(cmd, cwd=repo_root, check=True, capture_output=True, text=True)
-        # Only show the "Preparing worktree" line from git's output
-        for line in result.stderr.splitlines():
-            if line.startswith("Preparing worktree"):
-                click.echo(line)
+        ctx.git_ops.add_worktree(repo_root, path, branch=branch, create_branch=False)
     elif branch:
-        # Create a new branch in the new worktree
         if use_graphite:
-            # Use Graphite to create the branch (creates it in a stack)
-            # Note: ref is ignored when using graphite - branch is created stacked on current branch
             cwd = Path.cwd()
-            # Save current branch so we can switch back
-            original_branch = get_current_branch(cwd)
-            # Create the branch with Graphite (runs in current worktree to stack on current branch)
-            # This will check out the new branch in the current worktree
+            original_branch = ctx.git_ops.get_current_branch(cwd)
+            if original_branch is None:
+                raise ValueError("Cannot create graphite branch from detached HEAD")
             subprocess.run(["gt", "create", branch], cwd=cwd, check=True)
-            # Switch back to original branch so we can add a worktree for the new branch
-            subprocess.run(["git", "checkout", original_branch], cwd=cwd, check=True)
-            # Then add the worktree pointing to that branch
-            subprocess.run(["git", "worktree", "add", str(path), branch], cwd=repo_root, check=True)
+            ctx.git_ops.checkout_branch(cwd, original_branch)
+            ctx.git_ops.add_worktree(repo_root, path, branch=branch, create_branch=False)
         else:
-            # Use standard git to create the branch
-            base_ref = ref or "HEAD"
-            cmd = [
-                "git",
-                "worktree",
-                "add",
-                "-b",
-                branch,
-                str(path),
-                base_ref,
-            ]
-            subprocess.run(cmd, cwd=repo_root, check=True)
+            ctx.git_ops.add_worktree(repo_root, path, branch=branch, ref=ref, create_branch=True)
     else:
-        base_ref = ref or "HEAD"
-        cmd = ["git", "worktree", "add", str(path), base_ref]
-        subprocess.run(cmd, cwd=repo_root, check=True)
-
-
-def get_current_branch(cwd: Path) -> str:
-    """Get the name of the current branch.
-
-    Raises subprocess.CalledProcessError if HEAD is detached or not in a git repo.
-    """
-    result = subprocess.run(
-        ["git", "rev-parse", "--abbrev-ref", "HEAD"],
-        cwd=cwd,
-        capture_output=True,
-        text=True,
-        check=True,
-    )
-    branch = result.stdout.strip()
-    if branch == "HEAD":
-        raise ValueError("HEAD is detached (not on a branch)")
-    return branch
-
-
-def checkout_branch(repo_root: Path, branch: str) -> None:
-    """Checkout a branch in the current worktree.
-
-    Runs `git checkout <branch>`.
-    """
-    subprocess.run(
-        ["git", "checkout", branch],
-        cwd=repo_root,
-        check=True,
-        capture_output=True,
-        text=True,
-    )
+        ctx.git_ops.add_worktree(repo_root, path, ref=ref, create_branch=False)
 
 
 def make_env_content(cfg: LoadedConfig, *, worktree_path: Path, repo_root: Path, name: str) -> str:
@@ -238,7 +181,9 @@ def quote_env_value(value: str) -> str:
     default=None,
     help=("Create worktree from an existing branch. NAME defaults to the branch name."),
 )
+@click.pass_obj
 def create(
+    ctx: WorkstackContext,
     name: str | None,
     branch: str | None,
     ref: str | None,
@@ -265,16 +210,10 @@ def create(
     # Handle --from-current-branch flag
     if from_current_branch:
         # Get the current branch
-        try:
-            current_branch = get_current_branch(Path.cwd())
-        except ValueError as e:
-            click.echo(f"Error: {e}", err=True)
-            raise SystemExit(1) from e
-        except subprocess.CalledProcessError as e:
-            click.echo(
-                "Error: Not in a git repository or unable to determine current branch.", err=True
-            )
-            raise SystemExit(1) from e
+        current_branch = ctx.git_ops.get_current_branch(Path.cwd())
+        if current_branch is None:
+            click.echo("Error: HEAD is detached (not on a branch)", err=True)
+            raise SystemExit(1)
 
         # Set branch to current branch and derive name if not provided
         if branch:
@@ -320,7 +259,7 @@ def create(
         click.echo('Error: "root" is a reserved name and cannot be used for a worktree.', err=True)
         raise SystemExit(1)
 
-    repo = discover_repo_context(Path.cwd())
+    repo = discover_repo_context(ctx, Path.cwd())
     work_dir = ensure_work_dir(repo)
     cfg = load_config(work_dir)
     wt_path = worktree_path_for(work_dir, name)
@@ -333,16 +272,16 @@ def create(
     to_branch = None
     if from_current_branch:
         # Determine which branch to switch to (use ref if provided, else main/master)
-        to_branch = ref if ref else detect_default_branch(repo.root)
+        to_branch = ref if ref else ctx.git_ops.detect_default_branch(repo.root)
 
         # Switch current worktree to the target branch first
-        checkout_branch(repo.root, to_branch)
+        ctx.git_ops.checkout_branch(repo.root, to_branch)
 
         # Create worktree with existing branch
-        add_worktree(repo.root, wt_path, branch=branch, ref=None, use_existing_branch=True)
+        add_worktree(ctx, repo.root, wt_path, branch=branch, ref=None, use_existing_branch=True)
     elif from_branch:
         # Create worktree with existing branch
-        add_worktree(repo.root, wt_path, branch=branch, ref=None, use_existing_branch=True)
+        add_worktree(ctx, repo.root, wt_path, branch=branch, ref=None, use_existing_branch=True)
     else:
         # Create worktree via git. If no branch provided, derive a sensible default.
         if branch is None:
@@ -351,7 +290,7 @@ def create(
         # Get graphite setting from global config
         global_config = load_global_config()
         add_worktree(
-            repo.root, wt_path, branch=branch, ref=ref, use_graphite=global_config.use_graphite
+            ctx, repo.root, wt_path, branch=branch, ref=ref, use_graphite=global_config.use_graphite
         )
 
     # Write .env based on config

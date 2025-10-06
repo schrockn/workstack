@@ -1,28 +1,14 @@
 import shutil
-import subprocess
 from pathlib import Path
 
 import click
 
 from workstack.commands.switch import complete_worktree_names
+from workstack.context import WorkstackContext
 from workstack.core import discover_repo_context, ensure_work_dir, worktree_path_for
 
 
-def remove_worktree(repo_root: Path, path: Path, *, force: bool) -> None:
-    """Remove a git worktree from the repository metadata.
-
-    Runs `git worktree remove [--force] <path>`. This may fail if the worktree has
-    uncommitted changes unless `force=True`.
-    """
-
-    cmd = ["git", "worktree", "remove"]
-    if force:
-        cmd.append("--force")
-    cmd.append(str(path))
-    subprocess.run(cmd, cwd=repo_root, check=True)
-
-
-def _remove_worktree(name: str, force: bool) -> None:
+def _remove_worktree(ctx: WorkstackContext, name: str, force: bool) -> None:
     """Internal function to remove a worktree.
 
     Uses git worktree remove when possible, but falls back to direct rmtree
@@ -31,7 +17,7 @@ def _remove_worktree(name: str, force: bool) -> None:
     a priori if git worktree remove will succeed - the worktree might be in various
     states of partial removal.
     """
-    repo = discover_repo_context(Path.cwd())
+    repo = discover_repo_context(ctx, Path.cwd())
     work_dir = ensure_work_dir(repo)
     wt_path = worktree_path_for(work_dir, name)
 
@@ -47,7 +33,7 @@ def _remove_worktree(name: str, force: bool) -> None:
     # Try to remove via git first; ignore errors and fall back to rmtree
     # This handles cases where worktree is already removed from git metadata
     try:
-        remove_worktree(repo.root, wt_path, force=force)
+        ctx.git_ops.remove_worktree(repo.root, wt_path, force=force)
     except Exception:
         pass
 
@@ -60,19 +46,21 @@ def _remove_worktree(name: str, force: bool) -> None:
 @click.command("remove")
 @click.argument("name", metavar="NAME", shell_complete=complete_worktree_names)
 @click.option("-f", "--force", is_flag=True, help="Do not prompt for confirmation.")
-def remove_cmd(name: str, force: bool) -> None:
+@click.pass_obj
+def remove_cmd(ctx: WorkstackContext, name: str, force: bool) -> None:
     """Remove the worktree directory (alias: rm).
 
     With `-f/--force`, skips the confirmation prompt.
     Attempts `git worktree remove` before deleting the directory.
     """
-    _remove_worktree(name, force)
+    _remove_worktree(ctx, name, force)
 
 
 # Register rm as a hidden alias (won't show in help)
 @click.command("rm", hidden=True)
 @click.argument("name", metavar="NAME", shell_complete=complete_worktree_names)
 @click.option("-f", "--force", is_flag=True, help="Do not prompt for confirmation.")
-def rm_cmd(name: str, force: bool) -> None:
+@click.pass_obj
+def rm_cmd(ctx: WorkstackContext, name: str, force: bool) -> None:
     """Remove the worktree directory (alias of 'remove')."""
-    _remove_worktree(name, force)
+    _remove_worktree(ctx, name, force)

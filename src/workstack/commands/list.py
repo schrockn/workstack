@@ -3,8 +3,8 @@ from pathlib import Path
 import click
 
 from workstack.config import load_global_config
+from workstack.context import WorkstackContext
 from workstack.core import discover_repo_context, ensure_work_dir
-from workstack.git import get_current_branch, get_worktree_branches
 from workstack.graphite import get_branch_stack
 
 
@@ -82,12 +82,13 @@ def _filter_stack_for_worktree(
     return result
 
 
-def _list_worktrees(show_stacks: bool = False) -> None:
+def _list_worktrees(ctx: WorkstackContext, show_stacks: bool = False) -> None:
     """Internal function to list worktrees."""
-    repo = discover_repo_context(Path.cwd())
+    repo = discover_repo_context(ctx, Path.cwd())
 
     # Get branch info for all worktrees
-    branches = get_worktree_branches(repo.root)
+    worktrees = ctx.git_ops.list_worktrees(repo.root)
+    branches = {wt.path: wt.branch for wt in worktrees}
 
     # Check if stacks are requested and graphite is enabled
     if show_stacks:
@@ -105,13 +106,13 @@ def _list_worktrees(show_stacks: bool = False) -> None:
     click.echo(_format_worktree_line("root", root_branch, is_root=True))
 
     if show_stacks and root_branch:
-        stack = get_branch_stack(repo.root, root_branch)
+        stack = get_branch_stack(ctx, repo.root, root_branch)
         if stack:
             # Filter stack to exclude branches checked out in other worktrees
             filtered_stack = _filter_stack_for_worktree(stack, repo.root, branches)
             if filtered_stack:
                 # Get the actual checked-out branch in the root directory
-                actual_branch = get_current_branch(repo.root)
+                actual_branch = ctx.git_ops.get_current_branch(repo.root)
                 # Use the actual checked-out branch for highlighting, fall back to registered branch
                 highlight_branch = actual_branch if actual_branch else root_branch
                 for branch in reversed(filtered_stack):
@@ -142,15 +143,17 @@ def _list_worktrees(show_stacks: bool = False) -> None:
         click.echo(_format_worktree_line(name, wt_branch, is_root=False))
 
         if show_stacks and wt_branch and wt_path:
-            stack = get_branch_stack(repo.root, wt_branch)
+            stack = get_branch_stack(ctx, repo.root, wt_branch)
             if stack:
                 # Filter stack to exclude branches checked out in other worktrees
                 filtered_stack = _filter_stack_for_worktree(stack, wt_path, branches)
                 if filtered_stack:
                     # Get the actual checked-out branch in this worktree directory
-                    # This may differ from wt_branch if someone did git checkout after creating the worktree
-                    actual_branch = get_current_branch(wt_path)
-                    # Use the actual checked-out branch for highlighting, fall back to registered branch
+                    # This may differ from wt_branch if someone did git checkout
+                    # after creating the worktree
+                    actual_branch = ctx.git_ops.get_current_branch(wt_path)
+                    # Use the actual checked-out branch for highlighting,
+                    # fall back to registered branch
                     highlight_branch = actual_branch if actual_branch else wt_branch
                     for branch in reversed(filtered_stack):
                         marker = "◉" if branch == highlight_branch else "◯"
@@ -159,14 +162,16 @@ def _list_worktrees(show_stacks: bool = False) -> None:
 
 @click.command("list")
 @click.option("--stacks", "-s", is_flag=True, help="Show graphite stacks for each worktree")
-def list_cmd(stacks: bool) -> None:
+@click.pass_obj
+def list_cmd(ctx: WorkstackContext, stacks: bool) -> None:
     """List worktrees with activation hints (alias: ls)."""
-    _list_worktrees(show_stacks=stacks)
+    _list_worktrees(ctx, show_stacks=stacks)
 
 
 # Register ls as a hidden alias (won't show in help)
 @click.command("ls", hidden=True)
 @click.option("--stacks", "-s", is_flag=True, help="Show graphite stacks for each worktree")
-def ls_cmd(stacks: bool) -> None:
+@click.pass_obj
+def ls_cmd(ctx: WorkstackContext, stacks: bool) -> None:
     """List worktrees with activation hints (alias of 'list')."""
-    _list_worktrees(show_stacks=stacks)
+    _list_worktrees(ctx, show_stacks=stacks)

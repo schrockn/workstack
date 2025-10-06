@@ -9,14 +9,19 @@ from workstack.commands.list import list_cmd, ls_cmd
 from workstack.commands.remove import remove_cmd, rm_cmd
 from workstack.commands.rename import rename_cmd
 from workstack.commands.switch import hidden_switch_cmd, switch_cmd
+from workstack.context import create_context
 
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])  # terse help flags
 
 
 @click.group(context_settings=CONTEXT_SETTINGS)
 @click.version_option(package_name="workstack")
-def cli() -> None:
+@click.pass_context
+def cli(ctx: click.Context) -> None:
     """Manage git worktrees in a global worktrees directory."""
+    # Only create context if not already provided (e.g., by tests)
+    if ctx.obj is None:
+        ctx.obj = create_context()
 
 
 # Register all commands

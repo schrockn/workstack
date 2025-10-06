@@ -1,0 +1,240 @@
+"""High-level git operations interface.
+
+This module provides a clean abstraction over git subprocess calls, making the
+codebase more testable and maintainable.
+
+Architecture:
+- GitOps: Abstract base class defining the interface
+- RealGitOps: Production implementation using subprocess
+- Standalone functions: Convenience wrappers delegating to module singleton
+"""
+
+import subprocess
+from abc import ABC, abstractmethod
+from dataclasses import dataclass
+from pathlib import Path
+
+import click
+
+
+@dataclass(frozen=True)
+class WorktreeInfo:
+    """Information about a single git worktree."""
+
+    path: Path
+    branch: str | None
+
+
+# ============================================================================
+# Abstract Interface
+# ============================================================================
+
+
+class GitOps(ABC):
+    """Abstract interface for git operations.
+
+    All implementations (real and fake) must implement this interface.
+    This interface contains ONLY runtime operations - no test setup methods.
+    """
+
+    @abstractmethod
+    def list_worktrees(self, repo_root: Path) -> list[WorktreeInfo]:
+        """List all worktrees in the repository."""
+        ...
+
+    @abstractmethod
+    def get_current_branch(self, cwd: Path) -> str | None:
+        """Get the currently checked-out branch."""
+        ...
+
+    @abstractmethod
+    def detect_default_branch(self, repo_root: Path) -> str:
+        """Detect the default branch (main or master)."""
+        ...
+
+    @abstractmethod
+    def get_git_common_dir(self, cwd: Path) -> Path | None:
+        """Get the common git directory."""
+        ...
+
+    @abstractmethod
+    def add_worktree(
+        self,
+        repo_root: Path,
+        path: Path,
+        *,
+        branch: str | None = None,
+        ref: str | None = None,
+        create_branch: bool = False,
+    ) -> None:
+        """Add a new git worktree."""
+        ...
+
+    @abstractmethod
+    def move_worktree(self, repo_root: Path, old_path: Path, new_path: Path) -> None:
+        """Move a worktree to a new location."""
+        ...
+
+    @abstractmethod
+    def remove_worktree(self, repo_root: Path, path: Path, *, force: bool = False) -> None:
+        """Remove a worktree."""
+        ...
+
+    @abstractmethod
+    def checkout_branch(self, cwd: Path, branch: str) -> None:
+        """Checkout a branch in the given directory."""
+        ...
+
+
+# ============================================================================
+# Production Implementation
+# ============================================================================
+
+
+class RealGitOps(GitOps):
+    """Production implementation using subprocess.
+
+    All git operations execute actual git commands via subprocess.
+    """
+
+    def list_worktrees(self, repo_root: Path) -> list[WorktreeInfo]:
+        """List all worktrees in the repository."""
+        result = subprocess.run(
+            ["git", "worktree", "list", "--porcelain"],
+            cwd=repo_root,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+
+        worktrees: list[WorktreeInfo] = []
+        current_path: Path | None = None
+        current_branch: str | None = None
+
+        for line in result.stdout.splitlines():
+            line = line.strip()
+            if line.startswith("worktree "):
+                current_path = Path(line.split(maxsplit=1)[1])
+                current_branch = None
+            elif line.startswith("branch "):
+                if current_path is not None:
+                    branch_ref = line.split(maxsplit=1)[1]
+                    current_branch = branch_ref.replace("refs/heads/", "")
+            elif line == "" and current_path is not None:
+                worktrees.append(WorktreeInfo(path=current_path, branch=current_branch))
+                current_path = None
+                current_branch = None
+
+        if current_path is not None:
+            worktrees.append(WorktreeInfo(path=current_path, branch=current_branch))
+
+        return worktrees
+
+    def get_current_branch(self, cwd: Path) -> str | None:
+        """Get the currently checked-out branch."""
+        result = subprocess.run(
+            ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+            cwd=cwd,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if result.returncode != 0:
+            return None
+
+        branch = result.stdout.strip()
+        if branch == "HEAD":
+            return None
+
+        return branch
+
+    def detect_default_branch(self, repo_root: Path) -> str:
+        """Detect the default branch (main or master)."""
+        result = subprocess.run(
+            ["git", "symbolic-ref", "refs/remotes/origin/HEAD"],
+            cwd=repo_root,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if result.returncode == 0:
+            remote_head = result.stdout.strip()
+            if remote_head.startswith("refs/remotes/origin/"):
+                branch = remote_head.replace("refs/remotes/origin/", "")
+                return branch
+
+        for candidate in ["main", "master"]:
+            result = subprocess.run(
+                ["git", "rev-parse", "--verify", candidate],
+                cwd=repo_root,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            if result.returncode == 0:
+                return candidate
+
+        click.echo("Error: Could not find 'main' or 'master' branch.", err=True)
+        raise SystemExit(1)
+
+    def get_git_common_dir(self, cwd: Path) -> Path | None:
+        """Get the common git directory."""
+        result = subprocess.run(
+            ["git", "rev-parse", "--git-common-dir"],
+            cwd=cwd,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if result.returncode != 0:
+            return None
+
+        git_dir = Path(result.stdout.strip())
+        if not git_dir.is_absolute():
+            git_dir = cwd / git_dir
+
+        return git_dir.resolve()
+
+    def add_worktree(
+        self,
+        repo_root: Path,
+        path: Path,
+        *,
+        branch: str | None = None,
+        ref: str | None = None,
+        create_branch: bool = False,
+    ) -> None:
+        """Add a new git worktree."""
+        if branch and not create_branch:
+            cmd = ["git", "worktree", "add", str(path), branch]
+        elif branch and create_branch:
+            base_ref = ref or "HEAD"
+            cmd = ["git", "worktree", "add", "-b", branch, str(path), base_ref]
+        else:
+            base_ref = ref or "HEAD"
+            cmd = ["git", "worktree", "add", str(path), base_ref]
+
+        subprocess.run(cmd, cwd=repo_root, check=True, capture_output=True, text=True)
+
+    def move_worktree(self, repo_root: Path, old_path: Path, new_path: Path) -> None:
+        """Move a worktree to a new location."""
+        cmd = ["git", "worktree", "move", str(old_path), str(new_path)]
+        subprocess.run(cmd, cwd=repo_root, check=True)
+
+    def remove_worktree(self, repo_root: Path, path: Path, *, force: bool = False) -> None:
+        """Remove a worktree."""
+        cmd = ["git", "worktree", "remove"]
+        if force:
+            cmd.append("--force")
+        cmd.append(str(path))
+        subprocess.run(cmd, cwd=repo_root, check=True)
+
+    def checkout_branch(self, cwd: Path, branch: str) -> None:
+        """Checkout a branch in the given directory."""
+        subprocess.run(
+            ["git", "checkout", branch],
+            cwd=cwd,
+            check=True,
+            capture_output=True,
+            text=True,
+        )

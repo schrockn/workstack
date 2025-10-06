@@ -1,8 +1,8 @@
-import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
 from workstack.config import load_global_config
+from workstack.context import WorkstackContext
 
 
 @dataclass(frozen=True)
@@ -14,7 +14,7 @@ class RepoContext:
     work_dir: Path
 
 
-def discover_repo_context(start: Path) -> RepoContext:
+def discover_repo_context(ctx: WorkstackContext, start: Path) -> RepoContext:
     """Walk up from `start` to find a directory containing `.git`.
 
     Returns a RepoContext pointing to the repo root and the global worktrees directory
@@ -26,26 +26,14 @@ def discover_repo_context(start: Path) -> RepoContext:
     """
     cur = start.resolve()
 
-    # Use git to find the true repository root (handles worktrees correctly)
     root: Path | None = None
-    try:
-        # Get the common git directory (points to main repo even from worktrees)
-        result = subprocess.run(
-            ["git", "rev-parse", "--git-common-dir"],
-            cwd=cur,
-            capture_output=True,
-            text=True,
-            check=True,
-        )
-        git_common_dir = Path(result.stdout.strip())
-        # The parent of .git is the repo root
+    git_common_dir = ctx.git_ops.get_git_common_dir(cur)
+    if git_common_dir is not None:
         root = git_common_dir.parent.resolve()
-    except subprocess.CalledProcessError:
-        # Fallback to walking up the tree
+    else:
         for parent in [cur, *cur.parents]:
             git_path = parent / ".git"
             if git_path.exists():
-                # Only accept if .git is a directory (not a worktree .git file)
                 if git_path.is_dir():
                     root = parent
                     break
@@ -53,7 +41,6 @@ def discover_repo_context(start: Path) -> RepoContext:
     if root is None:
         raise FileNotFoundError("Not inside a git repository (no .git found up the tree).")
 
-    # Load global config to get workstacks root
     global_config = load_global_config()
     repo_name = root.name
     work_dir = global_config.workstacks_root / repo_name

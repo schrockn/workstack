@@ -4,8 +4,8 @@ from pathlib import Path
 
 import click
 
+from workstack.context import WorkstackContext
 from workstack.core import discover_repo_context, ensure_work_dir
-from workstack.git import get_worktree_branches
 
 
 def get_pr_status(
@@ -75,7 +75,8 @@ def get_pr_status(
     default=True,
     help="Show commands being executed.",
 )
-def gc_cmd(debug: bool) -> None:
+@click.pass_obj
+def gc_cmd(ctx: WorkstackContext, debug: bool) -> None:
     """List workstacks that are safe to delete (merged/closed PRs).
 
     Checks each worktree's branch for PRs that have been merged or closed on GitHub.
@@ -88,12 +89,13 @@ def gc_cmd(debug: bool) -> None:
         if debug:
             click.echo(click.style(msg, fg="bright_black"))
 
-    repo = discover_repo_context(Path.cwd())
+    repo = discover_repo_context(ctx, Path.cwd())
     work_dir = ensure_work_dir(repo)
 
     # Get all worktree branches
     debug_print("$ git worktree list --porcelain")
-    branches = get_worktree_branches(repo.root)
+    worktrees = ctx.git_ops.list_worktrees(repo.root)
+    branches = {wt.path: wt.branch for wt in worktrees}
 
     debug_print(f"Found {len(branches)} worktrees\n")
 
