@@ -196,6 +196,6 @@ def hidden_switch_cmd(args: tuple[str, ...]) -> None:
     from click.testing import CliRunner
 
     runner = CliRunner()
-    result = runner.invoke(switch_cmd, [name, "--script"])
+    result = runner.invoke(switch_cmd, [name, "--script"], obj=create_context())
     click.echo(result.output, nl=False)
     raise SystemExit(result.exit_code)

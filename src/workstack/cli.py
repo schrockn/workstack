@@ -16,19 +16,12 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])  # terse help flags
 
 @click.group(context_settings=CONTEXT_SETTINGS)
 @click.version_option(package_name="workstack")
-@click.option(
-    "--dry-run",
-    is_flag=True,
-    # dry_run=False: Allow destructive operations by default
-    default=False,
-    help="Print what would be done without executing destructive operations.",
-)
 @click.pass_context
-def cli(ctx: click.Context, dry_run: bool) -> None:
+def cli(ctx: click.Context) -> None:
     """Manage git worktrees in a global worktrees directory."""
     # Only create context if not already provided (e.g., by tests)
     if ctx.obj is None:
-        ctx.obj = create_context(dry_run=dry_run)
+        ctx.obj = create_context(dry_run=False)
 
 
 # Register all commands

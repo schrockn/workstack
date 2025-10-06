@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from pathlib import Path
 
+import click
+
 from workstack.context import WorkstackContext
 
 
@@ -55,3 +57,36 @@ def ensure_work_dir(repo: RepoContext) -> Path:
 def worktree_path_for(work_dir: Path, name: str) -> Path:
     """Return the absolute path for a named worktree."""
     return (work_dir / name).resolve()
+
+
+def validate_worktree_name_for_removal(name: str) -> None:
+    """Validate that a worktree name is safe for removal.
+
+    Rejects:
+    - Empty strings
+    - `.` or `..` (current/parent directory references)
+    - `root` (explicit root worktree name)
+    - Names starting with `/` (absolute paths)
+    - Names containing `/` (path separators)
+
+    Raises SystemExit(1) with error message if validation fails.
+    """
+    if not name or not name.strip():
+        click.echo("Error: Worktree name cannot be empty", err=True)
+        raise SystemExit(1)
+
+    if name in (".", ".."):
+        click.echo(f"Error: Cannot remove '{name}' - directory references not allowed", err=True)
+        raise SystemExit(1)
+
+    if name == "root":
+        click.echo("Error: Cannot remove 'root' - root worktree name not allowed", err=True)
+        raise SystemExit(1)
+
+    if name.startswith("/"):
+        click.echo(f"Error: Cannot remove '{name}' - absolute paths not allowed", err=True)
+        raise SystemExit(1)
+
+    if "/" in name:
+        click.echo(f"Error: Cannot remove '{name}' - path separators not allowed", err=True)
+        raise SystemExit(1)

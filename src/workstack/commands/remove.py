@@ -5,56 +5,44 @@ from pathlib import Path
 import click
 
 from workstack.commands.switch import complete_worktree_names
-from workstack.context import WorkstackContext
-from workstack.core import discover_repo_context, ensure_work_dir, worktree_path_for
+from workstack.context import WorkstackContext, create_context
+from workstack.core import (
+    discover_repo_context,
+    ensure_work_dir,
+    validate_worktree_name_for_removal,
+    worktree_path_for,
+)
 from workstack.graphite import get_branch_stack
 
 
-def _delete_stack_branches(
-    ctx: WorkstackContext, repo_root: Path, worktree_path: Path, worktree_name: str, *, force: bool
-) -> None:
-    """Delete all branches in the Graphite stack for a worktree.
+def _find_worktree_branch(ctx: WorkstackContext, repo_root: Path, wt_path: Path) -> str | None:
+    """Find the branch for a given worktree path.
 
-    Args:
-        ctx: Workstack context with git operations
-        repo_root: Path to the repository root
-        worktree_path: Path to the worktree being removed
-        worktree_name: Name of the worktree (for error messages)
-        force: Skip confirmation prompts
+    Returns None if worktree is not found or is in detached HEAD state.
     """
-    # Get the branch for this worktree
     worktrees = ctx.git_ops.list_worktrees(repo_root)
-    worktree_branch = None
     for wt in worktrees:
-        if wt.path == worktree_path:
-            worktree_branch = wt.branch
-            break
+        if wt.path == wt_path:
+            return wt.branch
+    return None
 
-    if worktree_branch is None:
-        click.echo(
-            f"Warning: Worktree {worktree_name} is in detached HEAD state. "
-            "Cannot delete stack without a branch.",
-            err=True,
-        )
-        return
 
-    # Get the full stack for this branch
-    stack = get_branch_stack(ctx, repo_root, worktree_branch)
+def _get_non_trunk_branches(ctx: WorkstackContext, repo_root: Path, stack: list[str]) -> list[str]:
+    """Filter out trunk branches from a stack.
 
-    if stack is None:
-        click.echo(
-            f"Warning: Branch {worktree_branch} is not tracked by Graphite. Cannot delete stack.",
-            err=True,
-        )
-        return
-
-    # Filter out trunk branches - we never delete those
+    Returns empty list if git directory cannot be found or cache is missing.
+    Prints warning messages for error conditions.
+    """
     git_dir = ctx.git_ops.get_git_common_dir(repo_root)
     if git_dir is None:
         click.echo("Warning: Could not find git directory. Cannot delete stack.", err=True)
-        return
+        return []
 
     cache_file = git_dir / ".graphite_cache_persist"
+    if not cache_file.exists():
+        click.echo("Warning: Graphite cache not found. Cannot delete stack.", err=True)
+        return []
+
     cache_data = json.loads(cache_file.read_text(encoding="utf-8"))
     branches_data = cache_data.get("branches", [])
 
@@ -64,30 +52,33 @@ def _delete_stack_branches(
         if info.get("validationResult") == "TRUNK"
     }
 
-    branches_to_delete = [b for b in stack if b not in trunk_branches]
-
-    if not branches_to_delete:
-        click.echo("No branches to delete (all branches in stack are trunk branches).")
-        return
-
-    # Show what will be deleted
-    click.echo("Branches in stack to be deleted:")
-    for branch in branches_to_delete:
-        click.echo(f"  - {branch}")
-
-    # Confirm deletion unless --force
-    if not force:
-        if not click.confirm("Delete these branches?", default=False):
-            click.echo("Aborted.")
-            return
-
-    # Delete each branch
-    for branch in branches_to_delete:
-        ctx.git_ops.delete_branch_with_graphite(repo_root, branch, force=force)
-        click.echo(f"Deleted branch: {branch}")
+    return [b for b in stack if b not in trunk_branches]
 
 
-def _remove_worktree(ctx: WorkstackContext, name: str, force: bool, delete_stack: bool) -> None:
+def _get_branches_to_delete(
+    ctx: WorkstackContext, repo_root: Path, worktree_branch: str
+) -> list[str] | None:
+    """Get list of branches to delete for a worktree's stack.
+
+    Returns:
+        None if deletion should be skipped (warnings already printed)
+        Empty list if no branches to delete
+        List of branch names if branches should be deleted
+    """
+    stack = get_branch_stack(ctx, repo_root, worktree_branch)
+    if stack is None:
+        click.echo(
+            f"Warning: Branch {worktree_branch} is not tracked by Graphite. Cannot delete stack.",
+            err=True,
+        )
+        return None
+
+    return _get_non_trunk_branches(ctx, repo_root, stack)
+
+
+def _remove_worktree(
+    ctx: WorkstackContext, name: str, force: bool, delete_stack: bool, dry_run: bool
+) -> None:
     """Internal function to remove a worktree.
 
     Uses git worktree remove when possible, but falls back to direct rmtree
@@ -101,7 +92,15 @@ def _remove_worktree(ctx: WorkstackContext, name: str, force: bool, delete_stack
         name: Name of the worktree to remove
         force: Skip confirmation prompts
         delete_stack: Delete all branches in the Graphite stack (requires Graphite)
+        dry_run: Print what would be done without executing destructive operations
     """
+    # Create dry-run context if needed
+    if dry_run:
+        ctx = create_context(dry_run=True)
+
+    # Validate worktree name before any operations
+    validate_worktree_name_for_removal(name)
+
     repo = discover_repo_context(ctx, Path.cwd())
     work_dir = ensure_work_dir(repo)
     wt_path = worktree_path_for(work_dir, name)
@@ -110,7 +109,8 @@ def _remove_worktree(ctx: WorkstackContext, name: str, force: bool, delete_stack
         click.echo(f"Worktree not found: {wt_path}")
         raise SystemExit(1)
 
-    # Handle --delete-stack option
+    # Step 1: Collect all operations to perform
+    branches_to_delete: list[str] = []
     if delete_stack:
         use_graphite = ctx.global_config_ops.get_use_graphite()
         if not use_graphite:
@@ -121,29 +121,104 @@ def _remove_worktree(ctx: WorkstackContext, name: str, force: bool, delete_stack
             )
             raise SystemExit(1)
 
-        _delete_stack_branches(ctx, repo.root, wt_path, name, force=force)
+        # Get the branches in the stack before removing the worktree
+        worktrees = ctx.git_ops.list_worktrees(repo.root)
+        worktree_branch = None
+        for wt in worktrees:
+            if wt.path == wt_path:
+                worktree_branch = wt.branch
+                break
 
-    # Now remove the worktree directory
-    if not force:
-        if not click.confirm(f"Remove worktree directory {wt_path}?", default=False):
+        if worktree_branch is None:
+            click.echo(
+                f"Warning: Worktree {name} is in detached HEAD state. "
+                "Cannot delete stack without a branch.",
+                err=True,
+            )
+        else:
+            stack = get_branch_stack(ctx, repo.root, worktree_branch)
+            if stack is None:
+                click.echo(
+                    f"Warning: Branch {worktree_branch} is not tracked by Graphite. "
+                    "Cannot delete stack.",
+                    err=True,
+                )
+            else:
+                # Filter out trunk branches
+                git_dir = ctx.git_ops.get_git_common_dir(repo.root)
+                if git_dir is None:
+                    click.echo(
+                        "Warning: Could not find git directory. Cannot delete stack.", err=True
+                    )
+                else:
+                    cache_file = git_dir / ".graphite_cache_persist"
+                    cache_data = json.loads(cache_file.read_text(encoding="utf-8"))
+                    branches_data = cache_data.get("branches", [])
+
+                    trunk_branches = {
+                        branch_name
+                        for branch_name, info in branches_data
+                        if info.get("validationResult") == "TRUNK"
+                    }
+
+                    branches_to_delete = [b for b in stack if b not in trunk_branches]
+
+                    if not branches_to_delete:
+                        click.echo(
+                            "No branches to delete (all branches in stack are trunk branches)."
+                        )
+
+    # Step 2: Display all planned operations
+    if branches_to_delete or True:
+        click.echo("Planning to perform the following operations:")
+        click.echo(f"  1. Remove worktree: {wt_path}")
+        if branches_to_delete:
+            click.echo("  2. Delete branches in stack:")
+            for branch in branches_to_delete:
+                click.echo(f"     - {branch}")
+
+    # Step 3: Single confirmation prompt (unless --force or --dry-run)
+    if not force and not dry_run:
+        if not click.confirm("\nProceed with these operations?", default=False):
             click.echo("Aborted.")
             return
 
-    # Try to remove via git first; ignore errors and fall back to rmtree
-    # This handles cases where worktree is already removed from git metadata
+    # Step 4: Execute operations
+
+    # 4a. Try to remove via git first; ignore errors
+    # This updates git's metadata when possible
     try:
-        ctx.git_ops.remove_worktree(repo.root, wt_path, force=force)
+        ctx.git_ops.remove_worktree(repo.root, wt_path, force=True)
     except Exception:
+        # Git removal failed, we'll need to prune later
         pass
 
-    # Handle directory deletion (dry-run vs real)
+    # 4b. Always manually delete directory if it still exists
+    # (git worktree remove may have succeeded or failed, but directory might still be there)
     if wt_path.exists():
         if ctx.dry_run:
             click.echo(f"[DRY RUN] Would delete directory: {wt_path}", err=True)
         else:
             shutil.rmtree(wt_path)
 
-    click.echo(str(wt_path))
+    # 4c. Prune worktree metadata to clean up any stale references
+    # This is important if git worktree remove failed or if we manually deleted
+    if not ctx.dry_run:
+        try:
+            ctx.git_ops.prune_worktrees(repo.root)
+        except Exception:
+            # Prune might fail if there's nothing to prune, ignore
+            pass
+
+    # 4c. Delete stack branches (now that worktree is removed)
+    if branches_to_delete:
+        for branch in branches_to_delete:
+            ctx.git_ops.delete_branch_with_graphite(repo.root, branch, force=force)
+            if not dry_run:
+                click.echo(f"Deleted branch: {branch}")
+
+    if not dry_run:
+        click.echo(str(wt_path))
 
 
 @click.command("remove")
@@ -155,14 +230,23 @@ def _remove_worktree(ctx: WorkstackContext, name: str, force: bool, delete_stack
     is_flag=True,
     help="Delete all branches in the Graphite stack (requires Graphite).",
 )
+@click.option(
+    "--dry-run",
+    is_flag=True,
+    # dry_run=False: Allow destructive operations by default
+    default=False,
+    help="Print what would be done without executing destructive operations.",
+)
 @click.pass_obj
-def remove_cmd(ctx: WorkstackContext, name: str, force: bool, delete_stack: bool) -> None:
+def remove_cmd(
+    ctx: WorkstackContext, name: str, force: bool, delete_stack: bool, dry_run: bool
+) -> None:
     """Remove the worktree directory (alias: rm).
 
     With `-f/--force`, skips the confirmation prompt.
     Attempts `git worktree remove` before deleting the directory.
     """
-    _remove_worktree(ctx, name, force, delete_stack)
+    _remove_worktree(ctx, name, force, delete_stack, dry_run)
 
 
 # Register rm as a hidden alias (won't show in help)
@@ -175,7 +259,16 @@ def remove_cmd(ctx: WorkstackContext, name: str, force: bool, delete_stack: bool
     is_flag=True,
     help="Delete all branches in the Graphite stack (requires Graphite).",
 )
+@click.option(
+    "--dry-run",
+    is_flag=True,
+    # dry_run=False: Allow destructive operations by default
+    default=False,
+    help="Print what would be done without executing destructive operations.",
+)
 @click.pass_obj
-def rm_cmd(ctx: WorkstackContext, name: str, force: bool, delete_stack: bool) -> None:
+def rm_cmd(
+    ctx: WorkstackContext, name: str, force: bool, delete_stack: bool, dry_run: bool
+) -> None:
     """Remove the worktree directory (alias of 'remove')."""
-    _remove_worktree(ctx, name, force, delete_stack)
+    _remove_worktree(ctx, name, force, delete_stack, dry_run)
