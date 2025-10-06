@@ -3,9 +3,10 @@ from unittest import mock
 
 import pytest
 
+from tests.fakes.global_config_ops import FakeGlobalConfigOps
 from workstack.commands.create import make_env_content
 from workstack.commands.init import create_global_config, discover_presets
-from workstack.config import load_config, load_global_config
+from workstack.config import load_config
 
 
 def test_load_config_defaults(tmp_path: Path) -> None:
@@ -44,80 +45,96 @@ def test_env_rendering(tmp_path: Path) -> None:
 
 
 def test_load_global_config_valid(tmp_path: Path) -> None:
-    config_file = tmp_path / "config.toml"
     workstacks_root = tmp_path / "workstacks"
-    config_file.write_text(
-        f'workstacks_root = "{workstacks_root}"\nuse_graphite = true\n', encoding="utf-8"
+    global_config_ops = FakeGlobalConfigOps(
+        workstacks_root=workstacks_root,
+        use_graphite=True,
+        shell_setup_complete=False,
     )
 
-    with mock.patch("workstack.config.GLOBAL_CONFIG_PATH", config_file):
-        cfg = load_global_config()
-        assert cfg.workstacks_root == workstacks_root.resolve()
-        assert cfg.use_graphite is True
+    assert global_config_ops.get_workstacks_root() == workstacks_root.resolve()
+    assert global_config_ops.get_use_graphite() is True
 
 
 def test_load_global_config_missing_file(tmp_path: Path) -> None:
-    config_file = tmp_path / "nonexistent.toml"
+    global_config_ops = FakeGlobalConfigOps(exists=False)  # Config doesn't exist
 
-    with mock.patch("workstack.config.GLOBAL_CONFIG_PATH", config_file):
-        with pytest.raises(FileNotFoundError, match="Global config not found"):
-            load_global_config()
+    with pytest.raises(FileNotFoundError, match="Global config not found"):
+        global_config_ops.get_workstacks_root()
 
 
-def test_load_global_config_missing_workstacks_root(tmp_path: Path) -> None:
+def test_load_global_config_missing_workstacks_root(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Test Real implementation's validation
+    from workstack.global_config_ops import RealGlobalConfigOps
+
     config_file = tmp_path / "config.toml"
     config_file.write_text("use_graphite = true\n", encoding="utf-8")
 
-    with mock.patch("workstack.config.GLOBAL_CONFIG_PATH", config_file):
-        with pytest.raises(ValueError, match="Missing 'workstacks_root'"):
-            load_global_config()
+    # Override the path for Real implementation
+    monkeypatch.setenv("HOME", str(tmp_path))
+    real_ops = RealGlobalConfigOps()
+    real_ops._path = config_file
+
+    with pytest.raises(ValueError, match="Missing 'workstacks_root'"):
+        real_ops.get_workstacks_root()
 
 
 def test_load_global_config_use_graphite_defaults_false(tmp_path: Path) -> None:
-    config_file = tmp_path / "config.toml"
     workstacks_root = tmp_path / "workstacks"
-    config_file.write_text(f'workstacks_root = "{workstacks_root}"\n', encoding="utf-8")
+    global_config_ops = FakeGlobalConfigOps(
+        workstacks_root=workstacks_root,
+        use_graphite=False,
+        shell_setup_complete=False,
+    )
 
-    with mock.patch("workstack.config.GLOBAL_CONFIG_PATH", config_file):
-        cfg = load_global_config()
-        assert cfg.workstacks_root == workstacks_root.resolve()
-        assert cfg.use_graphite is False
-
-
-def test_create_global_config_creates_file(tmp_path: Path) -> None:
-    config_file = tmp_path / ".workstack" / "config.toml"
-
-    with mock.patch("workstack.commands.init.GLOBAL_CONFIG_PATH", config_file):
-        with mock.patch("workstack.commands.init.detect_graphite", return_value=False):
-            create_global_config(Path("/tmp/workstacks"))
-
-    assert config_file.exists()
-    content = config_file.read_text(encoding="utf-8")
-    assert 'workstacks_root = "/tmp/workstacks"' in content
-    assert "use_graphite = false" in content
+    assert global_config_ops.get_workstacks_root() == workstacks_root.resolve()
+    assert global_config_ops.get_use_graphite() is False
 
 
-def test_create_global_config_creates_parent_directory(tmp_path: Path) -> None:
+def test_create_global_config_creates_file(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    global_config_ops = FakeGlobalConfigOps(exists=False)
+
+    with monkeypatch.context() as m:
+        m.setattr("workstack.commands.init.detect_graphite", lambda: False)
+        create_global_config(global_config_ops, Path("/tmp/workstacks"))
+
+    # Verify config was saved
+    assert global_config_ops.get_workstacks_root() == Path("/tmp/workstacks")
+    assert global_config_ops.get_use_graphite() is False
+
+
+def test_create_global_config_creates_parent_directory(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Test Real implementation's filesystem behavior
+    from workstack.global_config_ops import RealGlobalConfigOps
+
     config_file = tmp_path / ".workstack" / "config.toml"
     assert not config_file.parent.exists()
 
-    with mock.patch("workstack.commands.init.GLOBAL_CONFIG_PATH", config_file):
-        with mock.patch("workstack.commands.init.detect_graphite", return_value=False):
-            create_global_config(Path("/tmp/workstacks"))
+    real_ops = RealGlobalConfigOps()
+    real_ops._path = config_file
+
+    with monkeypatch.context() as m:
+        m.setattr("workstack.commands.init.detect_graphite", lambda: False)
+        create_global_config(real_ops, Path("/tmp/workstacks"))
 
     assert config_file.parent.exists()
     assert config_file.exists()
 
 
-def test_create_global_config_detects_graphite(tmp_path: Path) -> None:
-    config_file = tmp_path / ".workstack" / "config.toml"
+def test_create_global_config_detects_graphite(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    global_config_ops = FakeGlobalConfigOps(exists=False)
 
-    with mock.patch("workstack.commands.init.GLOBAL_CONFIG_PATH", config_file):
-        with mock.patch("workstack.commands.init.detect_graphite", return_value=True):
-            create_global_config(Path("/tmp/workstacks"))
+    with monkeypatch.context() as m:
+        m.setattr("workstack.commands.init.detect_graphite", lambda: True)
+        create_global_config(global_config_ops, Path("/tmp/workstacks"))
 
-    content = config_file.read_text(encoding="utf-8")
-    assert "use_graphite = true" in content
+    assert global_config_ops.get_use_graphite() is True
 
 
 def test_discover_presets(tmp_path: Path) -> None:

@@ -41,6 +41,78 @@ When adding new modules, place them in `src/workstack/` and add corresponding te
       use_graphite: bool
   ```
 
+### Abstract Interfaces and Dependency Injection
+
+- **ALWAYS use Abstract Base Classes (ABC) for defining interfaces** - never use `typing.Protocol`
+- **Use `from abc import ABC, abstractmethod`** for interface definitions
+- **Inject dependencies through dataclass constructors** - use frozen dataclasses for contexts
+- **Follow the existing GitOps pattern** - see `src/workstack/gitops.py` as the reference implementation
+- **Test implementations must inherit from the ABC** - place fakes in `tests/fakes/`
+- **Fakes must be in-memory only** - no filesystem I/O in test implementations
+
+**Preferred pattern:**
+
+```python
+from abc import ABC, abstractmethod
+from dataclasses import dataclass
+
+class MyOps(ABC):
+    """Abstract interface for my operations.
+
+    All implementations (real and fake) must implement this interface.
+    """
+
+    @abstractmethod
+    def do_something(self, arg: str) -> bool:
+        """Perform operation."""
+        ...
+
+class RealMyOps(MyOps):
+    """Production implementation."""
+
+    def do_something(self, arg: str) -> bool:
+        # real implementation
+        return True
+
+@dataclass(frozen=True)
+class AppContext:
+    """Application context with injected dependencies."""
+    my_ops: MyOps
+```
+
+**Test implementations (in-memory, no filesystem):**
+
+```python
+# tests/fakes/my_ops.py
+class FakeMyOps(MyOps):
+    """In-memory fake - no filesystem access.
+
+    State is held in memory. Constructor accepts initial state.
+    """
+
+    def __init__(self, *, initial_state: SomeState | None = None) -> None:
+        self._state = initial_state
+
+    def do_something(self, arg: str) -> bool:
+        # In-memory implementation
+        return True
+```
+
+**Why ABC over Protocol:**
+
+- **Explicit inheritance** makes interfaces discoverable through IDE navigation
+- **Runtime validation** that implementations are complete (missing methods caught immediately)
+- **Better IDE support** and error messages when implementing interfaces
+- **More explicit about design intent** - signals this is a formal interface contract
+- **Matches existing codebase patterns** - consistency with GitOps and other abstractions
+
+**Why in-memory fakes:**
+
+- **Faster tests** - no filesystem I/O overhead
+- **No cleanup needed** - state automatically discarded
+- **Explicit state** - test setup shows all configuration clearly
+- **Parallel test execution** - no shared filesystem state
+
 ### Import Organization
 
 Imports must be organized in three groups (enforced by isort/ruff):

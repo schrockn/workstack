@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 from pathlib import Path
 
-from workstack.config import load_global_config
 from workstack.context import WorkstackContext
 
 
@@ -41,9 +40,8 @@ def discover_repo_context(ctx: WorkstackContext, start: Path) -> RepoContext:
     if root is None:
         raise FileNotFoundError("Not inside a git repository (no .git found up the tree).")
 
-    global_config = load_global_config()
     repo_name = root.name
-    work_dir = global_config.workstacks_root / repo_name
+    work_dir = ctx.global_config_ops.get_workstacks_root() / repo_name
 
     return RepoContext(root=root, repo_name=repo_name, work_dir=work_dir)
 

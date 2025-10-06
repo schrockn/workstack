@@ -1,11 +1,11 @@
 import json
 import re
 from pathlib import Path
-from unittest import mock
 
 from click.testing import CliRunner
 
 from tests.fakes.gitops import FakeGitOps
+from tests.fakes.global_config_ops import FakeGlobalConfigOps
 from workstack.cli import cli
 from workstack.context import WorkstackContext
 from workstack.gitops import WorktreeInfo
@@ -21,12 +21,7 @@ def test_list_outputs_names_not_paths() -> None:
     with runner.isolated_filesystem():
         # Set up isolated environment
         cwd = Path.cwd()
-        global_config_dir = cwd / ".workstack_config"
-        global_config_dir.mkdir()
         workstacks_root = cwd / "workstacks"
-        (global_config_dir / "config.toml").write_text(
-            f'workstacks_root = "{workstacks_root}"\nuse_graphite = false\n'
-        )
 
         # Create git repo
         Path(".git").mkdir()
@@ -49,27 +44,31 @@ def test_list_outputs_names_not_paths() -> None:
             git_common_dirs={cwd: cwd / ".git"},
         )
 
-        test_ctx = WorkstackContext(git_ops=git_ops)
+        # Build fake global config ops
+        global_config_ops = FakeGlobalConfigOps(
+            workstacks_root=workstacks_root,
+            use_graphite=False,
+        )
 
-        # Mock GLOBAL_CONFIG_PATH and pass context through Click
-        with mock.patch("workstack.config.GLOBAL_CONFIG_PATH", global_config_dir / "config.toml"):
-            result = runner.invoke(cli, ["list"], obj=test_ctx)
-            assert result.exit_code == 0, result.output
+        test_ctx = WorkstackContext(git_ops=git_ops, global_config_ops=global_config_ops)
 
-            # Strip ANSI codes for easier comparison
-            output = strip_ansi(result.output)
-            lines = output.strip().splitlines()
+        result = runner.invoke(cli, ["list"], obj=test_ctx)
+        assert result.exit_code == 0, result.output
 
-            # First line should be root with branch
-            assert lines[0].startswith("root")
-            assert "[main]" in lines[0]
+        # Strip ANSI codes for easier comparison
+        output = strip_ansi(result.output)
+        lines = output.strip().splitlines()
 
-            # Remaining lines should be worktrees with branches, sorted
-            worktree_lines = sorted(lines[1:])
-            assert worktree_lines == [
-                "bar [feature/bar]",
-                "foo [foo]",
-            ]
+        # First line should be root with branch
+        assert lines[0].startswith("root")
+        assert "[main]" in lines[0]
+
+        # Remaining lines should be worktrees with branches, sorted
+        worktree_lines = sorted(lines[1:])
+        assert worktree_lines == [
+            "bar [feature/bar]",
+            "foo [foo]",
+        ]
 
 
 def test_list_with_stacks_flag() -> None:
@@ -77,12 +76,7 @@ def test_list_with_stacks_flag() -> None:
     with runner.isolated_filesystem():
         # Set up isolated environment
         cwd = Path.cwd()
-        global_config_dir = cwd / ".workstack_config"
-        global_config_dir.mkdir()
         workstacks_root = cwd / "workstacks"
-        (global_config_dir / "config.toml").write_text(
-            f'workstacks_root = "{workstacks_root}"\nuse_graphite = true\n'
-        )
 
         # Create git repo structure
         git_dir = Path(".git")
@@ -142,52 +136,56 @@ def test_list_with_stacks_flag() -> None:
             },
         )
 
-        test_ctx = WorkstackContext(git_ops=git_ops)
+        # Build fake global config ops
+        global_config_ops = FakeGlobalConfigOps(
+            workstacks_root=workstacks_root,
+            use_graphite=True,
+        )
 
-        # Mock GLOBAL_CONFIG_PATH and pass context through Click
-        with mock.patch("workstack.config.GLOBAL_CONFIG_PATH", global_config_dir / "config.toml"):
-            result = runner.invoke(cli, ["list", "--stacks"], obj=test_ctx)
-            assert result.exit_code == 0, result.output
+        test_ctx = WorkstackContext(git_ops=git_ops, global_config_ops=global_config_ops)
 
-            # Strip ANSI codes for easier assertion
-            output = strip_ansi(result.output)
-            lines = output.strip().splitlines()
+        result = runner.invoke(cli, ["list", "--stacks"], obj=test_ctx)
+        assert result.exit_code == 0, result.output
 
-            # Find the root section and ts section
-            root_section_start = None
-            ts_section_start = None
-            for i, line in enumerate(lines):
-                if "root [main]" in line:
-                    root_section_start = i
-                if "ts [schrockn/ts-phase-2]" in line:
-                    ts_section_start = i
+        # Strip ANSI codes for easier assertion
+        output = strip_ansi(result.output)
+        lines = output.strip().splitlines()
 
-            assert root_section_start is not None
-            assert ts_section_start is not None
+        # Find the root section and ts section
+        root_section_start = None
+        ts_section_start = None
+        for i, line in enumerate(lines):
+            if "root [main]" in line:
+                root_section_start = i
+            if "ts [schrockn/ts-phase-2]" in line:
+                ts_section_start = i
 
-            # Get the ts section (from ts header to end)
-            ts_section = lines[ts_section_start:]
-            ts_section_text = "\n".join(ts_section)
+        assert root_section_start is not None
+        assert ts_section_start is not None
 
-            # Check ts worktree stack shows linear chain in reversed order
-            # (descendants at top, trunk at bottom)
-            assert "ts [schrockn/ts-phase-2]" in ts_section_text
-            assert "◯  schrockn/ts-phase-3" in ts_section_text
-            assert "◉  schrockn/ts-phase-2" in ts_section_text
-            assert "◯  schrockn/ts-phase-1" in ts_section_text
-            assert "◯  main" in ts_section_text
+        # Get the ts section (from ts header to end)
+        ts_section = lines[ts_section_start:]
+        ts_section_text = "\n".join(ts_section)
 
-            # Verify sibling branch is NOT shown (regression test)
-            assert "sibling-branch" not in output
+        # Check ts worktree stack shows linear chain in reversed order
+        # (descendants at top, trunk at bottom)
+        assert "ts [schrockn/ts-phase-2]" in ts_section_text
+        assert "◯  schrockn/ts-phase-3" in ts_section_text
+        assert "◉  schrockn/ts-phase-2" in ts_section_text
+        assert "◯  schrockn/ts-phase-1" in ts_section_text
+        assert "◯  main" in ts_section_text
 
-            # Verify order within ts section: phase-3 before phase-2, phase-2 before phase-1, etc.
-            # Use the marked versions to avoid matching the header
-            phase_3_idx = ts_section_text.index("◯  schrockn/ts-phase-3")
-            phase_2_idx = ts_section_text.index("◉  schrockn/ts-phase-2")
-            phase_1_idx = ts_section_text.index("◯  schrockn/ts-phase-1")
-            main_in_stack_idx = ts_section_text.index("◯  main")
+        # Verify sibling branch is NOT shown (regression test)
+        assert "sibling-branch" not in output
 
-            assert phase_3_idx < phase_2_idx < phase_1_idx < main_in_stack_idx
+        # Verify order within ts section: phase-3 before phase-2, phase-2 before phase-1, etc.
+        # Use the marked versions to avoid matching the header
+        phase_3_idx = ts_section_text.index("◯  schrockn/ts-phase-3")
+        phase_2_idx = ts_section_text.index("◉  schrockn/ts-phase-2")
+        phase_1_idx = ts_section_text.index("◯  schrockn/ts-phase-1")
+        main_in_stack_idx = ts_section_text.index("◯  main")
+
+        assert phase_3_idx < phase_2_idx < phase_1_idx < main_in_stack_idx
 
 
 def test_list_with_stacks_graphite_disabled() -> None:
@@ -195,12 +193,7 @@ def test_list_with_stacks_graphite_disabled() -> None:
     with runner.isolated_filesystem():
         # Set up isolated environment
         cwd = Path.cwd()
-        global_config_dir = cwd / ".workstack_config"
-        global_config_dir.mkdir()
         workstacks_root = cwd / "workstacks"
-        (global_config_dir / "config.toml").write_text(
-            f'workstacks_root = "{workstacks_root}"\nuse_graphite = false\n'
-        )
 
         # Create git repo
         Path(".git").mkdir()
@@ -211,12 +204,17 @@ def test_list_with_stacks_graphite_disabled() -> None:
             git_common_dirs={cwd: cwd / ".git"},
         )
 
-        test_ctx = WorkstackContext(git_ops=git_ops)
+        # Build fake global config ops
+        global_config_ops = FakeGlobalConfigOps(
+            workstacks_root=workstacks_root,
+            use_graphite=False,
+        )
 
-        with mock.patch("workstack.config.GLOBAL_CONFIG_PATH", global_config_dir / "config.toml"):
-            result = runner.invoke(cli, ["list", "--stacks"], obj=test_ctx)
-            assert result.exit_code == 1
-            assert "Error: --stacks requires graphite to be enabled" in result.output
+        test_ctx = WorkstackContext(git_ops=git_ops, global_config_ops=global_config_ops)
+
+        result = runner.invoke(cli, ["list", "--stacks"], obj=test_ctx)
+        assert result.exit_code == 1
+        assert "Error: --stacks requires graphite to be enabled" in result.output
 
 
 def test_list_with_stacks_no_graphite_cache() -> None:
@@ -224,12 +222,7 @@ def test_list_with_stacks_no_graphite_cache() -> None:
     with runner.isolated_filesystem():
         # Set up isolated environment
         cwd = Path.cwd()
-        global_config_dir = cwd / ".workstack_config"
-        global_config_dir.mkdir()
         workstacks_root = cwd / "workstacks"
-        (global_config_dir / "config.toml").write_text(
-            f'workstacks_root = "{workstacks_root}"\nuse_graphite = true\n'
-        )
 
         # Create git repo but no graphite cache file
         git_dir = Path(".git")
@@ -241,18 +234,23 @@ def test_list_with_stacks_no_graphite_cache() -> None:
             git_common_dirs={cwd: git_dir},
         )
 
-        test_ctx = WorkstackContext(git_ops=git_ops)
+        # Build fake global config ops
+        global_config_ops = FakeGlobalConfigOps(
+            workstacks_root=workstacks_root,
+            use_graphite=True,
+        )
 
-        with mock.patch("workstack.config.GLOBAL_CONFIG_PATH", global_config_dir / "config.toml"):
-            # Should succeed but not show stack info (graceful degradation)
-            result = runner.invoke(cli, ["list", "--stacks"], obj=test_ctx)
-            assert result.exit_code == 0, result.output
-            output = strip_ansi(result.output)
-            # Should show worktree but no stack visualization
-            assert "root [main]" in output
-            # Should not have any circle markers
-            assert "◉" not in output
-            assert "◯" not in output
+        test_ctx = WorkstackContext(git_ops=git_ops, global_config_ops=global_config_ops)
+
+        # Should succeed but not show stack info (graceful degradation)
+        result = runner.invoke(cli, ["list", "--stacks"], obj=test_ctx)
+        assert result.exit_code == 0, result.output
+        output = strip_ansi(result.output)
+        # Should show worktree but no stack visualization
+        assert "root [main]" in output
+        # Should not have any circle markers
+        assert "◉" not in output
+        assert "◯" not in output
 
 
 def test_list_with_stacks_highlights_current_branch_not_worktree_branch() -> None:
@@ -268,12 +266,7 @@ def test_list_with_stacks_highlights_current_branch_not_worktree_branch() -> Non
     with runner.isolated_filesystem():
         # Set up isolated environment
         cwd = Path.cwd()
-        global_config_dir = cwd / ".workstack_config"
-        global_config_dir.mkdir()
         workstacks_root = cwd / "workstacks"
-        (global_config_dir / "config.toml").write_text(
-            f'workstacks_root = "{workstacks_root}"\nuse_graphite = true\n'
-        )
 
         # Create git repo structure
         git_dir = Path(".git")
@@ -341,40 +334,45 @@ def test_list_with_stacks_highlights_current_branch_not_worktree_branch() -> Non
             },
         )
 
-        test_ctx = WorkstackContext(git_ops=git_ops)
+        # Build fake global config ops
+        global_config_ops = FakeGlobalConfigOps(
+            workstacks_root=workstacks_root,
+            use_graphite=True,
+        )
 
-        with mock.patch("workstack.config.GLOBAL_CONFIG_PATH", global_config_dir / "config.toml"):
-            result = runner.invoke(cli, ["list", "--stacks"], obj=test_ctx)
-            assert result.exit_code == 0, result.output
+        test_ctx = WorkstackContext(git_ops=git_ops, global_config_ops=global_config_ops)
 
-            # Strip ANSI codes for easier assertion
-            output = strip_ansi(result.output)
+        result = runner.invoke(cli, ["list", "--stacks"], obj=test_ctx)
+        assert result.exit_code == 0, result.output
 
-            # The stack visualization should highlight ts-phase-3 (actual current branch)
-            # NOT ts-phase-4 (the worktree's registered branch from git worktree list)
-            lines = output.splitlines()
+        # Strip ANSI codes for easier assertion
+        output = strip_ansi(result.output)
 
-            # Find the stack visualization lines
-            phase_3_line = None
-            phase_4_line = None
-            for line in lines:
-                if "schrockn/ts-phase-3" in line and line.strip().startswith("◉"):
-                    phase_3_line = line
-                if "schrockn/ts-phase-4" in line and line.strip().startswith("◉"):
-                    phase_4_line = line
+        # The stack visualization should highlight ts-phase-3 (actual current branch)
+        # NOT ts-phase-4 (the worktree's registered branch from git worktree list)
+        lines = output.splitlines()
 
-            # FIXED: ts-phase-3 should be highlighted because that's the actual checked-out branch
-            assert phase_3_line is not None, (
-                "Expected ts-phase-3 to be highlighted with ◉, "
-                f"but it wasn't found in output:\n{output}"
-            )
+        # Find the stack visualization lines
+        phase_3_line = None
+        phase_4_line = None
+        for line in lines:
+            if "schrockn/ts-phase-3" in line and line.strip().startswith("◉"):
+                phase_3_line = line
+            if "schrockn/ts-phase-4" in line and line.strip().startswith("◉"):
+                phase_4_line = line
 
-            # ts-phase-4 should NOT be highlighted
-            assert phase_4_line is None, (
-                "ts-phase-4 should NOT be highlighted with ◉ "
-                "because it's only the registered branch, not the actual checked-out branch. "
-                f"Output:\n{output}"
-            )
+        # FIXED: ts-phase-3 should be highlighted because that's the actual checked-out branch
+        assert phase_3_line is not None, (
+            "Expected ts-phase-3 to be highlighted with ◉, "
+            f"but it wasn't found in output:\n{output}"
+        )
+
+        # ts-phase-4 should NOT be highlighted
+        assert phase_4_line is None, (
+            "ts-phase-4 should NOT be highlighted with ◉ "
+            "because it's only the registered branch, not the actual checked-out branch. "
+            f"Output:\n{output}"
+        )
 
 
 def test_list_with_stacks_root_repo_does_not_duplicate_branch() -> None:
@@ -396,12 +394,7 @@ def test_list_with_stacks_root_repo_does_not_duplicate_branch() -> None:
     with runner.isolated_filesystem():
         # Set up isolated environment
         cwd = Path.cwd()
-        global_config_dir = cwd / ".workstack_config"
-        global_config_dir.mkdir()
         workstacks_root = cwd / "workstacks"
-        (global_config_dir / "config.toml").write_text(
-            f'workstacks_root = "{workstacks_root}"\nuse_graphite = true\n'
-        )
 
         # Create git repo structure
         git_dir = Path(".git")
@@ -423,22 +416,27 @@ def test_list_with_stacks_root_repo_does_not_duplicate_branch() -> None:
             current_branches={cwd: "master"},
         )
 
-        test_ctx = WorkstackContext(git_ops=git_ops)
+        # Build fake global config ops
+        global_config_ops = FakeGlobalConfigOps(
+            workstacks_root=workstacks_root,
+            use_graphite=True,
+        )
 
-        with mock.patch("workstack.config.GLOBAL_CONFIG_PATH", global_config_dir / "config.toml"):
-            result = runner.invoke(cli, ["list", "--stacks"], obj=test_ctx)
-            assert result.exit_code == 0, result.output
+        test_ctx = WorkstackContext(git_ops=git_ops, global_config_ops=global_config_ops)
 
-            # Strip ANSI codes for easier assertion
-            output = strip_ansi(result.output)
-            lines = output.strip().splitlines()
+        result = runner.invoke(cli, ["list", "--stacks"], obj=test_ctx)
+        assert result.exit_code == 0, result.output
 
-            # Should have header line with "root" as the name
-            assert "root [master]" in lines[0]
+        # Strip ANSI codes for easier assertion
+        output = strip_ansi(result.output)
+        lines = output.strip().splitlines()
 
-            # Verify the full stack is shown
-            assert "◯  foo" in output
-            assert "◉  master" in output
+        # Should have header line with "root" as the name
+        assert "root [master]" in lines[0]
+
+        # Verify the full stack is shown
+        assert "◯  foo" in output
+        assert "◉  master" in output
 
 
 def test_list_with_stacks_filters_branches_in_other_worktrees() -> None:
@@ -468,12 +466,7 @@ def test_list_with_stacks_filters_branches_in_other_worktrees() -> None:
     with runner.isolated_filesystem():
         # Set up isolated environment
         cwd = Path.cwd()
-        global_config_dir = cwd / ".workstack_config"
-        global_config_dir.mkdir()
         workstacks_root = cwd / "workstacks"
-        (global_config_dir / "config.toml").write_text(
-            f'workstacks_root = "{workstacks_root}"\nuse_graphite = true\n'
-        )
 
         # Create git repo structure
         git_dir = Path(".git")
@@ -512,43 +505,48 @@ def test_list_with_stacks_filters_branches_in_other_worktrees() -> None:
             },
         )
 
-        test_ctx = WorkstackContext(git_ops=git_ops)
+        # Build fake global config ops
+        global_config_ops = FakeGlobalConfigOps(
+            workstacks_root=workstacks_root,
+            use_graphite=True,
+        )
 
-        with mock.patch("workstack.config.GLOBAL_CONFIG_PATH", global_config_dir / "config.toml"):
-            result = runner.invoke(cli, ["list", "--stacks"], obj=test_ctx)
-            assert result.exit_code == 0, result.output
+        test_ctx = WorkstackContext(git_ops=git_ops, global_config_ops=global_config_ops)
 
-            # Strip ANSI codes for easier assertion
-            output = strip_ansi(result.output)
-            lines = output.strip().splitlines()
+        result = runner.invoke(cli, ["list", "--stacks"], obj=test_ctx)
+        assert result.exit_code == 0, result.output
 
-            # Find the root section and foo section
-            root_section_start = None
-            foo_section_start = None
-            for i, line in enumerate(lines):
-                if "root [master]" in line:
-                    root_section_start = i
-                if "foo [foo]" in line:
-                    foo_section_start = i
+        # Strip ANSI codes for easier assertion
+        output = strip_ansi(result.output)
+        lines = output.strip().splitlines()
 
-            assert root_section_start is not None, "Should have root section"
-            assert foo_section_start is not None, "Should have foo worktree section"
+        # Find the root section and foo section
+        root_section_start = None
+        foo_section_start = None
+        for i, line in enumerate(lines):
+            if "root [master]" in line:
+                root_section_start = i
+            if "foo [foo]" in line:
+                foo_section_start = i
 
-            # Get root section lines (from root header to foo header)
-            root_section = lines[root_section_start:foo_section_start]
+        assert root_section_start is not None, "Should have root section"
+        assert foo_section_start is not None, "Should have foo worktree section"
 
-            # Root section should ONLY show master, NOT foo
-            root_section_text = "\n".join(root_section)
-            assert "◉  master" in root_section_text, "Root should show master"
-            assert "foo" not in root_section_text, (
-                "Root section should NOT contain foo branch since it's checked out "
-                f"in a different worktree. Root section:\n{root_section_text}"
-            )
+        # Get root section lines (from root header to foo header)
+        root_section = lines[root_section_start:foo_section_start]
 
-            # Get foo section lines (from foo header to end)
-            foo_section = lines[foo_section_start:]
-            foo_section_text = "\n".join(foo_section)
+        # Root section should ONLY show master, NOT foo
+        root_section_text = "\n".join(root_section)
+        assert "◉  master" in root_section_text, "Root should show master"
+        assert "foo" not in root_section_text, (
+            "Root section should NOT contain foo branch since it's checked out "
+            f"in a different worktree. Root section:\n{root_section_text}"
+        )
 
-            # Foo section should show both foo (highlighted) and master
-            assert "◉  foo" in foo_section_text, "Foo worktree should highlight foo branch"
-            assert "◯  master" in foo_section_text, "Foo worktree should show master in stack"
+        # Get foo section lines (from foo header to end)
+        foo_section = lines[foo_section_start:]
+        foo_section_text = "\n".join(foo_section)
+
+        # Foo section should show both foo (highlighted) and master
+        assert "◉  foo" in foo_section_text, "Foo worktree should highlight foo branch"
+        assert "◯  master" in foo_section_text, "Foo worktree should show master in stack"

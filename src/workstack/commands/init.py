@@ -6,9 +6,9 @@ from pathlib import Path
 
 import click
 
-from workstack.config import GLOBAL_CONFIG_PATH, load_global_config
 from workstack.context import WorkstackContext
 from workstack.core import discover_repo_context, ensure_work_dir
+from workstack.global_config_ops import GlobalConfigOps
 
 
 def detect_root_project_name(repo_root: Path) -> str | None:
@@ -47,16 +47,18 @@ def detect_graphite() -> bool:
     return shutil.which("gt") is not None
 
 
-def create_global_config(workstacks_root: Path, shell_setup_complete: bool = False) -> None:
-    """Create global config at ~/.workstack/config.toml."""
-    GLOBAL_CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
+def create_global_config(
+    global_config_ops: GlobalConfigOps,
+    workstacks_root: Path,
+    shell_setup_complete: bool = False,
+) -> None:
+    """Create global config using the provided config ops."""
     use_graphite = detect_graphite()
-    content = f"""# Global workstack configuration
-workstacks_root = "{workstacks_root}"
-use_graphite = {str(use_graphite).lower()}
-shell_setup_complete = {str(shell_setup_complete).lower()}
-"""
-    GLOBAL_CONFIG_PATH.write_text(content, encoding="utf-8")
+    global_config_ops.set(
+        workstacks_root=workstacks_root,
+        use_graphite=use_graphite,
+        shell_setup_complete=shell_setup_complete,
+    )
 
 
 def discover_presets() -> list[str]:
@@ -124,28 +126,6 @@ def get_shell_wrapper_content(shell: str) -> str:
         raise ValueError(f"Shell wrapper not found for {shell}")
 
     return wrapper_file.read_text(encoding="utf-8")
-
-
-def update_shell_setup_complete(complete: bool) -> None:
-    """Update the shell_setup_complete flag in global config."""
-    if not GLOBAL_CONFIG_PATH.exists():
-        return
-
-    # Read current config
-    content = GLOBAL_CONFIG_PATH.read_text(encoding="utf-8")
-    data = tomllib.loads(content)
-
-    # Update shell_setup_complete
-    workstacks_root = data.get("workstacks_root", "")
-    use_graphite = data.get("use_graphite", False)
-
-    # Write updated config
-    new_content = f"""# Global workstack configuration
-workstacks_root = "{workstacks_root}"
-use_graphite = {str(use_graphite).lower()}
-shell_setup_complete = {str(complete).lower()}
-"""
-    GLOBAL_CONFIG_PATH.write_text(new_content, encoding="utf-8")
 
 
 def perform_shell_setup() -> bool:
@@ -256,7 +236,7 @@ def init_cmd(
     if shell:
         setup_complete = perform_shell_setup()
         if setup_complete:
-            update_shell_setup_complete(complete=True)
+            ctx.global_config_ops.set(shell_setup_complete=True)
         return
 
     # Discover available presets on demand
@@ -279,15 +259,15 @@ def init_cmd(
     first_time_init = False
 
     # Check for global config first (unless --repo flag is set)
-    if not repo and not GLOBAL_CONFIG_PATH.exists():
+    if not repo and not ctx.global_config_ops.exists():
         first_time_init = True
-        click.echo(f"Global config not found at {GLOBAL_CONFIG_PATH}")
+        click.echo(f"Global config not found at {ctx.global_config_ops.get_path()}")
         click.echo("Please provide the path where you want to store all worktrees.")
         click.echo("(This directory will contain subdirectories for each repository)")
         workstacks_root = click.prompt("Worktrees root directory", type=Path)
         workstacks_root = workstacks_root.expanduser().resolve()
-        create_global_config(workstacks_root)
-        click.echo(f"Created global config at {GLOBAL_CONFIG_PATH}")
+        create_global_config(ctx.global_config_ops, workstacks_root)
+        click.echo(f"Created global config at {ctx.global_config_ops.get_path()}")
         # Show graphite status on first init
         has_graphite = detect_graphite()
         if has_graphite:
@@ -296,8 +276,8 @@ def init_cmd(
             click.echo("Graphite (gt) not detected - will use 'git' for branch creation")
 
     # When --repo is set, verify that global config exists
-    if repo and not GLOBAL_CONFIG_PATH.exists():
-        click.echo(f"Global config not found at {GLOBAL_CONFIG_PATH}", err=True)
+    if repo and not ctx.global_config_ops.exists():
+        click.echo(f"Global config not found at {ctx.global_config_ops.get_path()}", err=True)
         click.echo("Run 'workstack init' without --repo to create global config first.", err=True)
         raise SystemExit(1)
 
@@ -360,8 +340,7 @@ def init_cmd(
 
     # On first-time init, offer shell setup if not already completed
     if first_time_init:
-        global_config = load_global_config()
-        if not global_config.shell_setup_complete:
+        if not ctx.global_config_ops.get_shell_setup_complete():
             setup_complete = perform_shell_setup()
             if setup_complete:
-                update_shell_setup_complete(complete=True)
+                ctx.global_config_ops.set(shell_setup_complete=True)
