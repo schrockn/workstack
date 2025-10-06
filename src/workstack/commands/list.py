@@ -8,9 +8,23 @@ from workstack.graphite import get_branch_stack
 
 
 def _format_worktree_line(name: str, branch: str | None, is_root: bool = False) -> str:
-    """Format a single worktree line with colorization."""
-    name_part = click.style(name, fg="cyan", bold=True)
+    """Format a single worktree line with colorization.
+
+    Args:
+        name: Worktree name to display
+        branch: Branch name (if any)
+        is_root: True if this is the root repository worktree
+
+    Returns:
+        Formatted line with appropriate colorization
+    """
+    # Root worktree gets green to distinguish it from regular worktrees
+    name_color = "green" if is_root else "cyan"
+    name_part = click.style(name, fg=name_color, bold=True)
+
+    # Branch remains yellow (consistent across root and regular worktrees)
     branch_part = click.style(f"[{branch}]", fg="yellow") if branch else ""
+
     parts = [name_part, branch_part]
     return " ".join(p for p in parts if p)
 
@@ -89,9 +103,10 @@ def _display_branch_stack(
     branch: str,
     all_branches: dict[Path, str | None],
 ) -> None:
-    """Display the graphite stack for a worktree.
+    """Display the graphite stack for a worktree with colorization.
 
-    Shows branches with markers indicating which is currently checked out.
+    Shows branches with colored markers indicating which is currently checked out.
+    Current branch is emphasized with bright green, others are de-emphasized with gray.
     """
     stack = get_branch_stack(ctx, repo_root, branch)
     if not stack:
@@ -105,10 +120,20 @@ def _display_branch_stack(
     actual_branch = ctx.git_ops.get_current_branch(worktree_path)
     highlight_branch = actual_branch if actual_branch else branch
 
-    # Display stack with markers
+    # Display stack with colored markers
     for branch_name in reversed(filtered_stack):
-        marker = "◉" if branch_name == highlight_branch else "◯"
-        click.echo(f"  {marker}  {branch_name}")
+        is_current = branch_name == highlight_branch
+
+        if is_current:
+            # Current branch: bright green marker + bright green bold text
+            marker = click.style("◉", fg="bright_green")
+            branch_text = click.style(branch_name, fg="bright_green", bold=True)
+        else:
+            # Other branches: gray marker + normal text
+            marker = click.style("◯", fg="bright_black")
+            branch_text = branch_name  # Normal white text
+
+        click.echo(f"  {marker}  {branch_text}")
 
 
 def _list_worktrees(ctx: WorkstackContext, show_stacks: bool = False) -> None:
