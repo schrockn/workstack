@@ -321,6 +321,7 @@ def create(
         )
 
     click.echo(f"Created workstack at {wt_path} checked out at branch '{branch}'")
+    click.echo(f"\nworkstack switch {name}")
 
 
 def run_commands_in_worktree(
