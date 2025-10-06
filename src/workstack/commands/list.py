@@ -8,7 +8,7 @@ from workstack.core import discover_repo_context, ensure_work_dir
 from workstack.graphite import get_branch_stack
 
 
-def _format_worktree_line(name: str, branch: str | None, is_root: bool) -> str:
+def _format_worktree_line(name: str, branch: str | None, path: str | None, is_root: bool) -> str:
     """Format a single worktree line with colorization.
 
     Args:
