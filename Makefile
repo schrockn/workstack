@@ -1,4 +1,4 @@
-.PHONY: format prettier prettier-check pyright test all-ci publish
+.PHONY: format prettier prettier-check pyright test all-ci clean publish
 
 prettier:
 	prettier --write '**/*.md' --ignore-path .gitignore
@@ -17,6 +17,11 @@ test:
 
 all-ci: format prettier pyright test
 
+# Clean build artifacts
+clean:
+	rm -rf dist/*.whl dist/*.tar.gz
+
 # Publish to PyPI. Token is read from ~/.pypirc
-publish:
+publish: clean
+	uv build
 	uvx uv-publish
