@@ -89,7 +89,7 @@ def gc_cmd(ctx: WorkstackContext, debug: bool) -> None:
         if debug:
             click.echo(click.style(msg, fg="bright_black"))
 
-    repo = discover_repo_context(Path.cwd(), ctx)
+    repo = discover_repo_context(ctx, Path.cwd())
     work_dir = ensure_work_dir(repo)
 
     # Get all worktree branches

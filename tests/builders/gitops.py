@@ -6,7 +6,7 @@ from tests.fakes.gitops import FakeGitOps
 from workstack.gitops import WorktreeInfo
 
 
-class GitOpsBuilder:
+class FakeGitOpsBuilder:
     """Fluent builder for configuring FakeGitOps in tests.
 
     Provides a clear, readable API for test setup that separates test
@@ -14,7 +14,7 @@ class GitOpsBuilder:
 
     Example:
         >>> git = (
-        ...     GitOpsBuilder()
+        ...     FakeGitOpsBuilder()
         ...     .with_default_branch(Path("/repo"), "main")
         ...     .with_worktrees(Path("/repo"), [
         ...         WorktreeInfo(Path("/repo"), "main"),
@@ -30,7 +30,7 @@ class GitOpsBuilder:
         self._default_branches: dict[Path, str] = {}
         self._git_common_dirs: dict[Path, Path] = {}
 
-    def with_worktrees(self, repo_root: Path, worktrees: list[WorktreeInfo]) -> "GitOpsBuilder":
+    def with_worktrees(self, repo_root: Path, worktrees: list[WorktreeInfo]) -> "FakeGitOpsBuilder":
         """Configure worktrees for a repository.
 
         Args:
@@ -43,7 +43,7 @@ class GitOpsBuilder:
         self._worktrees[repo_root] = worktrees
         return self
 
-    def with_current_branch(self, cwd: Path, branch: str | None) -> "GitOpsBuilder":
+    def with_current_branch(self, cwd: Path, branch: str | None) -> "FakeGitOpsBuilder":
         """Configure current branch for a directory.
 
         Args:
@@ -56,7 +56,7 @@ class GitOpsBuilder:
         self._current_branches[cwd] = branch
         return self
 
-    def with_default_branch(self, repo_root: Path, branch: str) -> "GitOpsBuilder":
+    def with_default_branch(self, repo_root: Path, branch: str) -> "FakeGitOpsBuilder":
         """Configure default branch for a repository.
 
         Args:
@@ -69,7 +69,7 @@ class GitOpsBuilder:
         self._default_branches[repo_root] = branch
         return self
 
-    def with_git_common_dir(self, cwd: Path, git_dir: Path) -> "GitOpsBuilder":
+    def with_git_common_dir(self, cwd: Path, git_dir: Path) -> "FakeGitOpsBuilder":
         """Configure git common directory.
 
         Args:

@@ -73,12 +73,15 @@ class FakeGitOps(GitOps):
         self._worktrees[repo_root].append(WorktreeInfo(path=path, branch=branch))
 
     def move_worktree(self, repo_root: Path, old_path: Path, new_path: Path) -> None:
-        """Move a worktree (mutates internal state)."""
+        """Move a worktree (mutates internal state and simulates filesystem move)."""
         if repo_root in self._worktrees:
             for i, wt in enumerate(self._worktrees[repo_root]):
                 if wt.path == old_path:
                     self._worktrees[repo_root][i] = WorktreeInfo(path=new_path, branch=wt.branch)
                     break
+        # Simulate the filesystem move if the paths exist
+        if old_path.exists():
+            old_path.rename(new_path)
 
     def remove_worktree(self, repo_root: Path, path: Path, *, force: bool = False) -> None:
         """Remove a worktree (mutates internal state)."""

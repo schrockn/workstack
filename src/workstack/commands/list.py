@@ -84,7 +84,7 @@ def _filter_stack_for_worktree(
 
 def _list_worktrees(ctx: WorkstackContext, show_stacks: bool = False) -> None:
     """Internal function to list worktrees."""
-    repo = discover_repo_context(Path.cwd(), ctx)
+    repo = discover_repo_context(ctx, Path.cwd())
 
     # Get branch info for all worktrees
     worktrees = ctx.git_ops.list_worktrees(repo.root)
@@ -106,7 +106,7 @@ def _list_worktrees(ctx: WorkstackContext, show_stacks: bool = False) -> None:
     click.echo(_format_worktree_line("root", root_branch, is_root=True))
 
     if show_stacks and root_branch:
-        stack = get_branch_stack(repo.root, root_branch, ctx)
+        stack = get_branch_stack(ctx, repo.root, root_branch)
         if stack:
             # Filter stack to exclude branches checked out in other worktrees
             filtered_stack = _filter_stack_for_worktree(stack, repo.root, branches)
@@ -143,15 +143,17 @@ def _list_worktrees(ctx: WorkstackContext, show_stacks: bool = False) -> None:
         click.echo(_format_worktree_line(name, wt_branch, is_root=False))
 
         if show_stacks and wt_branch and wt_path:
-            stack = get_branch_stack(repo.root, wt_branch, ctx)
+            stack = get_branch_stack(ctx, repo.root, wt_branch)
             if stack:
                 # Filter stack to exclude branches checked out in other worktrees
                 filtered_stack = _filter_stack_for_worktree(stack, wt_path, branches)
                 if filtered_stack:
                     # Get the actual checked-out branch in this worktree directory
-                    # This may differ from wt_branch if someone did git checkout after creating the worktree
+                    # This may differ from wt_branch if someone did git checkout
+                    # after creating the worktree
                     actual_branch = ctx.git_ops.get_current_branch(wt_path)
-                    # Use the actual checked-out branch for highlighting, fall back to registered branch
+                    # Use the actual checked-out branch for highlighting,
+                    # fall back to registered branch
                     highlight_branch = actual_branch if actual_branch else wt_branch
                     for branch in reversed(filtered_stack):
                         marker = "◉" if branch == highlight_branch else "◯"

@@ -22,7 +22,7 @@ def rename_cmd(ctx: WorkstackContext, old_name: str, new_name: str) -> None:
     # Sanitize new name
     sanitized_new_name = sanitize_worktree_name(new_name)
 
-    repo = discover_repo_context(Path.cwd(), ctx)
+    repo = discover_repo_context(ctx, Path.cwd())
     work_dir = ensure_work_dir(repo)
 
     old_path = worktree_path_for(work_dir, old_name)

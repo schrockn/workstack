@@ -302,7 +302,7 @@ def init_cmd(
         raise SystemExit(1)
 
     # Now proceed with repo-specific setup
-    repo_context = discover_repo_context(Path.cwd(), ctx)
+    repo_context = discover_repo_context(ctx, Path.cwd())
 
     # Determine config path based on --repo flag
     if repo:

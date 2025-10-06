@@ -5,7 +5,7 @@ from unittest import mock
 
 from click.testing import CliRunner
 
-from tests.builders.gitops import GitOpsBuilder
+from tests.builders.gitops import FakeGitOpsBuilder
 from workstack.cli import cli
 from workstack.context import WorkstackContext
 from workstack.gitops import WorktreeInfo
@@ -39,7 +39,7 @@ def test_list_outputs_names_not_paths() -> None:
 
         # Build fake git ops with worktree info
         git_ops = (
-            GitOpsBuilder()
+            FakeGitOpsBuilder()
             .with_worktrees(
                 cwd,
                 [
@@ -129,7 +129,7 @@ def test_list_with_stacks_flag() -> None:
 
         # Build fake git ops
         git_ops = (
-            GitOpsBuilder()
+            FakeGitOpsBuilder()
             .with_worktrees(
                 cwd,
                 [
@@ -209,7 +209,7 @@ def test_list_with_stacks_graphite_disabled() -> None:
 
         # Build fake git ops
         git_ops = (
-            GitOpsBuilder()
+            FakeGitOpsBuilder()
             .with_worktrees(cwd, [WorktreeInfo(path=cwd, branch="main")])
             .with_git_common_dir(cwd, cwd / ".git")
             .build()
@@ -241,7 +241,7 @@ def test_list_with_stacks_no_graphite_cache() -> None:
 
         # Build fake git ops
         git_ops = (
-            GitOpsBuilder()
+            FakeGitOpsBuilder()
             .with_worktrees(cwd, [WorktreeInfo(path=cwd, branch="main")])
             .with_git_common_dir(cwd, git_dir)
             .build()
@@ -328,9 +328,10 @@ def test_list_with_stacks_highlights_current_branch_not_worktree_branch() -> Non
         temporal_stack_dir.mkdir(parents=True)
 
         # Build fake git ops
-        # Key setup: The worktree is registered with ts-phase-4, but currently checked out to ts-phase-3
+        # Key setup: The worktree is registered with ts-phase-4,
+        # but currently checked out to ts-phase-3
         git_ops = (
-            GitOpsBuilder()
+            FakeGitOpsBuilder()
             .with_worktrees(
                 cwd,
                 [
@@ -422,7 +423,7 @@ def test_list_with_stacks_root_repo_does_not_duplicate_branch() -> None:
 
         # Build fake git ops - only root repo on master
         git_ops = (
-            GitOpsBuilder()
+            FakeGitOpsBuilder()
             .with_worktrees(cwd, [WorktreeInfo(path=cwd, branch="master")])
             .with_git_common_dir(cwd, git_dir)
             .with_current_branch(cwd, "master")
@@ -502,7 +503,7 @@ def test_list_with_stacks_filters_branches_in_other_worktrees() -> None:
 
         # Build fake git ops - root on master, foo worktree on foo branch
         git_ops = (
-            GitOpsBuilder()
+            FakeGitOpsBuilder()
             .with_worktrees(
                 cwd,
                 [

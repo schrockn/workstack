@@ -11,7 +11,6 @@ from workstack.config import LoadedConfig, load_config, load_global_config
 from workstack.context import WorkstackContext
 from workstack.core import discover_repo_context, ensure_work_dir, worktree_path_for
 
-
 _SAFE_COMPONENT_RE = re.compile(r"[^A-Za-z0-9._/-]+")
 
 
@@ -260,7 +259,7 @@ def create(
         click.echo('Error: "root" is a reserved name and cannot be used for a worktree.', err=True)
         raise SystemExit(1)
 
-    repo = discover_repo_context(Path.cwd(), ctx)
+    repo = discover_repo_context(ctx, Path.cwd())
     work_dir = ensure_work_dir(repo)
     cfg = load_config(work_dir)
     wt_path = worktree_path_for(work_dir, name)

@@ -60,7 +60,7 @@ def complete_worktree_names(
         if not isinstance(workstack_ctx, WorkstackContext):
             return []
 
-        repo = discover_repo_context(Path.cwd(), workstack_ctx)
+        repo = discover_repo_context(workstack_ctx, Path.cwd())
         work_dir = repo.work_dir
 
         # Include 'root' for root repo
@@ -102,7 +102,7 @@ def switch_cmd(ctx: WorkstackContext, name: str, script: bool) -> None:
     This will cd to the worktree, create/activate .venv, and load .env variables.
     """
 
-    repo = discover_repo_context(Path.cwd(), ctx)
+    repo = discover_repo_context(ctx, Path.cwd())
 
     # Check if name refers to 'root' which means root repo
     if name == "root":
@@ -133,7 +133,8 @@ def switch_cmd(ctx: WorkstackContext, name: str, script: bool) -> None:
             click.echo("\n".join(lines) + "\n", nl=True)
         else:
             click.echo(
-                "Shell integration not detected. Run 'workstack init --shell' to set up automatic activation."
+                "Shell integration not detected. "
+                "Run 'workstack init --shell' to set up automatic activation."
             )
             click.echo("\nOr use: source <(workstack switch root --script)")
         return
@@ -150,7 +151,8 @@ def switch_cmd(ctx: WorkstackContext, name: str, script: bool) -> None:
         click.echo(activation_script, nl=True)
     else:
         click.echo(
-            "Shell integration not detected. Run 'workstack init --shell' to set up automatic activation."
+            "Shell integration not detected. "
+            "Run 'workstack init --shell' to set up automatic activation."
         )
         click.echo(f"\nOr use: source <(workstack switch {name} --script)")
 

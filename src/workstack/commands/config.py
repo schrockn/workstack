@@ -30,7 +30,7 @@ def config_list(ctx: WorkstackContext) -> None:
 
     # Try to load repo config
     try:
-        repo = discover_repo_context(Path.cwd(), ctx)
+        repo = discover_repo_context(ctx, Path.cwd())
         work_dir = ensure_work_dir(repo)
         cfg = load_config(work_dir)
 
@@ -73,7 +73,7 @@ def config_get(ctx: WorkstackContext, key: str) -> None:
 
     # Handle repo config keys
     try:
-        repo = discover_repo_context(Path.cwd(), ctx)
+        repo = discover_repo_context(ctx, Path.cwd())
         work_dir = ensure_work_dir(repo)
         cfg = load_config(work_dir)
 

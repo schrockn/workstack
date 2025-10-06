@@ -14,7 +14,7 @@ class RepoContext:
     work_dir: Path
 
 
-def discover_repo_context(start: Path, ctx: WorkstackContext) -> RepoContext:
+def discover_repo_context(ctx: WorkstackContext, start: Path) -> RepoContext:
     """Walk up from `start` to find a directory containing `.git`.
 
     Returns a RepoContext pointing to the repo root and the global worktrees directory

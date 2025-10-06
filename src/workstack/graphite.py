@@ -96,7 +96,7 @@ class BranchInfo(TypedDict):
     is_trunk: bool
 
 
-def get_branch_stack(repo_root: Path, branch: str, ctx: WorkstackContext) -> list[str] | None:
+def get_branch_stack(ctx: WorkstackContext, repo_root: Path, branch: str) -> list[str] | None:
     """Get the linear graphite stack for a given branch.
 
     This function reads graphite's cache file and builds the linear chain of branches
@@ -105,9 +105,9 @@ def get_branch_stack(repo_root: Path, branch: str, ctx: WorkstackContext) -> lis
     - All descendant branches from current down to the leaf
 
     Args:
+        ctx: Workstack context with git operations
         repo_root: Path to the repository root (or worktree root)
         branch: Name of the branch to get the stack for
-        ctx: Workstack context with git operations
 
     Returns:
         List of branch names in the stack, ordered from trunk to leaf
@@ -144,7 +144,7 @@ def get_branch_stack(repo_root: Path, branch: str, ctx: WorkstackContext) -> lis
              └─ feature-b-1
                   └─ feature-b-2
 
-        And you call get_branch_stack(root, "feature-b-2", ctx), you get:
+        And you call get_branch_stack(ctx, root, "feature-b-2"), you get:
             ["main", "feature-b-1", "feature-b-2"]
 
         Not: ["main", "feature-a", "feature-b-1", "feature-b-2"]
@@ -153,7 +153,7 @@ def get_branch_stack(repo_root: Path, branch: str, ctx: WorkstackContext) -> lis
         in the same stack as the target branch, rather than always taking the first child.
 
     Example:
-        >>> stack = get_branch_stack(Path("/repo"), "feature/phase-2", ctx)
+        >>> stack = get_branch_stack(ctx, Path("/repo"), "feature/phase-2")
         >>> print(stack)
         ["main", "feature/phase-1", "feature/phase-2", "feature/phase-3"]
     """

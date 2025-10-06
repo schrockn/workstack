@@ -17,7 +17,7 @@ def _remove_worktree(ctx: WorkstackContext, name: str, force: bool) -> None:
     a priori if git worktree remove will succeed - the worktree might be in various
     states of partial removal.
     """
-    repo = discover_repo_context(Path.cwd(), ctx)
+    repo = discover_repo_context(ctx, Path.cwd())
     work_dir = ensure_work_dir(repo)
     wt_path = worktree_path_for(work_dir, name)
 
