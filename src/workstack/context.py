@@ -2,8 +2,10 @@
 
 from dataclasses import dataclass
 
+from workstack.github_ops import GithubOps, RealGithubOps
 from workstack.gitops import DryRunGitOps, GitOps, RealGitOps
 from workstack.global_config_ops import GlobalConfigOps, RealGlobalConfigOps
+from workstack.graphite_ops import DryRunGraphiteOps, GraphiteOps, RealGraphiteOps
 
 
 @dataclass(frozen=True)
@@ -16,6 +18,8 @@ class WorkstackContext:
 
     git_ops: GitOps
     global_config_ops: GlobalConfigOps
+    graphite_ops: GraphiteOps
+    github_ops: GithubOps
     dry_run: bool
 
 
@@ -26,7 +30,7 @@ def create_context(*, dry_run: bool = False) -> WorkstackContext:
     command execution.
 
     Args:
-        dry_run: If True, wrap GitOps with DryRunGitOps to print instead of execute
+        dry_run: If True, wrap GitOps/GraphiteOps with dry-run wrappers
 
     Returns:
         WorkstackContext with real implementations (RealGitOps, RealGlobalConfigOps, etc.)
@@ -37,9 +41,16 @@ def create_context(*, dry_run: bool = False) -> WorkstackContext:
         >>> workstacks_root = ctx.global_config_ops.get_workstacks_root()
     """
     git_ops: GitOps = RealGitOps()
+    graphite_ops: GraphiteOps = RealGraphiteOps()
+
     if dry_run:
         git_ops = DryRunGitOps(git_ops)
+        graphite_ops = DryRunGraphiteOps(graphite_ops)
 
     return WorkstackContext(
-        git_ops=git_ops, global_config_ops=RealGlobalConfigOps(), dry_run=dry_run
+        git_ops=git_ops,
+        global_config_ops=RealGlobalConfigOps(),
+        graphite_ops=graphite_ops,
+        github_ops=RealGithubOps(),
+        dry_run=dry_run,
     )

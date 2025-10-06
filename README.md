@@ -71,6 +71,8 @@ workstack ls                     # List all worktrees
 workstack rename OLD NEW         # Rename a worktree
 workstack rm NAME                # Remove worktree
 workstack gc                     # Find safe-to-delete worktrees (merged PRs)
+workstack sync                   # Sync with Graphite, show cleanup candidates
+workstack sync --auto-clean      # Sync and auto-remove merged workstacks
 ```
 
 Example output:
@@ -179,6 +181,31 @@ This workflow emerged from experience - checking in planning documents created n
 workstack create --from-current-branch
 # Creates worktree with current branch, switches you back to root
 ```
+
+### Syncing and Cleanup
+
+After merging PRs, sync your local branches and clean up:
+
+```bash
+workstack sync --auto-clean
+# This will:
+# 1. Switch to root (avoiding git conflicts)
+# 2. Run gt sync to update branch tracking
+# 3. Identify merged/closed PR workstacks
+# 4. Remove them (with confirmation)
+# 5. Switch back to your original worktree
+```
+
+Options:
+
+```bash
+workstack sync                   # Sync and show cleanup candidates
+workstack sync -f                # Force gt sync, skip prompts
+workstack sync --auto-clean      # Sync and auto-remove merged workstacks
+workstack sync --dry-run         # Preview without executing
+```
+
+Requires Graphite CLI (`gt`) and GitHub CLI (`gh`) installed.
 
 ## Command Reference
 

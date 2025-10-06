@@ -2,8 +2,10 @@ from pathlib import Path
 
 from click.testing import CliRunner
 
+from tests.fakes.github_ops import FakeGithubOps
 from tests.fakes.gitops import FakeGitOps
 from tests.fakes.global_config_ops import FakeGlobalConfigOps
+from tests.fakes.graphite_ops import FakeGraphiteOps
 from workstack.cli import cli
 from workstack.context import WorkstackContext
 
@@ -34,8 +36,14 @@ def test_rm_force_removes_directory() -> None:
             use_graphite=False,
         )
 
+        graphite_ops = FakeGraphiteOps()
+
         test_ctx = WorkstackContext(
-            git_ops=git_ops, global_config_ops=global_config_ops, dry_run=False
+            git_ops=git_ops,
+            global_config_ops=global_config_ops,
+            graphite_ops=graphite_ops,
+            github_ops=FakeGithubOps(),
+            dry_run=False,
         )
 
         result = runner.invoke(cli, ["rm", "foo", "-f"], obj=test_ctx)
@@ -70,8 +78,14 @@ def test_rm_prompts_and_aborts_on_no() -> None:
             use_graphite=False,
         )
 
+        graphite_ops = FakeGraphiteOps()
+
         test_ctx = WorkstackContext(
-            git_ops=git_ops, global_config_ops=global_config_ops, dry_run=False
+            git_ops=git_ops,
+            global_config_ops=global_config_ops,
+            graphite_ops=graphite_ops,
+            github_ops=FakeGithubOps(),
+            dry_run=False,
         )
 
         result = runner.invoke(cli, ["rm", "bar"], input="n\n", obj=test_ctx)
@@ -108,8 +122,14 @@ def test_rm_dry_run_does_not_delete() -> None:
             use_graphite=False,
         )
 
+        graphite_ops = FakeGraphiteOps()
+
         test_ctx = WorkstackContext(
-            git_ops=git_ops, global_config_ops=global_config_ops, dry_run=True
+            git_ops=git_ops,
+            global_config_ops=global_config_ops,
+            graphite_ops=graphite_ops,
+            github_ops=FakeGithubOps(),
+            dry_run=True,
         )
 
         result = runner.invoke(cli, ["rm", "test-stack", "-f"], obj=test_ctx)
@@ -170,8 +190,14 @@ def test_rm_dry_run_with_delete_stack() -> None:
             use_graphite=True,
         )
 
+        graphite_ops = FakeGraphiteOps()
+
         test_ctx = WorkstackContext(
-            git_ops=git_ops, global_config_ops=global_config_ops, dry_run=True
+            git_ops=git_ops,
+            global_config_ops=global_config_ops,
+            graphite_ops=graphite_ops,
+            github_ops=FakeGithubOps(),
+            dry_run=True,
         )
 
         result = runner.invoke(cli, ["rm", "test-stack", "-f", "-s"], obj=test_ctx)
@@ -205,8 +231,14 @@ def test_rm_rejects_dot_dot() -> None:
             use_graphite=False,
         )
 
+        graphite_ops = FakeGraphiteOps()
+
         test_ctx = WorkstackContext(
-            git_ops=git_ops, global_config_ops=global_config_ops, dry_run=False
+            git_ops=git_ops,
+            global_config_ops=global_config_ops,
+            graphite_ops=graphite_ops,
+            github_ops=FakeGithubOps(),
+            dry_run=False,
         )
 
         result = runner.invoke(cli, ["rm", "..", "-f"], obj=test_ctx)
@@ -232,8 +264,14 @@ def test_rm_rejects_root_slash() -> None:
             use_graphite=False,
         )
 
+        graphite_ops = FakeGraphiteOps()
+
         test_ctx = WorkstackContext(
-            git_ops=git_ops, global_config_ops=global_config_ops, dry_run=False
+            git_ops=git_ops,
+            global_config_ops=global_config_ops,
+            graphite_ops=graphite_ops,
+            github_ops=FakeGithubOps(),
+            dry_run=False,
         )
 
         result = runner.invoke(cli, ["rm", "/", "-f"], obj=test_ctx)
@@ -259,8 +297,14 @@ def test_rm_rejects_path_with_slash() -> None:
             use_graphite=False,
         )
 
+        graphite_ops = FakeGraphiteOps()
+
         test_ctx = WorkstackContext(
-            git_ops=git_ops, global_config_ops=global_config_ops, dry_run=False
+            git_ops=git_ops,
+            global_config_ops=global_config_ops,
+            graphite_ops=graphite_ops,
+            github_ops=FakeGithubOps(),
+            dry_run=False,
         )
 
         result = runner.invoke(cli, ["rm", "foo/bar", "-f"], obj=test_ctx)
@@ -286,8 +330,14 @@ def test_rm_rejects_root_name() -> None:
             use_graphite=False,
         )
 
+        graphite_ops = FakeGraphiteOps()
+
         test_ctx = WorkstackContext(
-            git_ops=git_ops, global_config_ops=global_config_ops, dry_run=False
+            git_ops=git_ops,
+            global_config_ops=global_config_ops,
+            graphite_ops=graphite_ops,
+            github_ops=FakeGithubOps(),
+            dry_run=False,
         )
 
         result = runner.invoke(cli, ["rm", "root", "-f"], obj=test_ctx)

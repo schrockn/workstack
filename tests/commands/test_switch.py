@@ -206,6 +206,7 @@ def test_complete_worktree_names_without_context(tmp_path: Path, monkeypatch: ob
     from workstack.context import WorkstackContext
     from workstack.gitops import RealGitOps
     from workstack.global_config_ops import RealGlobalConfigOps
+    from workstack.graphite_ops import RealGraphiteOps
 
     # Set up isolated global config
     global_config_dir = tmp_path / ".workstack"
@@ -240,7 +241,11 @@ def test_complete_worktree_names_without_context(tmp_path: Path, monkeypatch: ob
 
     # Mock create_context to use test environment
     def mock_create_context() -> WorkstackContext:
-        return WorkstackContext(git_ops=RealGitOps(), global_config_ops=RealGlobalConfigOps())
+        return WorkstackContext(
+            git_ops=RealGitOps(),
+            global_config_ops=RealGlobalConfigOps(),
+            graphite_ops=RealGraphiteOps(),
+        )
 
     # Patch Path.home() to return tmp_path so config loading uses test config
     monkeypatch.setattr("pathlib.Path.home", lambda: tmp_path)

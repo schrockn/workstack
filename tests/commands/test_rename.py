@@ -2,8 +2,10 @@ from pathlib import Path
 
 from click.testing import CliRunner
 
+from tests.fakes.github_ops import FakeGithubOps
 from tests.fakes.gitops import FakeGitOps
 from tests.fakes.global_config_ops import FakeGlobalConfigOps
+from tests.fakes.graphite_ops import FakeGraphiteOps
 from workstack.cli import cli
 from workstack.context import WorkstackContext
 from workstack.gitops import DryRunGitOps
@@ -35,8 +37,15 @@ def test_rename_successful() -> None:
             workstacks_root=workstacks_root,
             use_graphite=False,
         )
+
+        graphite_ops = FakeGraphiteOps()
+
         test_ctx = WorkstackContext(
-            git_ops=git_ops, global_config_ops=global_config_ops, dry_run=False
+            git_ops=git_ops,
+            global_config_ops=global_config_ops,
+            graphite_ops=graphite_ops,
+            github_ops=FakeGithubOps(),
+            dry_run=False,
         )
 
         result = runner.invoke(cli, ["rename", "old-name", "new-name"], obj=test_ctx)
@@ -67,8 +76,15 @@ def test_rename_old_worktree_not_found() -> None:
             workstacks_root=workstacks_root,
             use_graphite=False,
         )
+
+        graphite_ops = FakeGraphiteOps()
+
         test_ctx = WorkstackContext(
-            git_ops=git_ops, global_config_ops=global_config_ops, dry_run=False
+            git_ops=git_ops,
+            global_config_ops=global_config_ops,
+            graphite_ops=graphite_ops,
+            github_ops=FakeGithubOps(),
+            dry_run=False,
         )
 
         result = runner.invoke(cli, ["rename", "nonexistent", "new-name"], obj=test_ctx)
@@ -101,8 +117,15 @@ def test_rename_new_name_already_exists() -> None:
             workstacks_root=workstacks_root,
             use_graphite=False,
         )
+
+        graphite_ops = FakeGraphiteOps()
+
         test_ctx = WorkstackContext(
-            git_ops=git_ops, global_config_ops=global_config_ops, dry_run=False
+            git_ops=git_ops,
+            global_config_ops=global_config_ops,
+            graphite_ops=graphite_ops,
+            github_ops=FakeGithubOps(),
+            dry_run=False,
         )
 
         result = runner.invoke(cli, ["rename", "old-name", "new-name"], obj=test_ctx)
@@ -134,8 +157,15 @@ def test_rename_sanitizes_new_name() -> None:
             workstacks_root=workstacks_root,
             use_graphite=False,
         )
+
+        graphite_ops = FakeGraphiteOps()
+
         test_ctx = WorkstackContext(
-            git_ops=git_ops, global_config_ops=global_config_ops, dry_run=False
+            git_ops=git_ops,
+            global_config_ops=global_config_ops,
+            graphite_ops=graphite_ops,
+            github_ops=FakeGithubOps(),
+            dry_run=False,
         )
 
         # Use a name with special characters that should be sanitized
@@ -170,8 +200,15 @@ def test_rename_regenerates_env_file() -> None:
             workstacks_root=workstacks_root,
             use_graphite=False,
         )
+
+        graphite_ops = FakeGraphiteOps()
+
         test_ctx = WorkstackContext(
-            git_ops=git_ops, global_config_ops=global_config_ops, dry_run=False
+            git_ops=git_ops,
+            global_config_ops=global_config_ops,
+            graphite_ops=graphite_ops,
+            github_ops=FakeGithubOps(),
+            dry_run=False,
         )
 
         result = runner.invoke(cli, ["rename", "old-name", "new-name"], obj=test_ctx)
@@ -213,8 +250,14 @@ def test_rename_dry_run_does_not_move() -> None:
             use_graphite=False,
         )
 
+        graphite_ops = FakeGraphiteOps()
+
         test_ctx = WorkstackContext(
-            git_ops=git_ops, global_config_ops=global_config_ops, dry_run=True
+            git_ops=git_ops,
+            global_config_ops=global_config_ops,
+            graphite_ops=graphite_ops,
+            github_ops=FakeGithubOps(),
+            dry_run=True,
         )
 
         result = runner.invoke(cli, ["rename", "old-name", "new-name"], obj=test_ctx)
