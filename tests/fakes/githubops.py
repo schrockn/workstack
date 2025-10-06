@@ -31,3 +31,19 @@ class FakeGitHubOps(GitHubOps):
     def get_prs_for_repo(self, repo_root: Path) -> dict[str, PullRequestInfo]:
         """Get PR information for all branches (returns pre-configured data)."""
         return self._prs
+
+    def get_pr_status(
+        self, repo_root: Path, branch: str, *, debug: bool
+    ) -> tuple[str, int | None, str | None]:
+        """Get PR status from configured PRs.
+
+        Returns ("NONE", None, None) if branch not found.
+        Note: Returns URL in place of title since PullRequestInfo has no title field.
+        """
+        pr = self._prs.get(branch)
+        if pr is None:
+            return ("NONE", None, None)
+        # PullRequestInfo has: number, state, url, is_draft, checks_passing
+        # But get_pr_status expects: state, number, title
+        # Using url as title since PullRequestInfo doesn't have a title field
+        return (pr.state, pr.number, pr.url)

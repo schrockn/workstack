@@ -31,3 +31,8 @@ class FakeGraphiteOps(GraphiteOps):
     def get_graphite_url(self, repo_root: Path, branch: str, pr_number: int) -> str | None:
         """Get Graphite PR URL (returns pre-configured data)."""
         return self._graphite_urls.get(branch)
+
+    def sync(self, repo_root: Path, *, force: bool) -> None:
+        """Fake sync operation (no-op in tests)."""
+        # In-memory fake: no actual sync needed
+        pass
