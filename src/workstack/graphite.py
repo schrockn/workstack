@@ -77,7 +77,7 @@ to find the shared git directory where `.graphite_cache_persist` is stored.
 
 import json
 from pathlib import Path
-from typing import TypedDict
+from typing import Any, TypedDict
 
 from workstack.context import WorkstackContext
 
@@ -94,6 +94,23 @@ class BranchInfo(TypedDict):
     parent: str | None
     children: list[str]
     is_trunk: bool
+
+
+def _load_graphite_cache(cache_file: Path) -> dict[str, Any]:
+    """Load and parse graphite cache file.
+
+    Args:
+        cache_file: Path to .graphite_cache_persist file
+
+    Returns:
+        Parsed cache data dictionary
+
+    Raises:
+        json.JSONDecodeError: If cache file is corrupted (fail-fast)
+        FileNotFoundError: If cache file doesn't exist
+    """
+    cache_data = json.loads(cache_file.read_text(encoding="utf-8"))
+    return cache_data
 
 
 def get_branch_stack(ctx: WorkstackContext, repo_root: Path, branch: str) -> list[str] | None:
@@ -167,7 +184,7 @@ def get_branch_stack(ctx: WorkstackContext, repo_root: Path, branch: str) -> lis
         return None
 
     # Step 3: Parse the graphite cache JSON file
-    cache_data = json.loads(cache_file.read_text(encoding="utf-8"))
+    cache_data = _load_graphite_cache(cache_file)
     branches_data = cache_data.get("branches", [])
 
     # Step 4: Build parent-child relationship graph

@@ -1,11 +1,10 @@
-import json
 from pathlib import Path
 
 import click
 
 from workstack.context import WorkstackContext
 from workstack.core import discover_repo_context, ensure_work_dir
-from workstack.graphite import get_branch_stack
+from workstack.graphite import _load_graphite_cache, get_branch_stack
 
 
 def _format_worktree_line(name: str, branch: str | None, path: str | None, is_root: bool) -> str:
@@ -122,26 +121,41 @@ def _filter_stack_for_worktree(
     return result
 
 
-def _is_trunk_branch(ctx: WorkstackContext, repo_root: Path, branch: str) -> bool:
+def _is_trunk_branch(
+    ctx: WorkstackContext, repo_root: Path, branch: str, cache_data: dict | None = None
+) -> bool:
     """Check if a branch is a trunk branch (has no parent in graphite).
+
+    Returns False for missing cache files rather than None because this function
+    answers a boolean question: "Is this branch trunk?" When cache is missing,
+    the answer is definitively "no" (we can't determine trunk status, default to False).
+
+    This differs from get_branch_stack() which returns None for missing cache because
+    it's retrieving optional data - None indicates "no stack data available" vs
+    an empty list which would mean "stack exists but is empty".
 
     Args:
         ctx: Workstack context with git operations
         repo_root: Path to the repository root
         branch: Branch name to check
+        cache_data: Pre-loaded graphite cache data (optional optimization)
+                   If None, cache will be loaded from disk
 
     Returns:
         True if the branch is a trunk branch (no parent), False otherwise
+        False is also returned when cache is missing/inaccessible (conservative default)
     """
-    git_dir = ctx.git_ops.get_git_common_dir(repo_root)
-    if git_dir is None:
-        return False
+    if cache_data is None:
+        git_dir = ctx.git_ops.get_git_common_dir(repo_root)
+        if git_dir is None:
+            return False
 
-    cache_file = git_dir / ".graphite_cache_persist"
-    if not cache_file.exists():
-        return False
+        cache_file = git_dir / ".graphite_cache_persist"
+        if not cache_file.exists():
+            return False
 
-    cache_data = json.loads(cache_file.read_text(encoding="utf-8"))
+        cache_data = _load_graphite_cache(cache_file)
+
     branches_data = cache_data.get("branches", [])
 
     for branch_name, info in branches_data:
@@ -160,17 +174,26 @@ def _display_branch_stack(
     worktree_path: Path,
     branch: str,
     all_branches: dict[Path, str | None],
+    cache_data: dict | None = None,
 ) -> None:
     """Display the graphite stack for a worktree with colorization.
 
     Shows branches with colored markers indicating which is currently checked out.
     Current branch is emphasized with bright green, others are de-emphasized with gray.
+
+    Args:
+        ctx: Workstack context with git operations
+        repo_root: Path to the repository root
+        worktree_path: Path to the current worktree
+        branch: Branch name to display stack for
+        all_branches: Mapping of all worktree paths to their checked-out branches
+        cache_data: Pre-loaded graphite cache data (optional optimization)
     """
     stack = get_branch_stack(ctx, repo_root, branch)
     if not stack:
         return
 
-    is_trunk = _is_trunk_branch(ctx, repo_root, branch)
+    is_trunk = _is_trunk_branch(ctx, repo_root, branch, cache_data)
     filtered_stack = _filter_stack_for_worktree(stack, worktree_path, all_branches, is_trunk)
     if not filtered_stack:
         return
@@ -203,7 +226,8 @@ def _list_worktrees(ctx: WorkstackContext, show_stacks: bool) -> None:
     worktrees = ctx.git_ops.list_worktrees(repo.root)
     branches = {wt.path: wt.branch for wt in worktrees}
 
-    # Check if stacks are requested and graphite is enabled
+    # Load graphite cache once if showing stacks
+    cache_data = None
     if show_stacks:
         if not ctx.global_config_ops.get_use_graphite():
             click.echo(
@@ -213,12 +237,19 @@ def _list_worktrees(ctx: WorkstackContext, show_stacks: bool) -> None:
             )
             raise SystemExit(1)
 
+        # Load cache once for all worktrees
+        git_dir = ctx.git_ops.get_git_common_dir(repo.root)
+        if git_dir is not None:
+            cache_file = git_dir / ".graphite_cache_persist"
+            if cache_file.exists():
+                cache_data = _load_graphite_cache(cache_file)
+
     # Show root repo first (display as "root" to distinguish from worktrees)
     root_branch = branches.get(repo.root)
     click.echo(_format_worktree_line("root", root_branch, path=None, is_root=True))
 
     if show_stacks and root_branch:
-        _display_branch_stack(ctx, repo.root, repo.root, root_branch, branches)
+        _display_branch_stack(ctx, repo.root, repo.root, root_branch, branches, cache_data)
 
     # Show worktrees
     work_dir = ensure_work_dir(repo)
@@ -244,7 +275,7 @@ def _list_worktrees(ctx: WorkstackContext, show_stacks: bool) -> None:
         click.echo(_format_worktree_line(name, wt_branch, path=None, is_root=False))
 
         if show_stacks and wt_branch and wt_path:
-            _display_branch_stack(ctx, repo.root, wt_path, wt_branch, branches)
+            _display_branch_stack(ctx, repo.root, wt_path, wt_branch, branches, cache_data)
 
 
 @click.command("list")
