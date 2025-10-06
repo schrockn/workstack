@@ -44,7 +44,9 @@ def test_list_outputs_names_not_paths() -> None:
             use_graphite=False,
         )
 
-        test_ctx = WorkstackContext(git_ops=git_ops, global_config_ops=global_config_ops)
+        test_ctx = WorkstackContext(
+            git_ops=git_ops, global_config_ops=global_config_ops, dry_run=False
+        )
 
         result = runner.invoke(cli, ["list"], obj=test_ctx)
         assert result.exit_code == 0, result.output

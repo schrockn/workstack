@@ -112,8 +112,8 @@ def _remove_worktree(ctx: WorkstackContext, name: str, force: bool, delete_stack
 
     # Handle --delete-stack option
     if delete_stack:
-        global_config = ctx.global_config_ops.load()
-        if not global_config.use_graphite:
+        use_graphite = ctx.global_config_ops.get_use_graphite()
+        if not use_graphite:
             click.echo(
                 "Error: --delete-stack requires Graphite to be enabled. "
                 "Run 'workstack config set use-graphite true'",
@@ -136,8 +136,12 @@ def _remove_worktree(ctx: WorkstackContext, name: str, force: bool, delete_stack
     except Exception:
         pass
 
+    # Handle directory deletion (dry-run vs real)
     if wt_path.exists():
-        shutil.rmtree(wt_path)
+        if ctx.dry_run:
+            click.echo(f"[DRY RUN] Would delete directory: {wt_path}", err=True)
+        else:
+            shutil.rmtree(wt_path)
 
     click.echo(str(wt_path))
 

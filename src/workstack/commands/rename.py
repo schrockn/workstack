@@ -46,7 +46,13 @@ def rename_cmd(ctx: WorkstackContext, old_name: str, new_name: str) -> None:
     env_content = make_env_content(
         cfg, worktree_path=new_path, repo_root=repo.root, name=sanitized_new_name
     )
-    (new_path / ".env").write_text(env_content, encoding="utf-8")
+
+    # Write .env file (dry-run vs real)
+    env_file = new_path / ".env"
+    if ctx.dry_run:
+        click.echo(f"[DRY RUN] Would write .env file: {env_file}", err=True)
+    else:
+        env_file.write_text(env_content, encoding="utf-8")
 
     click.echo(f"Renamed worktree: {old_name} -> {sanitized_new_name}")
     click.echo(str(new_path))

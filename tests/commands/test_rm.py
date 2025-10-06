@@ -34,7 +34,9 @@ def test_rm_force_removes_directory() -> None:
             use_graphite=False,
         )
 
-        test_ctx = WorkstackContext(git_ops=git_ops, global_config_ops=global_config_ops)
+        test_ctx = WorkstackContext(
+            git_ops=git_ops, global_config_ops=global_config_ops, dry_run=False
+        )
 
         result = runner.invoke(cli, ["rm", "foo", "-f"], obj=test_ctx)
         assert result.exit_code == 0, result.output
@@ -68,9 +70,119 @@ def test_rm_prompts_and_aborts_on_no() -> None:
             use_graphite=False,
         )
 
-        test_ctx = WorkstackContext(git_ops=git_ops, global_config_ops=global_config_ops)
+        test_ctx = WorkstackContext(
+            git_ops=git_ops, global_config_ops=global_config_ops, dry_run=False
+        )
 
         result = runner.invoke(cli, ["rm", "bar"], input="n\n", obj=test_ctx)
         assert result.exit_code == 0, result.output
         # Should not remove when user says 'n'
+        assert wt.exists()
+
+
+def test_rm_dry_run_does_not_delete() -> None:
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        # Set up isolated environment
+        cwd = Path.cwd()
+        workstacks_root = cwd / "workstacks"
+
+        # Create git repo
+        git_dir = cwd / ".git"
+        git_dir.mkdir()
+
+        # Create worktree in the location determined by global config
+        repo_name = cwd.name
+        wt = workstacks_root / repo_name / "test-stack"
+        wt.mkdir(parents=True)
+        (wt / "file.txt").write_text("test content", encoding="utf-8")
+
+        # Build fake git ops (will be wrapped with DryRunGitOps)
+        from workstack.gitops import DryRunGitOps
+
+        git_ops = DryRunGitOps(FakeGitOps(git_common_dirs={cwd: git_dir}))
+
+        # Build fake global config ops
+        global_config_ops = FakeGlobalConfigOps(
+            workstacks_root=workstacks_root,
+            use_graphite=False,
+        )
+
+        test_ctx = WorkstackContext(
+            git_ops=git_ops, global_config_ops=global_config_ops, dry_run=True
+        )
+
+        result = runner.invoke(cli, ["rm", "test-stack", "-f"], obj=test_ctx)
+        assert result.exit_code == 0, result.output
+
+        # Verify dry-run messages printed
+        assert "[DRY RUN]" in result.output
+        assert "Would run: git worktree remove" in result.output
+        assert "Would delete directory" in result.output
+
+        # Directory should still exist (not deleted)
+        assert wt.exists()
+        assert (wt / "file.txt").exists()
+
+
+def test_rm_dry_run_with_delete_stack() -> None:
+    """Test dry-run with --delete-stack flag prints but doesn't delete branches."""
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        # Set up isolated environment
+        cwd = Path.cwd()
+        workstacks_root = cwd / "workstacks"
+
+        # Create git repo
+        git_dir = cwd / ".git"
+        git_dir.mkdir()
+
+        # Create graphite cache file with stack data
+        cache_file = git_dir / ".graphite_cache_persist"
+        cache_content = {
+            "branches": [
+                ["main", {"validationResult": "TRUNK", "children": ["feature-1"]}],
+                ["feature-1", {"parentBranchName": "main", "children": ["feature-2"]}],
+                ["feature-2", {"parentBranchName": "feature-1", "children": []}],
+            ]
+        }
+        import json
+
+        cache_file.write_text(json.dumps(cache_content), encoding="utf-8")
+
+        # Create worktree
+        repo_name = cwd.name
+        wt = workstacks_root / repo_name / "test-stack"
+        wt.mkdir(parents=True)
+
+        # Build fake git ops with worktree info
+        from workstack.gitops import DryRunGitOps, WorktreeInfo
+
+        fake_git_ops = FakeGitOps(
+            worktrees={cwd: [WorktreeInfo(path=wt, branch="feature-2")]},
+            git_common_dirs={cwd: git_dir},
+        )
+        git_ops = DryRunGitOps(fake_git_ops)
+
+        # Build fake global config ops with graphite enabled
+        global_config_ops = FakeGlobalConfigOps(
+            workstacks_root=workstacks_root,
+            use_graphite=True,
+        )
+
+        test_ctx = WorkstackContext(
+            git_ops=git_ops, global_config_ops=global_config_ops, dry_run=True
+        )
+
+        result = runner.invoke(cli, ["rm", "test-stack", "-f", "-s"], obj=test_ctx)
+        assert result.exit_code == 0, result.output
+
+        # Verify dry-run messages for branch deletion
+        assert "[DRY RUN]" in result.output
+        assert "Would run: gt delete" in result.output
+
+        # Verify no branches were actually deleted
+        assert len(fake_git_ops.deleted_branches) == 0
+
+        # Directory should still exist
         assert wt.exists()

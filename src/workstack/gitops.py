@@ -250,3 +250,91 @@ class RealGitOps(GitOps):
         if force:
             cmd.insert(2, "-f")
         subprocess.run(cmd, cwd=repo_root, check=True)
+
+
+# ============================================================================
+# Dry-Run Wrapper
+# ============================================================================
+
+
+class DryRunGitOps(GitOps):
+    """Wrapper that prints dry-run messages instead of executing destructive operations.
+
+    This wrapper intercepts destructive git operations and prints what would happen
+    instead of executing. Read-only operations are delegated to the wrapped implementation.
+
+    Usage:
+        real_ops = RealGitOps()
+        dry_run_ops = DryRunGitOps(real_ops)
+
+        # Prints message instead of deleting
+        dry_run_ops.remove_worktree(repo_root, path, force=False)
+    """
+
+    def __init__(self, wrapped: GitOps) -> None:
+        """Create a dry-run wrapper around a GitOps implementation.
+
+        Args:
+            wrapped: The GitOps implementation to wrap (usually RealGitOps or FakeGitOps)
+        """
+        self._wrapped = wrapped
+
+    # Read-only operations: delegate to wrapped implementation
+
+    def list_worktrees(self, repo_root: Path) -> list[WorktreeInfo]:
+        """List all worktrees (read-only, delegates to wrapped)."""
+        return self._wrapped.list_worktrees(repo_root)
+
+    def get_current_branch(self, cwd: Path) -> str | None:
+        """Get current branch (read-only, delegates to wrapped)."""
+        return self._wrapped.get_current_branch(cwd)
+
+    def detect_default_branch(self, repo_root: Path) -> str:
+        """Detect default branch (read-only, delegates to wrapped)."""
+        return self._wrapped.detect_default_branch(repo_root)
+
+    def get_git_common_dir(self, cwd: Path) -> Path | None:
+        """Get git common directory (read-only, delegates to wrapped)."""
+        return self._wrapped.get_git_common_dir(cwd)
+
+    def checkout_branch(self, cwd: Path, branch: str) -> None:
+        """Checkout branch (delegates to wrapped - considered read-only for dry-run)."""
+        return self._wrapped.checkout_branch(cwd, branch)
+
+    # Destructive operations: print dry-run message instead of executing
+
+    def add_worktree(
+        self,
+        repo_root: Path,
+        path: Path,
+        *,
+        branch: str | None = None,
+        ref: str | None = None,
+        create_branch: bool = False,
+    ) -> None:
+        """Print dry-run message instead of adding worktree."""
+        if branch and create_branch:
+            base_ref = ref or "HEAD"
+            click.echo(
+                f"[DRY RUN] Would run: git worktree add -b {branch} {path} {base_ref}",
+                err=True,
+            )
+        elif branch:
+            click.echo(f"[DRY RUN] Would run: git worktree add {path} {branch}", err=True)
+        else:
+            base_ref = ref or "HEAD"
+            click.echo(f"[DRY RUN] Would run: git worktree add {path} {base_ref}", err=True)
+
+    def move_worktree(self, repo_root: Path, old_path: Path, new_path: Path) -> None:
+        """Print dry-run message instead of moving worktree."""
+        click.echo(f"[DRY RUN] Would run: git worktree move {old_path} {new_path}", err=True)
+
+    def remove_worktree(self, repo_root: Path, path: Path, *, force: bool = False) -> None:
+        """Print dry-run message instead of removing worktree."""
+        force_flag = "--force " if force else ""
+        click.echo(f"[DRY RUN] Would run: git worktree remove {force_flag}{path}", err=True)
+
+    def delete_branch_with_graphite(self, repo_root: Path, branch: str, *, force: bool) -> None:
+        """Print dry-run message instead of deleting branch."""
+        force_flag = "-f " if force else ""
+        click.echo(f"[DRY RUN] Would run: gt delete {force_flag}{branch}", err=True)

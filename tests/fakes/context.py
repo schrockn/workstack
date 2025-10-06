@@ -1,7 +1,5 @@
 """Factory functions for creating test contexts."""
 
-from pathlib import Path
-
 from tests.fakes.gitops import FakeGitOps
 from tests.fakes.global_config_ops import FakeGlobalConfigOps
 from workstack.context import WorkstackContext
