@@ -559,7 +559,6 @@ def test_list_with_stacks_hides_descendants_without_worktrees() -> None:
 
         # Strip ANSI codes for easier assertion
         output = strip_ansi(result.output)
-        lines = output.strip().splitlines()
 
         # Should only have root section
         assert "root [main]" in output

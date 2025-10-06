@@ -1,4 +1,4 @@
-.PHONY: format prettier prettier-check pyright test all-ci clean publish
+.PHONY: format lint prettier prettier-check pyright test all-ci clean publish
 
 prettier:
 	prettier --write '**/*.md' --ignore-path .gitignore
@@ -9,13 +9,16 @@ prettier-check:
 format:
 	uv run ruff format
 
+lint:
+	uv run ruff check
+
 pyright:
 	uv run pyright
 
 test:
 	uv run pytest
 
-all-ci: format prettier pyright test
+all-ci: lint format prettier-check pyright test
 
 # Clean build artifacts
 clean:
