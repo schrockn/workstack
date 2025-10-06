@@ -4,8 +4,10 @@ from pathlib import Path
 from click.testing import CliRunner
 
 from tests.commands.list import strip_ansi
+from tests.fakes.github_ops import FakeGithubOps
 from tests.fakes.gitops import FakeGitOps
 from tests.fakes.global_config_ops import FakeGlobalConfigOps
+from tests.fakes.graphite_ops import FakeGraphiteOps
 from workstack.cli import cli
 from workstack.context import WorkstackContext
 from workstack.gitops import WorktreeInfo
@@ -82,8 +84,14 @@ def test_list_with_stacks_flag() -> None:
             use_graphite=True,
         )
 
+        graphite_ops = FakeGraphiteOps()
+
         test_ctx = WorkstackContext(
-            git_ops=git_ops, global_config_ops=global_config_ops, dry_run=False
+            git_ops=git_ops,
+            global_config_ops=global_config_ops,
+            graphite_ops=graphite_ops,
+            github_ops=FakeGithubOps(),
+            dry_run=False,
         )
 
         result = runner.invoke(cli, ["list", "--stacks"], obj=test_ctx)
@@ -154,8 +162,14 @@ def test_list_with_stacks_graphite_disabled() -> None:
             use_graphite=False,
         )
 
+        graphite_ops = FakeGraphiteOps()
+
         test_ctx = WorkstackContext(
-            git_ops=git_ops, global_config_ops=global_config_ops, dry_run=False
+            git_ops=git_ops,
+            global_config_ops=global_config_ops,
+            graphite_ops=graphite_ops,
+            github_ops=FakeGithubOps(),
+            dry_run=False,
         )
 
         result = runner.invoke(cli, ["list", "--stacks"], obj=test_ctx)
@@ -186,8 +200,14 @@ def test_list_with_stacks_no_graphite_cache() -> None:
             use_graphite=True,
         )
 
+        graphite_ops = FakeGraphiteOps()
+
         test_ctx = WorkstackContext(
-            git_ops=git_ops, global_config_ops=global_config_ops, dry_run=False
+            git_ops=git_ops,
+            global_config_ops=global_config_ops,
+            graphite_ops=graphite_ops,
+            github_ops=FakeGithubOps(),
+            dry_run=False,
         )
 
         # Should succeed but not show stack info (graceful degradation)
@@ -288,8 +308,14 @@ def test_list_with_stacks_highlights_current_branch_not_worktree_branch() -> Non
             use_graphite=True,
         )
 
+        graphite_ops = FakeGraphiteOps()
+
         test_ctx = WorkstackContext(
-            git_ops=git_ops, global_config_ops=global_config_ops, dry_run=False
+            git_ops=git_ops,
+            global_config_ops=global_config_ops,
+            graphite_ops=graphite_ops,
+            github_ops=FakeGithubOps(),
+            dry_run=False,
         )
 
         result = runner.invoke(cli, ["list", "--stacks"], obj=test_ctx)
@@ -372,8 +398,14 @@ def test_list_with_stacks_root_repo_does_not_duplicate_branch() -> None:
             use_graphite=True,
         )
 
+        graphite_ops = FakeGraphiteOps()
+
         test_ctx = WorkstackContext(
-            git_ops=git_ops, global_config_ops=global_config_ops, dry_run=False
+            git_ops=git_ops,
+            global_config_ops=global_config_ops,
+            graphite_ops=graphite_ops,
+            github_ops=FakeGithubOps(),
+            dry_run=False,
         )
 
         result = runner.invoke(cli, ["list", "--stacks"], obj=test_ctx)
@@ -457,8 +489,14 @@ def test_list_with_stacks_shows_descendants_with_worktrees() -> None:
             use_graphite=True,
         )
 
+        graphite_ops = FakeGraphiteOps()
+
         test_ctx = WorkstackContext(
-            git_ops=git_ops, global_config_ops=global_config_ops, dry_run=False
+            git_ops=git_ops,
+            global_config_ops=global_config_ops,
+            graphite_ops=graphite_ops,
+            github_ops=FakeGithubOps(),
+            dry_run=False,
         )
 
         result = runner.invoke(cli, ["list", "--stacks"], obj=test_ctx)
@@ -550,8 +588,14 @@ def test_list_with_stacks_hides_descendants_without_worktrees() -> None:
             use_graphite=True,
         )
 
+        graphite_ops = FakeGraphiteOps()
+
         test_ctx = WorkstackContext(
-            git_ops=git_ops, global_config_ops=global_config_ops, dry_run=False
+            git_ops=git_ops,
+            global_config_ops=global_config_ops,
+            graphite_ops=graphite_ops,
+            github_ops=FakeGithubOps(),
+            dry_run=False,
         )
 
         result = runner.invoke(cli, ["list", "--stacks"], obj=test_ctx)
@@ -642,8 +686,14 @@ def test_list_with_stacks_shows_descendants_with_gaps() -> None:
             use_graphite=True,
         )
 
+        graphite_ops = FakeGraphiteOps()
+
         test_ctx = WorkstackContext(
-            git_ops=git_ops, global_config_ops=global_config_ops, dry_run=False
+            git_ops=git_ops,
+            global_config_ops=global_config_ops,
+            graphite_ops=graphite_ops,
+            github_ops=FakeGithubOps(),
+            dry_run=False,
         )
 
         result = runner.invoke(cli, ["list", "--stacks"], obj=test_ctx)
