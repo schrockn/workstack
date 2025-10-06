@@ -38,6 +38,7 @@ class FakeGitOps(GitOps):
         self._current_branches = current_branches or {}
         self._default_branches = default_branches or {}
         self._git_common_dirs = git_common_dirs or {}
+        self._deleted_branches: list[str] = []
 
     def list_worktrees(self, repo_root: Path) -> list[WorktreeInfo]:
         """List all worktrees in the repository."""
@@ -93,3 +94,15 @@ class FakeGitOps(GitOps):
     def checkout_branch(self, cwd: Path, branch: str) -> None:
         """Checkout a branch (mutates internal state)."""
         self._current_branches[cwd] = branch
+
+    def delete_branch_with_graphite(self, repo_root: Path, branch: str, *, force: bool) -> None:
+        """Track which branches were deleted (mutates internal state)."""
+        self._deleted_branches.append(branch)
+
+    @property
+    def deleted_branches(self) -> list[str]:
+        """Get the list of branches that have been deleted.
+
+        This property is for test assertions only.
+        """
+        return self._deleted_branches
