@@ -2,10 +2,10 @@
 
 from dataclasses import dataclass
 
-from workstack.github_ops import GithubOps, RealGithubOps
+from workstack.githubops import GitHubOps, RealGitHubOps
 from workstack.gitops import DryRunGitOps, GitOps, RealGitOps
 from workstack.global_config_ops import GlobalConfigOps, RealGlobalConfigOps
-from workstack.graphite_ops import DryRunGraphiteOps, GraphiteOps, RealGraphiteOps
+from workstack.graphiteops import DryRunGraphiteOps, GraphiteOps, RealGraphiteOps
 
 
 @dataclass(frozen=True)
@@ -18,8 +18,8 @@ class WorkstackContext:
 
     git_ops: GitOps
     global_config_ops: GlobalConfigOps
+    github_ops: GitHubOps
     graphite_ops: GraphiteOps
-    github_ops: GithubOps
     dry_run: bool
 
 
@@ -50,7 +50,7 @@ def create_context(*, dry_run: bool) -> WorkstackContext:
     return WorkstackContext(
         git_ops=git_ops,
         global_config_ops=RealGlobalConfigOps(),
+        github_ops=RealGitHubOps(),
         graphite_ops=graphite_ops,
-        github_ops=RealGithubOps(),
         dry_run=dry_run,
     )

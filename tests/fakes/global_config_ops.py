@@ -22,6 +22,7 @@ class FakeGlobalConfigOps(GlobalConfigOps):
         workstacks_root: Path | None = None,
         use_graphite: bool = False,
         shell_setup_complete: bool = False,
+        show_pr_info: bool = True,
         exists: bool = True,
         config_path: Path | None = None,
     ) -> None:
@@ -32,6 +33,7 @@ class FakeGlobalConfigOps(GlobalConfigOps):
                            FileNotFoundError on getter calls (invalid state).
             use_graphite: Initial graphite preference (default: False)
             shell_setup_complete: Initial shell setup status (default: False)
+            show_pr_info: Initial PR info display preference (default: True)
             exists: Whether config "exists". If False, getters raise FileNotFoundError.
             config_path: Path to report in error messages and get_path().
                         Defaults to /fake/config.toml for testing.
@@ -52,6 +54,7 @@ class FakeGlobalConfigOps(GlobalConfigOps):
         self._workstacks_root = workstacks_root
         self._use_graphite = use_graphite
         self._shell_setup_complete = shell_setup_complete
+        self._show_pr_info = show_pr_info
         self._exists = exists
         self._path = config_path if config_path is not None else Path("/fake/config.toml")
 
@@ -72,12 +75,18 @@ class FakeGlobalConfigOps(GlobalConfigOps):
             raise FileNotFoundError(f"Global config not found at {self._path}")
         return self._shell_setup_complete
 
+    def get_show_pr_info(self) -> bool:
+        if not self._exists:
+            raise FileNotFoundError(f"Global config not found at {self._path}")
+        return self._show_pr_info
+
     def set(
         self,
         *,
         workstacks_root: Path | _UnchangedType = _UNCHANGED,
         use_graphite: bool | _UnchangedType = _UNCHANGED,
         shell_setup_complete: bool | _UnchangedType = _UNCHANGED,
+        show_pr_info: bool | _UnchangedType = _UNCHANGED,
     ) -> None:
         """Update config fields in memory (not filesystem).
 
@@ -88,6 +97,7 @@ class FakeGlobalConfigOps(GlobalConfigOps):
             isinstance(workstacks_root, _UnchangedType)
             and isinstance(use_graphite, _UnchangedType)
             and isinstance(shell_setup_complete, _UnchangedType)
+            and isinstance(show_pr_info, _UnchangedType)
         ):
             raise ValueError("At least one field must be provided")
 
@@ -100,6 +110,7 @@ class FakeGlobalConfigOps(GlobalConfigOps):
             self._shell_setup_complete = (
                 False if isinstance(shell_setup_complete, _UnchangedType) else shell_setup_complete
             )
+            self._show_pr_info = True if isinstance(show_pr_info, _UnchangedType) else show_pr_info
             self._exists = True
             return
 
@@ -112,6 +123,9 @@ class FakeGlobalConfigOps(GlobalConfigOps):
 
         if not isinstance(shell_setup_complete, _UnchangedType):
             self._shell_setup_complete = shell_setup_complete
+
+        if not isinstance(show_pr_info, _UnchangedType):
+            self._show_pr_info = show_pr_info
 
     def exists(self) -> bool:
         return self._exists
