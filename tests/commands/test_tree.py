@@ -2,6 +2,7 @@
 
 import json
 import os
+import tempfile
 from pathlib import Path
 
 from click.testing import CliRunner
@@ -310,8 +311,6 @@ def test_load_graphite_branch_graph() -> None:
     }
 
     # Create fake filesystem with cache file
-    import tempfile
-
     with tempfile.TemporaryDirectory() as tmpdir:
         tmp_git_dir = Path(tmpdir) / ".git"
         tmp_git_dir.mkdir()
@@ -341,8 +340,6 @@ def test_load_graphite_branch_graph() -> None:
 def test_load_graphite_branch_graph_returns_none_when_missing() -> None:
     """Test that missing cache returns None."""
     repo_root = Path("/repo")
-
-    import tempfile
 
     with tempfile.TemporaryDirectory() as tmpdir:
         tmp_git_dir = Path(tmpdir) / ".git"
@@ -600,3 +597,159 @@ def test_tree_command_shows_nested_hierarchy() -> None:
         assert "child" in result.output
         # Should have vertical continuation for nested structure
         assert "│" in result.output or "└─" in result.output
+
+
+def test_get_worktree_mapping_detects_current_from_subdirectory(monkeypatch) -> None:
+    """Test that current worktree is detected when cwd is a subdirectory."""
+    repo_root = Path("/repo")
+    feature_worktree = Path("/repo/work/feature-a")
+    subdirectory = feature_worktree / "src" / "module"
+
+    # Mock Path.cwd() to return subdirectory within feature-a worktree
+    monkeypatch.setattr("pathlib.Path.cwd", lambda: subdirectory)
+
+    git_ops = FakeGitOps(
+        worktrees={
+            repo_root: [
+                WorktreeInfo(path=repo_root, branch="main"),
+                WorktreeInfo(path=feature_worktree, branch="feature-a"),
+            ]
+        },
+    )
+
+    ctx = create_test_context(git_ops=git_ops)
+
+    mapping = _get_worktree_mapping(ctx, repo_root)
+
+    # Should detect feature-a as current even though cwd is in subdirectory
+    assert mapping.current_worktree == "feature-a"
+
+
+def test_get_worktree_mapping_handles_user_outside_all_worktrees(monkeypatch) -> None:
+    """Test behavior when user is not in any worktree."""
+    repo_root = Path("/repo")
+    outside_path = Path("/tmp/somewhere-else")
+
+    # Mock Path.cwd() to return path outside all worktrees
+    monkeypatch.setattr("pathlib.Path.cwd", lambda: outside_path)
+
+    git_ops = FakeGitOps(
+        worktrees={
+            repo_root: [
+                WorktreeInfo(path=repo_root, branch="main"),
+                WorktreeInfo(path=Path("/repo/work/feature-a"), branch="feature-a"),
+            ]
+        },
+    )
+
+    ctx = create_test_context(git_ops=git_ops)
+
+    mapping = _get_worktree_mapping(ctx, repo_root)
+
+    # Should have no current worktree
+    assert mapping.current_worktree is None
+
+
+def test_build_tree_handles_multiple_trunk_branches() -> None:
+    """Test tree building with multiple trunk branches."""
+    graph = BranchGraph(
+        parent_of={"feature-a": "main", "feature-b": "develop"},
+        children_of={
+            "main": ["feature-a"],
+            "develop": ["feature-b"],
+            "feature-a": [],
+            "feature-b": [],
+        },
+        trunk_branches=["main", "develop"],
+    )
+
+    mapping = WorktreeMapping(
+        branch_to_worktree={
+            "main": "root",
+            "develop": "develop",
+            "feature-a": "feature-a",
+            "feature-b": "feature-b",
+        },
+        worktree_to_path={
+            "root": Path("/repo"),
+            "develop": Path("/repo/work/develop"),
+            "feature-a": Path("/repo/work/feature-a"),
+            "feature-b": Path("/repo/work/feature-b"),
+        },
+        current_worktree=None,
+    )
+
+    roots = _build_tree_from_graph(graph, mapping)
+
+    # Should have 2 root nodes
+    assert len(roots) == 2
+    root_branches = {root.branch_name for root in roots}
+    assert root_branches == {"main", "develop"}
+
+    # Each root should have its child
+    for root in roots:
+        if root.branch_name == "main":
+            assert len(root.children) == 1
+            assert root.children[0].branch_name == "feature-a"
+        elif root.branch_name == "develop":
+            assert len(root.children) == 1
+            assert root.children[0].branch_name == "feature-b"
+
+
+def test_render_tree_with_very_deep_nesting() -> None:
+    """Test rendering tree with 5+ levels of nesting."""
+    root = TreeNode(
+        branch_name="main",
+        worktree_name="root",
+        children=[
+            TreeNode(
+                branch_name="level1",
+                worktree_name="level1",
+                children=[
+                    TreeNode(
+                        branch_name="level2",
+                        worktree_name="level2",
+                        children=[
+                            TreeNode(
+                                branch_name="level3",
+                                worktree_name="level3",
+                                children=[
+                                    TreeNode(
+                                        branch_name="level4",
+                                        worktree_name="level4",
+                                        children=[
+                                            TreeNode(
+                                                branch_name="level5",
+                                                worktree_name="level5",
+                                                children=[],
+                                                is_current=False,
+                                            ),
+                                        ],
+                                        is_current=False,
+                                    ),
+                                ],
+                                is_current=False,
+                            ),
+                        ],
+                        is_current=False,
+                    ),
+                ],
+                is_current=False,
+            ),
+        ],
+        is_current=False,
+    )
+
+    output = render_tree([root])
+
+    # All levels should be present
+    assert "main" in output
+    assert "level1" in output
+    assert "level2" in output
+    assert "level3" in output
+    assert "level4" in output
+    assert "level5" in output
+
+    # Should have proper tree structure
+    lines = output.split("\n")
+    assert len(lines) == 6  # 6 levels deep

@@ -147,9 +147,13 @@ def _get_worktree_mapping(
         branch_to_worktree[wt.branch] = worktree_name
         worktree_to_path[worktree_name] = wt.path
 
-        # Check if this is current worktree
-        if wt.path.resolve() == current_path:
+        # Check if current path is within this worktree (handles subdirectories)
+        try:
+            current_path.relative_to(wt.path.resolve())
             current_worktree = worktree_name
+        except ValueError:
+            # Not within this worktree
+            pass
 
     return WorktreeMapping(
         branch_to_worktree=branch_to_worktree,
