@@ -273,7 +273,7 @@ def test_add_worktree_with_existing_branch(tmp_path: Path) -> None:
 
     wt = tmp_path / "wt"
     git_ops = RealGitOps()
-    git_ops.add_worktree(repo, wt, branch="feature")
+    git_ops.add_worktree(repo, wt, branch="feature", ref=None, create_branch=False)
 
     assert wt.exists()
     assert (wt / "README.md").exists()
@@ -291,7 +291,7 @@ def test_add_worktree_create_new_branch(tmp_path: Path) -> None:
 
     wt = tmp_path / "wt"
     git_ops = RealGitOps()
-    git_ops.add_worktree(repo, wt, branch="new-feature", create_branch=True)
+    git_ops.add_worktree(repo, wt, branch="new-feature", ref=None, create_branch=True)
 
     assert wt.exists()
     assert (wt / "README.md").exists()
@@ -333,7 +333,7 @@ def test_add_worktree_detached(tmp_path: Path) -> None:
 
     wt = tmp_path / "wt"
     git_ops = RealGitOps()
-    git_ops.add_worktree(repo, wt, ref="HEAD")
+    git_ops.add_worktree(repo, wt, branch=None, ref="HEAD", create_branch=False)
 
     assert wt.exists()
     assert (wt / "README.md").exists()
@@ -389,7 +389,7 @@ def test_remove_worktree(tmp_path: Path) -> None:
 
     # Remove worktree
     git_ops = RealGitOps()
-    git_ops.remove_worktree(repo, wt)
+    git_ops.remove_worktree(repo, wt, force=False)
 
     # Verify it's removed
     worktrees = git_ops.list_worktrees(repo)

@@ -23,7 +23,7 @@ class WorkstackContext:
     dry_run: bool
 
 
-def create_context(*, dry_run: bool = False) -> WorkstackContext:
+def create_context(*, dry_run: bool) -> WorkstackContext:
     """Create production context with real implementations.
 
     Called at CLI entry point to create the context for the entire

@@ -98,7 +98,7 @@ def test_create_global_config_creates_file(tmp_path: Path, monkeypatch: pytest.M
 
     with monkeypatch.context() as m:
         m.setattr("workstack.commands.init.detect_graphite", lambda: False)
-        create_global_config(global_config_ops, Path("/tmp/workstacks"))
+        create_global_config(global_config_ops, Path("/tmp/workstacks"), shell_setup_complete=False)
 
     # Verify config was saved
     assert global_config_ops.get_workstacks_root() == Path("/tmp/workstacks")
@@ -119,7 +119,7 @@ def test_create_global_config_creates_parent_directory(
 
     with monkeypatch.context() as m:
         m.setattr("workstack.commands.init.detect_graphite", lambda: False)
-        create_global_config(real_ops, Path("/tmp/workstacks"))
+        create_global_config(real_ops, Path("/tmp/workstacks"), shell_setup_complete=False)
 
     assert config_file.parent.exists()
     assert config_file.exists()
@@ -132,7 +132,7 @@ def test_create_global_config_detects_graphite(
 
     with monkeypatch.context() as m:
         m.setattr("workstack.commands.init.detect_graphite", lambda: True)
-        create_global_config(global_config_ops, Path("/tmp/workstacks"))
+        create_global_config(global_config_ops, Path("/tmp/workstacks"), shell_setup_complete=False)
 
     assert global_config_ops.get_use_graphite() is True
 

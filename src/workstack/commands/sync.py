@@ -9,6 +9,19 @@ from workstack.context import WorkstackContext
 from workstack.core import discover_repo_context, ensure_work_dir, worktree_path_for
 
 
+def _return_to_original_worktree(work_dir: Path, current_worktree_name: str | None) -> None:
+    """Return to original worktree if it exists."""
+    if current_worktree_name is None:
+        return
+
+    wt_path = worktree_path_for(work_dir, current_worktree_name)
+    if not wt_path.exists():
+        return
+
+    click.echo(f"\nReturning to: {current_worktree_name}")
+    os.chdir(wt_path)
+
+
 @click.command("sync")
 @click.option(
     "-f",
@@ -141,12 +154,7 @@ def sync_cmd(ctx: WorkstackContext, force: bool, auto_clean: bool, dry_run: bool
             if not force and not dry_run:
                 if not click.confirm(f"Delete {len(deletable)} workstack(s)?", default=False):
                     click.echo("Cleanup cancelled.")
-                    # Still return to original worktree
-                    if current_worktree_name:
-                        wt_path = worktree_path_for(work_dir, current_worktree_name)
-                        if wt_path.exists():
-                            click.echo(f"\nReturning to: {current_worktree_name}")
-                            os.chdir(wt_path)
+                    _return_to_original_worktree(work_dir, current_worktree_name)
                     return
 
             # Remove each workstack

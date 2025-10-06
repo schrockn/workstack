@@ -12,7 +12,46 @@ from workstack.core import (
     validate_worktree_name_for_removal,
     worktree_path_for,
 )
+from workstack.gitops import GitOps
 from workstack.graphite import get_branch_stack
+
+
+def _try_git_worktree_remove(git_ops: GitOps, repo_root: Path, wt_path: Path) -> bool:
+    """Attempt git worktree remove, returning success status.
+
+    This function violates LBYL norms because there's no reliable way to
+    check a priori if git worktree remove will succeed. The worktree might be:
+    - Already removed from git metadata
+    - In a partially corrupted state
+    - Referenced by stale lock files
+
+    Git's own error handling is unreliable for these edge cases, so we use
+    try/except as an error boundary and rely on manual cleanup + prune.
+
+    Returns:
+        True if git removal succeeded, False otherwise
+    """
+    try:
+        git_ops.remove_worktree(repo_root, wt_path, force=True)
+        return True
+    except Exception:
+        # Git removal failed - manual cleanup will handle it
+        return False
+
+
+def _prune_worktrees_safe(git_ops: GitOps, repo_root: Path) -> None:
+    """Prune worktree metadata, ignoring errors if nothing to prune.
+
+    This function violates LBYL norms because git worktree prune can fail
+    for various reasons (no stale worktrees, permission issues, etc.) that
+    are not easily detectable beforehand. Since pruning is a cleanup operation
+    and failure doesn't affect the primary operation, we allow silent failure.
+    """
+    try:
+        git_ops.prune_worktrees(repo_root)
+    except Exception:
+        # Prune might fail if there's nothing to prune or other non-critical issues
+        pass
 
 
 def _find_worktree_branch(ctx: WorkstackContext, repo_root: Path, wt_path: Path) -> str | None:
@@ -185,13 +224,9 @@ def _remove_worktree(
 
     # Step 4: Execute operations
 
-    # 4a. Try to remove via git first; ignore errors
+    # 4a. Try to remove via git first
     # This updates git's metadata when possible
-    try:
-        ctx.git_ops.remove_worktree(repo.root, wt_path, force=True)
-    except Exception:
-        # Git removal failed, we'll need to prune later
-        pass
+    _try_git_worktree_remove(ctx.git_ops, repo.root, wt_path)
 
     # 4b. Always manually delete directory if it still exists
     # (git worktree remove may have succeeded or failed, but directory might still be there)
@@ -204,11 +239,7 @@ def _remove_worktree(
     # 4c. Prune worktree metadata to clean up any stale references
     # This is important if git worktree remove failed or if we manually deleted
     if not ctx.dry_run:
-        try:
-            ctx.git_ops.prune_worktrees(repo.root)
-        except Exception:
-            # Prune might fail if there's nothing to prune, ignore
-            pass
+        _prune_worktrees_safe(ctx.git_ops, repo.root)
 
     # 4c. Delete stack branches (now that worktree is removed)
     if branches_to_delete:

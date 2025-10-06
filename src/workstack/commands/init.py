@@ -50,7 +50,7 @@ def detect_graphite() -> bool:
 def create_global_config(
     global_config_ops: GlobalConfigOps,
     workstacks_root: Path,
-    shell_setup_complete: bool = False,
+    shell_setup_complete: bool,
 ) -> None:
     """Create global config using the provided config ops."""
     use_graphite = detect_graphite()
@@ -73,7 +73,7 @@ def discover_presets() -> list[str]:
     return sorted(p.stem for p in presets_dir.glob("*.toml") if p.is_file())
 
 
-def render_config_template(preset: str | None = None) -> str:
+def render_config_template(preset: str | None) -> str:
     """Return default config TOML content, optionally using a preset.
 
     If preset is None, uses the "generic" preset by default.
@@ -293,7 +293,7 @@ def init_cmd(
         click.echo("(This directory will contain subdirectories for each repository)")
         workstacks_root = click.prompt("Worktrees root directory", type=Path)
         workstacks_root = workstacks_root.expanduser().resolve()
-        create_global_config(ctx.global_config_ops, workstacks_root)
+        create_global_config(ctx.global_config_ops, workstacks_root, shell_setup_complete=False)
         click.echo(f"Created global config at {ctx.global_config_ops.get_path()}")
         # Show graphite status on first init
         has_graphite = detect_graphite()

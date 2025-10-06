@@ -63,11 +63,19 @@ class GitOps(ABC):
         repo_root: Path,
         path: Path,
         *,
-        branch: str | None = None,
-        ref: str | None = None,
-        create_branch: bool = False,
+        branch: str | None,
+        ref: str | None,
+        create_branch: bool,
     ) -> None:
-        """Add a new git worktree."""
+        """Add a new git worktree.
+
+        Args:
+            repo_root: Path to the git repository root
+            path: Path where the worktree should be created
+            branch: Branch name (None creates detached HEAD or uses ref)
+            ref: Git ref to base worktree on (None defaults to HEAD when creating branches)
+            create_branch: True to create new branch, False to checkout existing
+        """
         ...
 
     @abstractmethod
@@ -76,8 +84,14 @@ class GitOps(ABC):
         ...
 
     @abstractmethod
-    def remove_worktree(self, repo_root: Path, path: Path, *, force: bool = False) -> None:
-        """Remove a worktree."""
+    def remove_worktree(self, repo_root: Path, path: Path, *, force: bool) -> None:
+        """Remove a worktree.
+
+        Args:
+            repo_root: Path to the git repository root
+            path: Path to the worktree to remove
+            force: True to force removal even if worktree has uncommitted changes
+        """
         ...
 
     @abstractmethod
@@ -211,9 +225,9 @@ class RealGitOps(GitOps):
         repo_root: Path,
         path: Path,
         *,
-        branch: str | None = None,
-        ref: str | None = None,
-        create_branch: bool = False,
+        branch: str | None,
+        ref: str | None,
+        create_branch: bool,
     ) -> None:
         """Add a new git worktree."""
         if branch and not create_branch:
@@ -232,7 +246,7 @@ class RealGitOps(GitOps):
         cmd = ["git", "worktree", "move", str(old_path), str(new_path)]
         subprocess.run(cmd, cwd=repo_root, check=True)
 
-    def remove_worktree(self, repo_root: Path, path: Path, *, force: bool = False) -> None:
+    def remove_worktree(self, repo_root: Path, path: Path, *, force: bool) -> None:
         """Remove a worktree."""
         cmd = ["git", "worktree", "remove"]
         if force:
@@ -318,9 +332,9 @@ class DryRunGitOps(GitOps):
         repo_root: Path,
         path: Path,
         *,
-        branch: str | None = None,
-        ref: str | None = None,
-        create_branch: bool = False,
+        branch: str | None,
+        ref: str | None,
+        create_branch: bool,
     ) -> None:
         """Print dry-run message instead of adding worktree."""
         if branch and create_branch:
@@ -339,7 +353,7 @@ class DryRunGitOps(GitOps):
         """Print dry-run message instead of moving worktree."""
         click.echo(f"[DRY RUN] Would run: git worktree move {old_path} {new_path}", err=True)
 
-    def remove_worktree(self, repo_root: Path, path: Path, *, force: bool = False) -> None:
+    def remove_worktree(self, repo_root: Path, path: Path, *, force: bool) -> None:
         """Print dry-run message instead of removing worktree."""
         force_flag = "--force " if force else ""
         click.echo(f"[DRY RUN] Would run: git worktree remove {force_flag}{path}", err=True)

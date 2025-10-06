@@ -8,9 +8,7 @@ from workstack.core import discover_repo_context, ensure_work_dir
 from workstack.graphite import get_branch_stack
 
 
-def _format_worktree_line(
-    name: str, branch: str | None, path: Path | None = None, is_root: bool = False
-) -> str:
+def _format_worktree_line(name: str, branch: str | None, is_root: bool) -> str:
     """Format a single worktree line with colorization.
 
     Args:
@@ -197,7 +195,7 @@ def _display_branch_stack(
         click.echo(f"  {marker}  {branch_text}")
 
 
-def _list_worktrees(ctx: WorkstackContext, show_stacks: bool = False) -> None:
+def _list_worktrees(ctx: WorkstackContext, show_stacks: bool) -> None:
     """Internal function to list worktrees."""
     repo = discover_repo_context(ctx, Path.cwd())
 
