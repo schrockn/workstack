@@ -2,41 +2,6 @@ import tomllib
 from dataclasses import dataclass
 from pathlib import Path
 
-GLOBAL_CONFIG_PATH = Path.home() / ".workstack" / "config.toml"
-
-
-@dataclass(frozen=True)
-class GlobalConfig:
-    """Global workstack configuration."""
-
-    workstacks_root: Path
-    use_graphite: bool
-    shell_setup_complete: bool
-
-
-def load_global_config() -> GlobalConfig:
-    """Load global config from ~/.workstack/config.toml.
-
-    Raises FileNotFoundError if the config doesn't exist.
-    """
-    if not GLOBAL_CONFIG_PATH.exists():
-        raise FileNotFoundError(f"Global config not found at {GLOBAL_CONFIG_PATH}")
-
-    data = tomllib.loads(GLOBAL_CONFIG_PATH.read_text(encoding="utf-8"))
-    root = data.get("workstacks_root")
-    if not root:
-        raise ValueError(f"Missing 'workstacks_root' in {GLOBAL_CONFIG_PATH}")
-
-    # Default to False for backward compatibility with existing configs
-    use_graphite = data.get("use_graphite", False)
-    shell_setup_complete = data.get("shell_setup_complete", False)
-
-    return GlobalConfig(
-        workstacks_root=Path(root).expanduser().resolve(),
-        use_graphite=bool(use_graphite),
-        shell_setup_complete=bool(shell_setup_complete),
-    )
-
 
 @dataclass(frozen=True)
 class LoadedConfig:

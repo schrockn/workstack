@@ -2,7 +2,6 @@ from pathlib import Path
 
 import click
 
-from workstack.config import load_global_config
 from workstack.context import WorkstackContext
 from workstack.core import discover_repo_context, ensure_work_dir
 from workstack.graphite import get_branch_stack
@@ -92,8 +91,7 @@ def _list_worktrees(ctx: WorkstackContext, show_stacks: bool = False) -> None:
 
     # Check if stacks are requested and graphite is enabled
     if show_stacks:
-        global_config = load_global_config()
-        if not global_config.use_graphite:
+        if not ctx.global_config_ops.get_use_graphite():
             click.echo(
                 "Error: --stacks requires graphite to be enabled. "
                 "Run 'workstack config use-graphite true'",

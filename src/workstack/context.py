@@ -3,6 +3,7 @@
 from dataclasses import dataclass
 
 from workstack.gitops import GitOps, RealGitOps
+from workstack.global_config_ops import GlobalConfigOps, RealGlobalConfigOps
 
 
 @dataclass(frozen=True)
@@ -14,6 +15,7 @@ class WorkstackContext:
     """
 
     git_ops: GitOps
+    global_config_ops: GlobalConfigOps
 
 
 def create_context() -> WorkstackContext:
@@ -23,10 +25,11 @@ def create_context() -> WorkstackContext:
     command execution.
 
     Returns:
-        WorkstackContext with real implementations (RealGitOps, etc.)
+        WorkstackContext with real implementations (RealGitOps, RealGlobalConfigOps, etc.)
 
     Example:
         >>> ctx = create_context()
         >>> worktrees = ctx.git_ops.list_worktrees(Path("/repo"))
+        >>> config = ctx.global_config_ops.load()
     """
-    return WorkstackContext(git_ops=RealGitOps())
+    return WorkstackContext(git_ops=RealGitOps(), global_config_ops=RealGlobalConfigOps())

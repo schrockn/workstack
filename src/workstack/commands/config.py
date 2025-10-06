@@ -1,9 +1,8 @@
-import tomllib
 from pathlib import Path
 
 import click
 
-from workstack.config import GLOBAL_CONFIG_PATH, load_config, load_global_config
+from workstack.config import load_config
 from workstack.context import WorkstackContext
 from workstack.core import discover_repo_context, ensure_work_dir
 
@@ -18,12 +17,12 @@ def config_group() -> None:
 def config_list(ctx: WorkstackContext) -> None:
     """Print a list of configuration keys and values."""
     # Try to load global config
-    global_config = None
     try:
-        global_config = load_global_config()
+        workstacks_root = ctx.global_config_ops.get_workstacks_root()
+        use_graphite = ctx.global_config_ops.get_use_graphite()
         click.echo(click.style("Global configuration:", bold=True))
-        click.echo(f"  workstacks_root={global_config.workstacks_root}")
-        click.echo(f"  use_graphite={str(global_config.use_graphite).lower()}")
+        click.echo(f"  workstacks_root={workstacks_root}")
+        click.echo(f"  use_graphite={str(use_graphite).lower()}")
     except FileNotFoundError:
         click.echo(click.style("Global configuration:", bold=True))
         click.echo("  (not configured - run 'workstack init' to create)")
@@ -61,13 +60,12 @@ def config_get(ctx: WorkstackContext, key: str) -> None:
     # Handle global config keys
     if parts[0] in ("workstacks_root", "use_graphite"):
         try:
-            global_config = load_global_config()
             if parts[0] == "workstacks_root":
-                click.echo(str(global_config.workstacks_root))
+                click.echo(str(ctx.global_config_ops.get_workstacks_root()))
             elif parts[0] == "use_graphite":
-                click.echo(str(global_config.use_graphite).lower())
+                click.echo(str(ctx.global_config_ops.get_use_graphite()).lower())
         except FileNotFoundError as e:
-            click.echo(f"Global config not found at {GLOBAL_CONFIG_PATH}", err=True)
+            click.echo(f"Global config not found at {ctx.global_config_ops.get_path()}", err=True)
             raise SystemExit(1) from e
         return
 
@@ -110,38 +108,28 @@ def config_get(ctx: WorkstackContext, key: str) -> None:
 @config_group.command("set")
 @click.argument("key", metavar="KEY")
 @click.argument("value", metavar="VALUE")
-def config_set(key: str, value: str) -> None:
+@click.pass_obj
+def config_set(ctx: WorkstackContext, key: str, value: str) -> None:
     """Update configuration with a value for the given key."""
     # Parse key into parts
     parts = key.split(".")
 
     # Handle global config keys
     if parts[0] in ("workstacks_root", "use_graphite"):
-        try:
-            load_global_config()
-        except FileNotFoundError as e:
-            click.echo(f"Global config not found at {GLOBAL_CONFIG_PATH}", err=True)
+        if not ctx.global_config_ops.exists():
+            click.echo(f"Global config not found at {ctx.global_config_ops.get_path()}", err=True)
             click.echo("Run 'workstack init' to create it.", err=True)
-            raise SystemExit(1) from e
+            raise SystemExit(1)
 
-        # Read existing config
-        data = tomllib.loads(GLOBAL_CONFIG_PATH.read_text(encoding="utf-8"))
-
-        # Update value
+        # Update value using set()
         if parts[0] == "workstacks_root":
-            data["workstacks_root"] = str(Path(value).expanduser().resolve())
+            ctx.global_config_ops.set(workstacks_root=Path(value).expanduser().resolve())
         elif parts[0] == "use_graphite":
             if value.lower() not in ("true", "false"):
                 click.echo(f"Invalid boolean value: {value}", err=True)
                 raise SystemExit(1)
-            data["use_graphite"] = value.lower() == "true"
+            ctx.global_config_ops.set(use_graphite=value.lower() == "true")
 
-        # Write back
-        content = f"""# Global workstack configuration
-workstacks_root = "{data["workstacks_root"]}"
-use_graphite = {str(data["use_graphite"]).lower()}
-"""
-        GLOBAL_CONFIG_PATH.write_text(content, encoding="utf-8")
         click.echo(f"Set {key}={value}")
         return
 

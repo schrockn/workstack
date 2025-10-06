@@ -7,7 +7,7 @@ from pathlib import Path
 
 import click
 
-from workstack.config import LoadedConfig, load_config, load_global_config
+from workstack.config import LoadedConfig, load_config
 from workstack.context import WorkstackContext
 from workstack.core import discover_repo_context, ensure_work_dir, worktree_path_for
 
@@ -288,10 +288,8 @@ def create(
             branch = default_branch_for_worktree(name)
 
         # Get graphite setting from global config
-        global_config = load_global_config()
-        add_worktree(
-            ctx, repo.root, wt_path, branch=branch, ref=ref, use_graphite=global_config.use_graphite
-        )
+        use_graphite = ctx.global_config_ops.get_use_graphite()
+        add_worktree(ctx, repo.root, wt_path, branch=branch, ref=ref, use_graphite=use_graphite)
 
     # Write .env based on config
     env_content = make_env_content(cfg, worktree_path=wt_path, repo_root=repo.root, name=name)
