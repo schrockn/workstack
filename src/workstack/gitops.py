@@ -85,6 +85,11 @@ class GitOps(ABC):
         """Checkout a branch in the given directory."""
         ...
 
+    @abstractmethod
+    def delete_branch_with_graphite(self, repo_root: Path, branch: str, *, force: bool) -> None:
+        """Delete a branch using Graphite's gt delete command."""
+        ...
+
 
 # ============================================================================
 # Production Implementation
@@ -238,3 +243,10 @@ class RealGitOps(GitOps):
             capture_output=True,
             text=True,
         )
+
+    def delete_branch_with_graphite(self, repo_root: Path, branch: str, *, force: bool) -> None:
+        """Delete a branch using Graphite's gt delete command."""
+        cmd = ["gt", "delete", branch]
+        if force:
+            cmd.insert(2, "-f")
+        subprocess.run(cmd, cwd=repo_root, check=True)
