@@ -2,7 +2,7 @@ from pathlib import Path
 
 import click
 
-from workstack.context import WorkstackContext
+from workstack.context import WorkstackContext, create_context
 from workstack.core import discover_repo_context, ensure_work_dir, worktree_path_for
 
 
@@ -56,9 +56,12 @@ def complete_worktree_names(
     """
     try:
         # Get WorkstackContext from click.Context.obj
+        # During shell completion, ctx.obj may not be initialized yet, so we create
+        # a context on-demand if needed
         workstack_ctx = ctx.obj if isinstance(ctx.obj, WorkstackContext) else ctx.find_root().obj
         if not isinstance(workstack_ctx, WorkstackContext):
-            return []
+            # Create context for shell completion (CLI group callback not run yet)
+            workstack_ctx = create_context()
 
         repo = discover_repo_context(workstack_ctx, Path.cwd())
         work_dir = repo.work_dir
