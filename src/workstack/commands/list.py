@@ -20,21 +20,26 @@ def _filter_stack_for_worktree(
     current_worktree_path: Path,
     all_worktree_branches: dict[Path, str | None],
 ) -> list[str]:
-    """Filter a graphite stack to exclude descendant branches checked out in other worktrees.
+    """Filter a graphite stack to only show branches relevant to the current worktree.
 
     When displaying a stack for a specific worktree, we want to show:
     1. The current branch checked out in this worktree
-    2. All ancestor branches (going down to trunk)
-    3. Descendant branches up to (but not including) the first branch checked out elsewhere
+    2. All ancestor branches (going down to trunk) - provides context
+    3. Descendant branches ONLY if they're checked out in some worktree
 
-    This prevents child branches from appearing in a parent worktree's stack display
-    while still showing ancestor branches that provide context.
+    This ensures that:
+    - Branches without active worktrees don't clutter the display
+    - Ancestor context is preserved (even if ancestors aren't checked out)
+    - Only "active" descendants (with worktrees) appear
 
     Example:
-        Stack: [master, foo, bar, baz]
-        - root worktree on master, foo worktree on foo:
-          - root shows: [master] (stops at foo since it's in another worktree)
-          - foo shows: [master, foo, bar, baz] (master shown even though in root)
+        Stack: [main, foo, bar, baz]
+        Worktrees:
+          - root on main
+          - worktree-baz on baz
+
+        Root display: [main, baz]  (skip foo, bar - no worktrees)
+        Worktree-baz display: [main, foo, bar, baz]  (ancestors shown for context)
 
     Args:
         stack: The full graphite stack (ordered from trunk to leaf)
@@ -42,7 +47,7 @@ def _filter_stack_for_worktree(
         all_worktree_branches: Mapping of all worktree paths to their checked-out branches
 
     Returns:
-        Filtered stack with descendant branches belonging to other worktrees removed
+        Filtered stack with only relevant branches
     """
     # Get the branch checked out in the current worktree
     current_branch = all_worktree_branches.get(current_worktree_path)
@@ -53,30 +58,26 @@ def _filter_stack_for_worktree(
     # Find the index of the current branch in the stack
     current_idx = stack.index(current_branch)
 
-    # Build a set of branches that are checked out in OTHER worktrees
-    other_worktree_branches = {
-        branch
-        for path, branch in all_worktree_branches.items()
-        if path != current_worktree_path and branch is not None
+    # Build a set of branches that are checked out in ANY worktree (including current)
+    all_checked_out_branches = {
+        branch for branch in all_worktree_branches.values() if branch is not None
     }
 
     # Filter the stack:
     # - Keep all ancestors (indices < current_idx) regardless of where they're checked out
     # - Keep the current branch
     # - For descendants (indices > current_idx):
-    #   - Stop at the first branch that's checked out in another worktree
-    #   - Keep all branches before that cutoff point
+    #   - Only keep if checked out in some worktree
     result = []
     for i, branch in enumerate(stack):
         if i <= current_idx:
             # Ancestors and current branch: always keep
             result.append(branch)
         else:
-            # Descendants: stop at first branch in another worktree
-            if branch in other_worktree_branches:
-                # Found a branch checked out elsewhere - stop here
-                break
-            result.append(branch)
+            # Descendants: only keep if checked out in some worktree
+            if branch in all_checked_out_branches:
+                result.append(branch)
+            # else: skip it (not checked out anywhere)
 
     return result
 

@@ -111,23 +111,25 @@ def test_list_with_stacks_flag() -> None:
 
         # Check ts worktree stack shows linear chain in reversed order
         # (descendants at top, trunk at bottom)
+        # Note: ts-phase-3 is NOT shown because it has no worktree
         assert "ts [schrockn/ts-phase-2]" in ts_section_text
-        assert "◯  schrockn/ts-phase-3" in ts_section_text
         assert "◉  schrockn/ts-phase-2" in ts_section_text
         assert "◯  schrockn/ts-phase-1" in ts_section_text
         assert "◯  main" in ts_section_text
 
+        # ts-phase-3 should NOT appear (no worktree for it)
+        assert "schrockn/ts-phase-3" not in ts_section_text
+
         # Verify sibling branch is NOT shown (regression test)
         assert "sibling-branch" not in output
 
-        # Verify order within ts section: phase-3 before phase-2, phase-2 before phase-1, etc.
+        # Verify order within ts section: phase-2 before phase-1, phase-1 before main
         # Use the marked versions to avoid matching the header
-        phase_3_idx = ts_section_text.index("◯  schrockn/ts-phase-3")
         phase_2_idx = ts_section_text.index("◉  schrockn/ts-phase-2")
         phase_1_idx = ts_section_text.index("◯  schrockn/ts-phase-1")
         main_in_stack_idx = ts_section_text.index("◯  main")
 
-        assert phase_3_idx < phase_2_idx < phase_1_idx < main_in_stack_idx
+        assert phase_2_idx < phase_1_idx < main_in_stack_idx
 
 
 def test_list_with_stacks_graphite_disabled() -> None:
@@ -384,29 +386,23 @@ def test_list_with_stacks_root_repo_does_not_duplicate_branch() -> None:
         # Should have header line with "root" as the name
         assert "root [master]" in lines[0]
 
-        # Verify the full stack is shown
-        assert "◯  foo" in output
+        # Only master should be shown (foo has no worktree)
         assert "◉  master" in output
+        assert "foo" not in output, (
+            f"foo should be hidden because it has no worktree. Output:\n{output}"
+        )
 
 
-def test_list_with_stacks_filters_branches_in_other_worktrees() -> None:
+def test_list_with_stacks_shows_descendants_with_worktrees() -> None:
     """
-    Regression test: Branches checked out in other worktrees should not appear in root's stack.
+    Descendants with worktrees should appear in the root's stack.
 
     When root is on master with stack [master, foo] and there's a foo worktree:
 
-    WRONG:
+    EXPECTED:
         root [master]
-          ◯  foo       <- foo shouldn't appear here
+          ◯  foo       <- foo SHOULD appear because it has a worktree
           ◉  master
-
-        foo [foo]
-          ◉  foo
-          ◯  master
-
-    CORRECT:
-        root [master]
-          ◉  master    <- only master shown, foo filtered out
 
         foo [foo]
           ◉  foo
@@ -487,12 +483,12 @@ def test_list_with_stacks_filters_branches_in_other_worktrees() -> None:
         # Get root section lines (from root header to foo header)
         root_section = lines[root_section_start:foo_section_start]
 
-        # Root section should ONLY show master, NOT foo
+        # Root section should show BOTH master and foo (foo has a worktree)
         root_section_text = "\n".join(root_section)
         assert "◉  master" in root_section_text, "Root should show master"
-        assert "foo" not in root_section_text, (
-            "Root section should NOT contain foo branch since it's checked out "
-            f"in a different worktree. Root section:\n{root_section_text}"
+        assert "◯  foo" in root_section_text, (
+            "Root section SHOULD contain foo branch since it's checked out "
+            f"in a worktree. Root section:\n{root_section_text}"
         )
 
         # Get foo section lines (from foo header to end)
@@ -502,3 +498,194 @@ def test_list_with_stacks_filters_branches_in_other_worktrees() -> None:
         # Foo section should show both foo (highlighted) and master
         assert "◉  foo" in foo_section_text, "Foo worktree should highlight foo branch"
         assert "◯  master" in foo_section_text, "Foo worktree should show master in stack"
+
+
+def test_list_with_stacks_hides_descendants_without_worktrees() -> None:
+    """
+    Descendants without worktrees should not appear in the stack.
+
+    When root is on main with stack [main, feature-1] but no worktree on feature-1:
+
+    EXPECTED:
+        root [main]
+          ◉  main       <- only main shown, feature-1 hidden (no worktree)
+    """
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        # Set up isolated environment
+        cwd = Path.cwd()
+        workstacks_root = cwd / "workstacks"
+
+        # Create git repo structure
+        git_dir = Path(".git")
+        git_dir.mkdir()
+
+        # Create graphite cache with main as parent of feature-1
+        graphite_cache = {
+            "branches": [
+                ["main", {"validationResult": "TRUNK", "children": ["feature-1"]}],
+                ["feature-1", {"parentBranchName": "main", "children": []}],
+            ]
+        }
+        (git_dir / ".graphite_cache_persist").write_text(json.dumps(graphite_cache))
+
+        # Build fake git ops - only root on main, NO worktree on feature-1
+        git_ops = FakeGitOps(
+            worktrees={
+                cwd: [
+                    WorktreeInfo(path=cwd, branch="main"),
+                ],
+            },
+            git_common_dirs={
+                cwd: git_dir,
+            },
+            current_branches={
+                cwd: "main",
+            },
+        )
+
+        # Build fake global config ops
+        global_config_ops = FakeGlobalConfigOps(
+            workstacks_root=workstacks_root,
+            use_graphite=True,
+        )
+
+        test_ctx = WorkstackContext(
+            git_ops=git_ops, global_config_ops=global_config_ops, dry_run=False
+        )
+
+        result = runner.invoke(cli, ["list", "--stacks"], obj=test_ctx)
+        assert result.exit_code == 0, result.output
+
+        # Strip ANSI codes for easier assertion
+        output = strip_ansi(result.output)
+        lines = output.strip().splitlines()
+
+        # Should only have root section
+        assert "root [main]" in output
+        assert "◉  main" in output
+
+        # feature-1 should NOT appear (no worktree for it)
+        assert "feature-1" not in output, (
+            f"feature-1 should be hidden because it has no worktree. Output:\n{output}"
+        )
+
+
+def test_list_with_stacks_shows_descendants_with_gaps() -> None:
+    """
+    Should show descendants with worktrees, skipping intermediate branches without worktrees.
+
+    Setup:
+        - Stack: main → f1 → f2 → f3
+        - Root on main
+        - Only worktree on f3 (no worktrees on f1, f2)
+
+    EXPECTED:
+        root [main]
+          ◯  f3         <- f3 shown (has worktree)
+          ◉  main       <- main shown (current branch)
+                         <- f1, f2 hidden (no worktrees)
+
+        f3 [f3]
+          ◉  f3
+          ◯  f2         <- ancestors always shown for context
+          ◯  f1
+          ◯  main
+    """
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        # Set up isolated environment
+        cwd = Path.cwd()
+        workstacks_root = cwd / "workstacks"
+
+        # Create git repo structure
+        git_dir = Path(".git")
+        git_dir.mkdir()
+
+        # Create graphite cache: main → f1 → f2 → f3
+        graphite_cache = {
+            "branches": [
+                ["main", {"validationResult": "TRUNK", "children": ["f1"]}],
+                ["f1", {"parentBranchName": "main", "children": ["f2"]}],
+                ["f2", {"parentBranchName": "f1", "children": ["f3"]}],
+                ["f3", {"parentBranchName": "f2", "children": []}],
+            ]
+        }
+        (git_dir / ".graphite_cache_persist").write_text(json.dumps(graphite_cache))
+
+        # Create f3 worktree
+        repo_name = cwd.name
+        work_dir = workstacks_root / repo_name
+        f3_worktree_dir = work_dir / "f3"
+        f3_worktree_dir.mkdir(parents=True)
+
+        # Build fake git ops - root on main, f3 worktree on f3
+        git_ops = FakeGitOps(
+            worktrees={
+                cwd: [
+                    WorktreeInfo(path=cwd, branch="main"),
+                    WorktreeInfo(path=f3_worktree_dir, branch="f3"),
+                ],
+            },
+            git_common_dirs={
+                cwd: git_dir,
+                f3_worktree_dir: git_dir,
+            },
+            current_branches={
+                cwd: "main",
+                f3_worktree_dir: "f3",
+            },
+        )
+
+        # Build fake global config ops
+        global_config_ops = FakeGlobalConfigOps(
+            workstacks_root=workstacks_root,
+            use_graphite=True,
+        )
+
+        test_ctx = WorkstackContext(
+            git_ops=git_ops, global_config_ops=global_config_ops, dry_run=False
+        )
+
+        result = runner.invoke(cli, ["list", "--stacks"], obj=test_ctx)
+        assert result.exit_code == 0, result.output
+
+        # Strip ANSI codes for easier assertion
+        output = strip_ansi(result.output)
+        lines = output.strip().splitlines()
+
+        # Find the root section and f3 section
+        root_section_start = None
+        f3_section_start = None
+        for i, line in enumerate(lines):
+            if "root [main]" in line:
+                root_section_start = i
+            if "f3 [f3]" in line:
+                f3_section_start = i
+
+        assert root_section_start is not None, "Should have root section"
+        assert f3_section_start is not None, "Should have f3 worktree section"
+
+        # Get root section lines (from root header to f3 header)
+        root_section = lines[root_section_start:f3_section_start]
+        root_section_text = "\n".join(root_section)
+
+        # Root section should show main and f3, but NOT f1 or f2
+        assert "◉  main" in root_section_text, "Root should show main"
+        assert "◯  f3" in root_section_text, "Root should show f3 (has worktree)"
+        assert "f1" not in root_section_text, (
+            f"Root should NOT show f1 (no worktree). Root section:\n{root_section_text}"
+        )
+        assert "f2" not in root_section_text, (
+            f"Root should NOT show f2 (no worktree). Root section:\n{root_section_text}"
+        )
+
+        # Get f3 section lines (from f3 header to end)
+        f3_section = lines[f3_section_start:]
+        f3_section_text = "\n".join(f3_section)
+
+        # f3 section should show entire stack (ancestors always shown)
+        assert "◉  f3" in f3_section_text, "f3 worktree should highlight f3"
+        assert "◯  f2" in f3_section_text, "f3 worktree should show f2 (ancestor)"
+        assert "◯  f1" in f3_section_text, "f3 worktree should show f1 (ancestor)"
+        assert "◯  main" in f3_section_text, "f3 worktree should show main (ancestor)"
