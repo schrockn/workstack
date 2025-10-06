@@ -191,3 +191,83 @@ def test_list_includes_root(tmp_path: Path) -> None:
     assert "[main]" in lines[0]
     # Should also show the worktree
     assert any("myfeature" in line for line in lines)
+
+
+def test_complete_worktree_names_without_context(tmp_path: Path, monkeypatch: object) -> None:
+    """Test completion function works even when Click context obj is None.
+
+    This simulates the shell completion scenario where the CLI group callback
+    hasn't run yet, so ctx.obj is None.
+    """
+    import click
+
+    from workstack.cli import cli
+    from workstack.commands.switch import complete_worktree_names
+    from workstack.context import WorkstackContext
+    from workstack.gitops import RealGitOps
+    from workstack.global_config_ops import RealGlobalConfigOps
+
+    # Set up isolated global config
+    global_config_dir = tmp_path / ".workstack"
+    global_config_dir.mkdir()
+    workstacks_root = tmp_path / "workstacks"
+    (global_config_dir / "config.toml").write_text(
+        f'workstacks_root = "{workstacks_root}"\nuse_graphite = false\n'
+    )
+
+    # Set up a fake git repo
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    subprocess.run(["git", "init"], cwd=repo, check=True, capture_output=True)
+    subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=repo, check=True)
+    subprocess.run(["git", "config", "user.name", "Test User"], cwd=repo, check=True)
+
+    # Create initial commit
+    (repo / "README.md").write_text("test")
+    subprocess.run(["git", "add", "."], cwd=repo, check=True, capture_output=True)
+    subprocess.run(["git", "commit", "-m", "Initial"], cwd=repo, check=True, capture_output=True)
+
+    # Create worktrees
+    env = os.environ.copy()
+    env["HOME"] = str(tmp_path)
+    for name in ["feature-a", "feature-b", "bugfix-123"]:
+        subprocess.run(
+            ["uv", "run", "workstack", "create", name, "--no-post"],
+            cwd=repo,
+            capture_output=True,
+            env=env,
+        )
+
+    # Mock create_context to use test environment
+    def mock_create_context() -> WorkstackContext:
+        return WorkstackContext(git_ops=RealGitOps(), global_config_ops=RealGlobalConfigOps())
+
+    # Patch Path.home() to return tmp_path so config loading uses test config
+    monkeypatch.setattr("pathlib.Path.home", lambda: tmp_path)
+
+    # Create a mock Click context with NO obj (simulates shell completion scenario)
+    ctx = click.Context(cli)
+    ctx.obj = None  # This is the critical test condition
+
+    # Change to repo directory for completion
+    original_cwd = os.getcwd()
+    try:
+        os.chdir(repo)
+
+        # Call completion function
+        completions = complete_worktree_names(ctx, None, "")
+
+        # Should return worktree names even without ctx.obj
+        assert "root" in completions
+        assert "feature-a" in completions
+        assert "feature-b" in completions
+        assert "bugfix-123" in completions
+
+        # Test filtering by prefix
+        completions = complete_worktree_names(ctx, None, "feat")
+        assert "feature-a" in completions
+        assert "feature-b" in completions
+        assert "bugfix-123" not in completions
+
+    finally:
+        os.chdir(original_cwd)
