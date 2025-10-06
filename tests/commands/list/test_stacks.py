@@ -738,3 +738,52 @@ def test_list_with_stacks_shows_descendants_with_gaps() -> None:
         assert "◯  f2" in f3_section_text, "f3 worktree should show f2 (ancestor)"
         assert "◯  f1" in f3_section_text, "f3 worktree should show f1 (ancestor)"
         assert "◯  main" in f3_section_text, "f3 worktree should show main (ancestor)"
+
+
+def test_list_with_stacks_corrupted_cache() -> None:
+    """Corrupted graphite cache should fail fast with JSONDecodeError.
+
+    Per CLAUDE.md fail-fast philosophy: corrupted cache indicates systemic issues
+    (CI failure, data corruption, etc.) that should be fixed at the source rather
+    than masked with exception handling.
+    """
+    import pytest
+
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        # Set up isolated environment
+        cwd = Path.cwd()
+        workstacks_root = cwd / "workstacks"
+
+        # Create git repo structure
+        git_dir = Path(".git")
+        git_dir.mkdir()
+
+        # Write corrupted JSON to cache file
+        (git_dir / ".graphite_cache_persist").write_text("{ invalid json }")
+
+        # Build fake git ops
+        git_ops = FakeGitOps(
+            worktrees={cwd: [WorktreeInfo(path=cwd, branch="main")]},
+            git_common_dirs={cwd: git_dir},
+        )
+
+        # Build fake global config ops
+        global_config_ops = FakeGlobalConfigOps(
+            workstacks_root=workstacks_root,
+            use_graphite=True,
+        )
+
+        graphite_ops = FakeGraphiteOps()
+
+        test_ctx = WorkstackContext(
+            git_ops=git_ops,
+            global_config_ops=global_config_ops,
+            graphite_ops=graphite_ops,
+            github_ops=FakeGithubOps(),
+            dry_run=False,
+        )
+
+        # Should raise json.JSONDecodeError (fail-fast behavior)
+        with pytest.raises(json.JSONDecodeError):
+            runner.invoke(cli, ["list", "--stacks"], obj=test_ctx, catch_exceptions=False)
