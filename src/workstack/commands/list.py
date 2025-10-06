@@ -81,6 +81,35 @@ def _filter_stack_for_worktree(
     return result
 
 
+def _display_branch_stack(
+    ctx: WorkstackContext,
+    repo_root: Path,
+    worktree_path: Path,
+    branch: str,
+    all_branches: dict[Path, str | None],
+) -> None:
+    """Display the graphite stack for a worktree.
+
+    Shows branches with markers indicating which is currently checked out.
+    """
+    stack = get_branch_stack(ctx, repo_root, branch)
+    if not stack:
+        return
+
+    filtered_stack = _filter_stack_for_worktree(stack, worktree_path, all_branches)
+    if not filtered_stack:
+        return
+
+    # Determine which branch to highlight
+    actual_branch = ctx.git_ops.get_current_branch(worktree_path)
+    highlight_branch = actual_branch if actual_branch else branch
+
+    # Display stack with markers
+    for branch_name in reversed(filtered_stack):
+        marker = "◉" if branch_name == highlight_branch else "◯"
+        click.echo(f"  {marker}  {branch_name}")
+
+
 def _list_worktrees(ctx: WorkstackContext, show_stacks: bool = False) -> None:
     """Internal function to list worktrees."""
     repo = discover_repo_context(ctx, Path.cwd())
@@ -104,18 +133,7 @@ def _list_worktrees(ctx: WorkstackContext, show_stacks: bool = False) -> None:
     click.echo(_format_worktree_line("root", root_branch, is_root=True))
 
     if show_stacks and root_branch:
-        stack = get_branch_stack(ctx, repo.root, root_branch)
-        if stack:
-            # Filter stack to exclude branches checked out in other worktrees
-            filtered_stack = _filter_stack_for_worktree(stack, repo.root, branches)
-            if filtered_stack:
-                # Get the actual checked-out branch in the root directory
-                actual_branch = ctx.git_ops.get_current_branch(repo.root)
-                # Use the actual checked-out branch for highlighting, fall back to registered branch
-                highlight_branch = actual_branch if actual_branch else root_branch
-                for branch in reversed(filtered_stack):
-                    marker = "◉" if branch == highlight_branch else "◯"
-                    click.echo(f"  {marker}  {branch}")
+        _display_branch_stack(ctx, repo.root, repo.root, root_branch, branches)
 
     # Show worktrees
     work_dir = ensure_work_dir(repo)
@@ -141,21 +159,7 @@ def _list_worktrees(ctx: WorkstackContext, show_stacks: bool = False) -> None:
         click.echo(_format_worktree_line(name, wt_branch, is_root=False))
 
         if show_stacks and wt_branch and wt_path:
-            stack = get_branch_stack(ctx, repo.root, wt_branch)
-            if stack:
-                # Filter stack to exclude branches checked out in other worktrees
-                filtered_stack = _filter_stack_for_worktree(stack, wt_path, branches)
-                if filtered_stack:
-                    # Get the actual checked-out branch in this worktree directory
-                    # This may differ from wt_branch if someone did git checkout
-                    # after creating the worktree
-                    actual_branch = ctx.git_ops.get_current_branch(wt_path)
-                    # Use the actual checked-out branch for highlighting,
-                    # fall back to registered branch
-                    highlight_branch = actual_branch if actual_branch else wt_branch
-                    for branch in reversed(filtered_stack):
-                        marker = "◉" if branch == highlight_branch else "◯"
-                        click.echo(f"  {marker}  {branch}")
+            _display_branch_stack(ctx, repo.root, wt_path, wt_branch, branches)
 
 
 @click.command("list")

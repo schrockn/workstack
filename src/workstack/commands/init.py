@@ -89,6 +89,33 @@ def render_config_template(preset: str | None = None) -> str:
     return preset_file.read_text(encoding="utf-8")
 
 
+def _add_gitignore_entry(content: str, entry: str, prompt_message: str) -> tuple[str, bool]:
+    """Add an entry to gitignore content if not present and user confirms.
+
+    Args:
+        content: Current gitignore content
+        entry: Entry to add (e.g., ".PLAN.md")
+        prompt_message: Message to show user when confirming
+
+    Returns:
+        Tuple of (updated_content, was_modified)
+    """
+    # Entry already present
+    if entry in content:
+        return (content, False)
+
+    # User declined
+    if not click.confirm(prompt_message, default=True):
+        return (content, False)
+
+    # Ensure trailing newline before adding
+    if not content.endswith("\n"):
+        content += "\n"
+
+    content += f"{entry}\n"
+    return (content, True)
+
+
 def detect_shell() -> tuple[str, Path] | None:
     """Detect current shell and return (shell_name, rc_file_path).
 
@@ -310,31 +337,31 @@ def init_cmd(
 
     # Check for .gitignore and add .PLAN.md and .env
     gitignore_path = repo_context.root / ".gitignore"
-    if gitignore_path.exists():
+    if not gitignore_path.exists():
+        # Early return: no gitignore file
+        pass
+    else:
         gitignore_content = gitignore_path.read_text(encoding="utf-8")
-        needs_update = False
+        modified = False
 
-        if ".PLAN.md" not in gitignore_content:
-            if click.confirm(
-                "Add .PLAN.md to .gitignore?",
-                default=True,
-            ):
-                if not gitignore_content.endswith("\n"):
-                    gitignore_content += "\n"
-                gitignore_content += ".PLAN.md\n"
-                needs_update = True
+        # Add .PLAN.md
+        gitignore_content, plan_added = _add_gitignore_entry(
+            gitignore_content,
+            ".PLAN.md",
+            "Add .PLAN.md to .gitignore?",
+        )
+        modified = modified or plan_added
 
-        if ".env" not in gitignore_content:
-            if click.confirm(
-                "Add .env to .gitignore?",
-                default=True,
-            ):
-                if not gitignore_content.endswith("\n"):
-                    gitignore_content += "\n"
-                gitignore_content += ".env\n"
-                needs_update = True
+        # Add .env
+        gitignore_content, env_added = _add_gitignore_entry(
+            gitignore_content,
+            ".env",
+            "Add .env to .gitignore?",
+        )
+        modified = modified or env_added
 
-        if needs_update:
+        # Write if modified
+        if modified:
             gitignore_path.write_text(gitignore_content, encoding="utf-8")
             click.echo(f"Updated {gitignore_path}")
 

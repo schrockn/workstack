@@ -127,9 +127,10 @@ class RealGitOps(GitOps):
                 current_path = Path(line.split(maxsplit=1)[1])
                 current_branch = None
             elif line.startswith("branch "):
-                if current_path is not None:
-                    branch_ref = line.split(maxsplit=1)[1]
-                    current_branch = branch_ref.replace("refs/heads/", "")
+                if current_path is None:
+                    continue
+                branch_ref = line.split(maxsplit=1)[1]
+                current_branch = branch_ref.replace("refs/heads/", "")
             elif line == "" and current_path is not None:
                 worktrees.append(WorktreeInfo(path=current_path, branch=current_branch))
                 current_path = None

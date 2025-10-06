@@ -34,10 +34,12 @@ def discover_repo_context(ctx: WorkstackContext, start: Path) -> RepoContext:
     else:
         for parent in [cur, *cur.parents]:
             git_path = parent / ".git"
-            if git_path.exists():
-                if git_path.is_dir():
-                    root = parent
-                    break
+            if not git_path.exists():
+                continue
+
+            if git_path.is_dir():
+                root = parent
+                break
 
     if root is None:
         raise FileNotFoundError("Not inside a git repository (no .git found up the tree).")
