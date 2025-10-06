@@ -4,6 +4,7 @@ from pathlib import Path
 import click
 
 from workstack.config import GLOBAL_CONFIG_PATH, load_config, load_global_config
+from workstack.context import WorkstackContext
 from workstack.core import discover_repo_context, ensure_work_dir
 
 
@@ -13,7 +14,8 @@ def config_group() -> None:
 
 
 @config_group.command("list")
-def config_list() -> None:
+@click.pass_obj
+def config_list(ctx: WorkstackContext) -> None:
     """Print a list of configuration keys and values."""
     # Try to load global config
     global_config = None
@@ -28,7 +30,7 @@ def config_list() -> None:
 
     # Try to load repo config
     try:
-        repo = discover_repo_context(Path.cwd())
+        repo = discover_repo_context(Path.cwd(), ctx)
         work_dir = ensure_work_dir(repo)
         cfg = load_config(work_dir)
 
@@ -50,7 +52,8 @@ def config_list() -> None:
 
 @config_group.command("get")
 @click.argument("key", metavar="KEY")
-def config_get(key: str) -> None:
+@click.pass_obj
+def config_get(ctx: WorkstackContext, key: str) -> None:
     """Print the value of a given configuration key."""
     # Parse key into parts
     parts = key.split(".")
@@ -70,7 +73,7 @@ def config_get(key: str) -> None:
 
     # Handle repo config keys
     try:
-        repo = discover_repo_context(Path.cwd())
+        repo = discover_repo_context(Path.cwd(), ctx)
         work_dir = ensure_work_dir(repo)
         cfg = load_config(work_dir)
 

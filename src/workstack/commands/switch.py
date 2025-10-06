@@ -2,6 +2,7 @@ from pathlib import Path
 
 import click
 
+from workstack.context import WorkstackContext
 from workstack.core import discover_repo_context, ensure_work_dir, worktree_path_for
 
 
@@ -54,7 +55,12 @@ def complete_worktree_names(
     we return an empty list rather than breaking the user's shell experience.
     """
     try:
-        repo = discover_repo_context(Path.cwd())
+        # Get WorkstackContext from click.Context.obj
+        workstack_ctx = ctx.obj if isinstance(ctx.obj, WorkstackContext) else ctx.find_root().obj
+        if not isinstance(workstack_ctx, WorkstackContext):
+            return []
+
+        repo = discover_repo_context(Path.cwd(), workstack_ctx)
         work_dir = repo.work_dir
 
         # Include 'root' for root repo
@@ -79,7 +85,8 @@ def complete_worktree_names(
 @click.option(
     "--script", is_flag=True, help="Print only the activation script without usage instructions."
 )
-def switch_cmd(name: str, script: bool) -> None:
+@click.pass_obj
+def switch_cmd(ctx: WorkstackContext, name: str, script: bool) -> None:
     """Switch to a worktree and activate its environment.
 
     With shell integration (recommended):
@@ -95,7 +102,7 @@ def switch_cmd(name: str, script: bool) -> None:
     This will cd to the worktree, create/activate .venv, and load .env variables.
     """
 
-    repo = discover_repo_context(Path.cwd())
+    repo = discover_repo_context(Path.cwd(), ctx)
 
     # Check if name refers to 'root' which means root repo
     if name == "root":

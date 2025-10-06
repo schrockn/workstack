@@ -7,6 +7,7 @@ from pathlib import Path
 import click
 
 from workstack.config import GLOBAL_CONFIG_PATH, load_global_config
+from workstack.context import WorkstackContext
 from workstack.core import discover_repo_context, ensure_work_dir
 
 
@@ -245,7 +246,10 @@ def perform_shell_setup() -> bool:
     is_flag=True,
     help="Set up shell integration only (completion + auto-activation wrapper).",
 )
-def init_cmd(force: bool, preset: str, list_presets: bool, repo: bool, shell: bool) -> None:
+@click.pass_obj
+def init_cmd(
+    ctx: WorkstackContext, force: bool, preset: str, list_presets: bool, repo: bool, shell: bool
+) -> None:
     """Initialize workstack for this repo and scaffold config.toml."""
 
     # Handle --shell flag: only do shell setup
@@ -298,7 +302,7 @@ def init_cmd(force: bool, preset: str, list_presets: bool, repo: bool, shell: bo
         raise SystemExit(1)
 
     # Now proceed with repo-specific setup
-    repo_context = discover_repo_context(Path.cwd())
+    repo_context = discover_repo_context(Path.cwd(), ctx)
 
     # Determine config path based on --repo flag
     if repo:
