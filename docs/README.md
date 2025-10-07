@@ -8,13 +8,13 @@
 
 Choose your starting point based on your task:
 
-| Your Task | Start Here |
-|-----------|------------|
-| **First time working on workstack** | [../CLAUDE.md](../CLAUDE.md) - Core coding standards |
-| **Need code examples** | [PATTERNS.md](PATTERNS.md) - Code patterns and examples |
-| **Working with exceptions** | [EXCEPTION_HANDLING.md](EXCEPTION_HANDLING.md) - Exception handling guide |
-| **Writing tests** | [../tests/CLAUDE.md](../tests/CLAUDE.md) - Testing patterns |
-| **Project overview** | [../README.md](../README.md) - Getting started |
+| Your Task                           | Start Here                                                                |
+| ----------------------------------- | ------------------------------------------------------------------------- |
+| **First time working on workstack** | [../CLAUDE.md](../CLAUDE.md) - Core coding standards                      |
+| **Need code examples**              | [PATTERNS.md](PATTERNS.md) - Code patterns and examples                   |
+| **Working with exceptions**         | [EXCEPTION_HANDLING.md](EXCEPTION_HANDLING.md) - Exception handling guide |
+| **Writing tests**                   | [../tests/CLAUDE.md](../tests/CLAUDE.md) - Testing patterns               |
+| **Project overview**                | [../README.md](../README.md) - Getting started                            |
 
 ---
 
@@ -23,6 +23,7 @@ Choose your starting point based on your task:
 ### 📋 Core Standards (Start here)
 
 **[../CLAUDE.md](../CLAUDE.md)** - Coding standards and rules
+
 - Core rules (type annotations, imports, exception handling, etc.)
 - Quick reference table to all other docs
 - Design principles
@@ -30,6 +31,7 @@ Choose your starting point based on your task:
 ### 📖 Detailed References
 
 **[PATTERNS.md](PATTERNS.md)** - Code patterns and examples
+
 - Type annotations examples
 - Dependency injection pattern
 - Import organization examples
@@ -38,6 +40,7 @@ Choose your starting point based on your task:
 - Resource management
 
 **[EXCEPTION_HANDLING.md](EXCEPTION_HANDLING.md)** - Complete exception handling guide
+
 - LBYL vs EAFP patterns
 - Critical enforcement rules
 - Acceptable uses of exception handling
@@ -47,6 +50,7 @@ Choose your starting point based on your task:
 ### 🧪 Testing
 
 **[../tests/CLAUDE.md](../tests/CLAUDE.md)** - Testing patterns and practices
+
 - Unit tests with fakes
 - Integration tests with real implementations
 - Testing patterns
@@ -76,6 +80,7 @@ Choose your starting point based on your task:
 ### Typical Workflows
 
 **1. First-time contributor:**
+
 ```
 CLAUDE.md (core rules)
   └─> PATTERNS.md (see examples)
@@ -83,6 +88,7 @@ CLAUDE.md (core rules)
 ```
 
 **2. Working with exceptions:**
+
 ```
 CLAUDE.md#exception-handling (rules)
   └─> EXCEPTION_HANDLING.md (complete guide)
@@ -90,6 +96,7 @@ CLAUDE.md#exception-handling (rules)
 ```
 
 **3. Understanding a pattern:**
+
 ```
 CLAUDE.md (read rule)
   └─> PATTERNS.md#specific-pattern (see example)
@@ -100,6 +107,7 @@ CLAUDE.md (read rule)
 ## Quick Links
 
 ### Most Referenced Documents
+
 1. [../CLAUDE.md](../CLAUDE.md) - Core standards (read first!)
 2. [PATTERNS.md](PATTERNS.md) - Code examples
 3. [EXCEPTION_HANDLING.md](EXCEPTION_HANDLING.md) - Exception guide
@@ -108,11 +116,13 @@ CLAUDE.md (read rule)
 ### By Topic
 
 **Writing code:**
+
 - [../CLAUDE.md](../CLAUDE.md) - Coding standards
 - [PATTERNS.md](PATTERNS.md) - Examples
 - [EXCEPTION_HANDLING.md](EXCEPTION_HANDLING.md) - Exception rules
 
 **Testing:**
+
 - [../tests/CLAUDE.md](../tests/CLAUDE.md) - Testing patterns
 
 ---
@@ -131,6 +141,7 @@ When making changes to the codebase:
 ### Review Checklist
 
 During code review, verify:
+
 - [ ] Examples in PATTERNS.md still compile and follow current patterns
 - [ ] EXCEPTION_HANDLING.md reflects current exception handling approach
 - [ ] tests/CLAUDE.md matches current testing practices

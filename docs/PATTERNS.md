@@ -579,25 +579,52 @@ See also:
 
 ## Function Arguments
 
-### Default Arguments Anti-Pattern
+### Avoiding Default Arguments
 
-**NEVER use default arguments without comments:**
+**STRONGLY PREFER: No default arguments - force explicit values at call sites:**
+
+```python
+# ✅ BEST: No defaults - explicit at every call site
+def process_data(data, format):
+    """Process data in the specified format.
+
+    Args:
+        data: The data to process
+        format: Format to use (e.g., "json", "xml"). Use None for auto-detection.
+    """
+    if format is None:
+        format = detect_format(data)
+    ...
+
+# All call sites are explicit
+process_data(data, format="json")
+process_data(data, format="xml")
+process_data(data, format=None)  # Explicitly choosing auto-detection
+```
+
+**Why avoid defaults:**
+
+- Prevents entire class of errors from implicit behavior
+- Makes intent clear at every call site
+- No ambiguity about what value is being used
+- Easier to refactor - all call sites are explicit
+
+**ACCEPTABLE: Default arguments with explanatory comments:**
+
+Only use default arguments when they significantly improve API ergonomics, and always document why:
 
 ```python
 # ❌ BAD: Unclear why None is the default
 def process_data(data, format=None):
     pass
 
-# ✅ GOOD: Comment explains the default behavior
+# ✅ ACCEPTABLE: Comment explains why the default is appropriate
 def process_data(data, format=None):
     # format=None defaults to auto-detection based on file extension
+    # This is the most common use case (80% of calls) and reduces boilerplate
     if format is None:
         format = detect_format(data)
     ...
-
-# ✅ PREFERRED: Explicit parameter passing at call sites
-process_data(data, format="json")
-process_data(data, format=None)  # Explicitly choosing auto-detection
 ```
 
 ---

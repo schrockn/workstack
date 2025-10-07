@@ -180,9 +180,10 @@ Within each group, imports should be alphabetically sorted.
 
 ### Function Arguments
 
-- **NEVER use default arguments** unless there is a nearby comment explaining why the default is appropriate
-- **Always be explicit about parameter values** - avoid relying on implicit defaults that may not be obvious to readers
-- **Exception**: Default arguments are acceptable when accompanied by a comment that explains the rationale for the default value
+- **STRONGLY PREFER: No default arguments** - Force explicit values at all call sites to prevent entire class of errors
+- **Always be explicit about parameter values** - Make intent clear at every call site
+- **Exception**: Default arguments are acceptable when they significantly improve API ergonomics AND are accompanied by a comment explaining why the default is appropriate
+- **Rationale**: Explicit call sites prevent ambiguity, make refactoring easier, and avoid implicit behavior bugs
 
 **Examples**: [docs/PATTERNS.md#function-arguments](docs/PATTERNS.md#function-arguments)
 
