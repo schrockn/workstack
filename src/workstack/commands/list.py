@@ -205,10 +205,8 @@ def _format_pr_info(
         # Open PR with no checks
         emoji = "◯"
 
-    # Try to get Graphite URL first, fall back to GitHub URL
-    url = ctx.graphite_ops.get_graphite_url(repo_root, branch, pr.number)
-    if url is None:
-        url = pr.url
+    # Get Graphite URL (always available since we have owner/repo from GitHub)
+    url = ctx.graphite_ops.get_graphite_url(pr.owner, pr.repo, pr.number)
 
     # Format as clickable link using OSC 8 terminal escape sequence
     # Format: \033]8;;URL\033\\TEXT\033]8;;\033\\

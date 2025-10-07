@@ -19,22 +19,19 @@ class FakeGraphiteOps(GraphiteOps):
     def __init__(
         self,
         *,
-        graphite_urls: dict[str, str] | None = None,
         sync_raises: Exception | None = None,
     ) -> None:
         """Create FakeGraphiteOps with pre-configured state.
 
         Args:
-            graphite_urls: Mapping of branch name -> Graphite PR URL
             sync_raises: Exception to raise when sync() is called (for testing error cases)
         """
-        self._graphite_urls = graphite_urls or {}
         self._sync_raises = sync_raises
         self._sync_calls: list[tuple[Path, bool]] = []
 
-    def get_graphite_url(self, repo_root: Path, branch: str, pr_number: int) -> str | None:
-        """Get Graphite PR URL (returns pre-configured data)."""
-        return self._graphite_urls.get(branch)
+    def get_graphite_url(self, owner: str, repo: str, pr_number: int) -> str:
+        """Get Graphite PR URL (constructs URL directly)."""
+        return f"https://app.graphite.dev/github/pr/{owner}/{repo}/{pr_number}"
 
     def sync(self, repo_root: Path, *, force: bool) -> None:
         """Fake sync operation.

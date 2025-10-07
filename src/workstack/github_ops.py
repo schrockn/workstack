@@ -10,10 +10,30 @@ Architecture:
 """
 
 import json
+import re
 import subprocess
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
+
+
+def _parse_github_pr_url(url: str) -> tuple[str, str] | None:
+    """Parse owner and repo from GitHub PR URL.
+
+    Args:
+        url: GitHub PR URL (e.g., "https://github.com/owner/repo/pull/123")
+
+    Returns:
+        Tuple of (owner, repo) or None if URL doesn't match expected pattern
+
+    Example:
+        >>> _parse_github_pr_url("https://github.com/schrockn/workstack/pull/23")
+        ("schrockn", "workstack")
+    """
+    match = re.match(r"https://github\.com/([^/]+)/([^/]+)/pull/\d+", url)
+    if match:
+        return (match.group(1), match.group(2))
+    return None
 
 
 @dataclass(frozen=True)
@@ -25,6 +45,8 @@ class PullRequestInfo:
     url: str
     is_draft: bool
     checks_passing: bool | None  # None if no checks, True if all pass, False if any fail
+    owner: str  # GitHub repo owner (e.g., "schrockn")
+    repo: str  # GitHub repo name (e.g., "workstack")
 
 
 class GitHubOps(ABC):
@@ -101,12 +123,22 @@ class RealGitHubOps(GitHubOps):
                 branch = pr["headRefName"]
                 checks_passing = self._determine_checks_status(pr.get("statusCheckRollup", []))
 
+                # Parse owner and repo from GitHub URL
+                url = pr["url"]
+                parsed = _parse_github_pr_url(url)
+                if parsed is None:
+                    # Skip PRs with malformed URLs (shouldn't happen in practice)
+                    continue
+                owner, repo = parsed
+
                 prs[branch] = PullRequestInfo(
                     number=pr["number"],
                     state=pr["state"],
-                    url=pr["url"],
+                    url=url,
                     is_draft=pr["isDraft"],
                     checks_passing=checks_passing,
+                    owner=owner,
+                    repo=repo,
                 )
 
             return prs
