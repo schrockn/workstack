@@ -24,6 +24,7 @@ git diff <base>...HEAD
 ### 2. Find All Documentation Files
 
 Use Glob to find all markdown files:
+
 - `CLAUDE.md`
 - `README.md`
 - `AGENTS.md`
@@ -37,6 +38,7 @@ Use Glob to find all markdown files:
 Look for **significant changes** that would affect documentation:
 
 **High-Signal Changes:**
+
 - **Function/method signatures**: Parameter additions, removals, renames, type changes
 - **Class/interface definitions**: New classes, removed classes, renamed classes
 - **CLI commands**: New Click commands, changed options, removed commands
@@ -45,6 +47,7 @@ Look for **significant changes** that would affect documentation:
 - **Removed code**: Deleted functions, classes, or modules that may be documented
 
 **Ignore (Low-Signal):**
+
 - Pure refactoring with no behavioral changes
 - Internal implementation details not exposed in documentation
 - Code comments (unless they contradict documentation)
@@ -54,6 +57,7 @@ Look for **significant changes** that would affect documentation:
 ### 4. Cross-Reference Documentation
 
 For each documentation file:
+
 1. Read the content using the Read tool
 2. Check if the documentation mentions any of the changed code elements:
    - Exact function/class names from the diff
@@ -89,19 +93,23 @@ Provide a clear, actionable report:
 ## Documentation Review for Current Branch
 
 ### Summary
+
 [Brief overview: X files need updates / No updates needed]
 
 ### Files Requiring Updates
 
 #### CLAUDE.md
+
 - **Impact**: CRITICAL
 - **Line**: 145-150
 - **Issue**: Documents `create_worktree()` function with old signature
 - **Code Change**: Function now requires `branch: str | None` parameter (was `branch: str`)
 - **Current Documentation**:
-  ```
-  create_worktree(name, path)
-  ```
+```
+
+create_worktree(name, path)
+
+```
 - **Required Update**: Add the `branch` parameter with correct type annotation
 
 #### README.md
@@ -134,13 +142,16 @@ The following documentation files were checked and are up-to-date:
 ## Example Detections
 
 ### Example 1: Function Signature Change
+
 **Diff shows**:
+
 ```python
 -def create(name: str) -> None:
 +def create(name: str, branch: str | None = None) -> None:
 ```
 
 **Documentation shows**:
+
 ```markdown
 Call `create("feature")` to create a worktree.
 ```
@@ -148,7 +159,9 @@ Call `create("feature")` to create a worktree.
 **Finding**: HIGH severity - function signature changed, documentation shows old usage
 
 ### Example 2: CLI Option Added
+
 **Diff shows**:
+
 ```python
 +@click.option("--dry-run", is_flag=True, help="Show what would be done")
 ```
@@ -158,13 +171,16 @@ Call `create("feature")` to create a worktree.
 **Finding**: MEDIUM severity - new feature not documented
 
 ### Example 3: Configuration Key Renamed
+
 **Diff shows**:
+
 ```python
 -config["timeout_ms"]
 +config["timeoutMs"]
 ```
 
 **Documentation shows**:
+
 ```toml
 timeout_ms = 5000
 ```
