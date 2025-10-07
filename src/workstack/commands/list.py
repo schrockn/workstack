@@ -45,16 +45,16 @@ def _filter_stack_for_worktree(
     """Filter a graphite stack to only show branches relevant to the current worktree.
 
     When displaying a stack for a specific worktree, we want to show:
-    1. The current branch checked out in this worktree
-    2. All ancestor branches (going down to trunk) - provides context
-    3. Descendant branches ONLY if they're checked out in some worktree
-    4. Exception: If current branch is trunk (e.g., main), show ONLY the trunk itself
+    1. If current branch is trunk (e.g., main): Show ONLY the trunk itself
+    2. If current branch is NOT trunk:
+       a. The current branch checked out in this worktree
+       b. All ancestor branches (going down to trunk) - provides context
+       c. Descendant branches ONLY if they're checked out in some worktree
 
     This ensures that:
+    - Trunk worktrees show only the trunk (descendants appear in their own sections)
+    - Non-trunk worktrees show full context (ancestors) and active descendants
     - Branches without active worktrees don't clutter the display
-    - Ancestor context is preserved (even if ancestors aren't checked out)
-    - Only "active" descendants (with worktrees) appear
-    - Trunk branches don't show unrelated child branches
 
     Example:
         Stack: [main, foo, bar, baz]
@@ -90,8 +90,7 @@ def _filter_stack_for_worktree(
 
     # Filter the stack:
     # - If current branch is trunk:
-    #   - Keep the trunk itself
-    #   - Keep descendants ONLY if they're checked out in some worktree
+    #   - Keep ONLY the trunk itself (descendants appear in their own worktree sections)
     # - If current branch is not trunk:
     #   - Keep all ancestors (indices < current_idx) regardless of where they're checked out
     #   - Keep the current branch
@@ -100,14 +99,11 @@ def _filter_stack_for_worktree(
     result = []
     for i, branch in enumerate(stack):
         if is_trunk:
-            # Trunk case: show trunk + descendants with worktrees
+            # Trunk case: show only the trunk itself
             if i == current_idx:
                 # Always show the trunk itself
                 result.append(branch)
-            elif i > current_idx and branch in all_checked_out_branches:
-                # Show descendants that have worktrees
-                result.append(branch)
-            # else: skip ancestors (shouldn't exist for trunk) and descendants without worktrees
+            # else: skip all other branches (descendants will appear in their own worktree sections)
         else:
             # Non-trunk case: show ancestors + current + descendants with worktrees
             if i <= current_idx:
