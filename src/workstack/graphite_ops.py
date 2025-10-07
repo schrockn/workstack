@@ -8,7 +8,6 @@ Architecture:
 - RealGraphiteOps: Production implementation using gt CLI
 """
 
-import re
 import subprocess
 from abc import ABC, abstractmethod
 from pathlib import Path
@@ -21,16 +20,16 @@ class GraphiteOps(ABC):
     """
 
     @abstractmethod
-    def get_graphite_url(self, repo_root: Path, branch: str, pr_number: int) -> str | None:
-        """Get Graphite PR URL for a branch.
+    def get_graphite_url(self, owner: str, repo: str, pr_number: int) -> str:
+        """Get Graphite PR URL for a pull request.
 
         Args:
-            repo_root: Repository root directory
-            branch: Branch name
+            owner: GitHub repository owner (e.g., "schrockn")
+            repo: GitHub repository name (e.g., "workstack")
             pr_number: GitHub PR number
 
         Returns:
-            Graphite PR URL if available, None otherwise
+            Graphite PR URL (e.g., "https://app.graphite.dev/github/pr/schrockn/workstack/23")
         """
         ...
 
@@ -51,32 +50,21 @@ class RealGraphiteOps(GraphiteOps):
     All Graphite operations execute actual gt commands via subprocess.
     """
 
-    def get_graphite_url(self, repo_root: Path, branch: str, pr_number: int) -> str | None:
-        """Get Graphite PR URL for a branch.
+    def get_graphite_url(self, owner: str, repo: str, pr_number: int) -> str:
+        """Get Graphite PR URL for a pull request.
 
-        Note: Uses try/except as an acceptable error boundary for handling gt CLI
-        availability. We cannot reliably check gt installation status a priori.
+        Constructs the Graphite URL directly from GitHub repo information.
+        No subprocess calls or external dependencies required.
+
+        Args:
+            owner: GitHub repository owner (e.g., "schrockn")
+            repo: GitHub repository name (e.g., "workstack")
+            pr_number: GitHub PR number
+
+        Returns:
+            Graphite PR URL (e.g., "https://app.graphite.dev/github/pr/schrockn/workstack/23")
         """
-        try:
-            result = subprocess.run(
-                ["gt", "branch", "info", branch],
-                cwd=repo_root,
-                capture_output=True,
-                text=True,
-                check=True,
-            )
-
-            # Parse output for Graphite URL
-            # Expected format: "https://app.graphite.dev/github/pr/owner/repo/NUMBER"
-            match = re.search(r"https://app\.graphite\.dev/github/pr/[^\s]+", result.stdout)
-            if match:
-                return match.group(0)
-
-            return None
-
-        except (subprocess.CalledProcessError, FileNotFoundError):
-            # gt not installed or branch not in Graphite
-            return None
+        return f"https://app.graphite.dev/github/pr/{owner}/{repo}/{pr_number}"
 
     def sync(self, repo_root: Path, *, force: bool) -> None:
         """Run gt sync to synchronize with remote.
@@ -119,9 +107,9 @@ class DryRunGraphiteOps(GraphiteOps):
 
     # Read-only operations: delegate to wrapped implementation
 
-    def get_graphite_url(self, repo_root: Path, branch: str, pr_number: int) -> str | None:
+    def get_graphite_url(self, owner: str, repo: str, pr_number: int) -> str:
         """Get Graphite PR URL (read-only, delegates to wrapped)."""
-        return self._wrapped.get_graphite_url(repo_root, branch, pr_number)
+        return self._wrapped.get_graphite_url(owner, repo, pr_number)
 
     # Destructive operations: print dry-run message instead of executing
 
