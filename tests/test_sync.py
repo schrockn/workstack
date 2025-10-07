@@ -5,7 +5,7 @@ from pathlib import Path
 
 from click.testing import CliRunner
 
-from tests.fakes.github_ops import FakeGithubOps
+from tests.fakes.github_ops import FakeGitHubOps
 from tests.fakes.gitops import FakeGitOps
 from tests.fakes.global_config_ops import FakeGlobalConfigOps
 from tests.fakes.graphite_ops import FakeGraphiteOps
@@ -46,7 +46,7 @@ def test_sync_requires_graphite() -> None:
             git_ops=git_ops,
             global_config_ops=global_config_ops,
             graphite_ops=graphite_ops,
-            github_ops=FakeGithubOps(),
+            github_ops=FakeGitHubOps(),
             dry_run=False,
         )
 
@@ -88,7 +88,7 @@ def test_sync_runs_gt_sync_from_root() -> None:
             git_ops=git_ops,
             global_config_ops=global_config_ops,
             graphite_ops=graphite_ops,
-            github_ops=FakeGithubOps(),
+            github_ops=FakeGitHubOps(),
             dry_run=False,
         )
 
@@ -135,7 +135,7 @@ def test_sync_with_force_flag() -> None:
             git_ops=git_ops,
             global_config_ops=global_config_ops,
             graphite_ops=graphite_ops,
-            github_ops=FakeGithubOps(),
+            github_ops=FakeGitHubOps(),
             dry_run=False,
         )
 
@@ -182,7 +182,7 @@ def test_sync_handles_gt_not_installed() -> None:
             git_ops=git_ops,
             global_config_ops=global_config_ops,
             graphite_ops=graphite_ops,
-            github_ops=FakeGithubOps(),
+            github_ops=FakeGitHubOps(),
             dry_run=False,
         )
 
@@ -227,7 +227,7 @@ def test_sync_handles_gt_sync_failure() -> None:
             git_ops=git_ops,
             global_config_ops=global_config_ops,
             graphite_ops=graphite_ops,
-            github_ops=FakeGithubOps(),
+            github_ops=FakeGitHubOps(),
             dry_run=False,
         )
 
@@ -276,7 +276,7 @@ def test_sync_identifies_deletable_workstacks() -> None:
         graphite_ops = FakeGraphiteOps()
 
         # feature-1 is merged, feature-2 is open
-        github_ops = FakeGithubOps(
+        github_ops = FakeGitHubOps(
             pr_statuses={
                 "feature-1": ("MERGED", 123, "Feature 1"),
                 "feature-2": ("OPEN", 124, "Feature 2"),
@@ -333,7 +333,7 @@ def test_sync_no_deletable_workstacks() -> None:
             git_ops=git_ops,
             global_config_ops=global_config_ops,
             graphite_ops=graphite_ops,
-            github_ops=FakeGithubOps(),
+            github_ops=FakeGitHubOps(),
             dry_run=False,
         )
 
@@ -377,7 +377,7 @@ def test_sync_auto_clean_with_confirmation() -> None:
         )
 
         graphite_ops = FakeGraphiteOps()
-        github_ops = FakeGithubOps(pr_statuses={"feature-1": ("MERGED", 123, "Feature 1")})
+        github_ops = FakeGitHubOps(pr_statuses={"feature-1": ("MERGED", 123, "Feature 1")})
 
         test_ctx = WorkstackContext(
             git_ops=git_ops,
@@ -428,7 +428,7 @@ def test_sync_auto_clean_user_cancels() -> None:
         )
 
         graphite_ops = FakeGraphiteOps()
-        github_ops = FakeGithubOps(pr_statuses={"feature-1": ("MERGED", 123, "Feature 1")})
+        github_ops = FakeGitHubOps(pr_statuses={"feature-1": ("MERGED", 123, "Feature 1")})
 
         test_ctx = WorkstackContext(
             git_ops=git_ops,
@@ -480,7 +480,7 @@ def test_sync_auto_clean_with_force() -> None:
         )
 
         graphite_ops = FakeGraphiteOps()
-        github_ops = FakeGithubOps(pr_statuses={"feature-1": ("MERGED", 123, "Feature 1")})
+        github_ops = FakeGitHubOps(pr_statuses={"feature-1": ("MERGED", 123, "Feature 1")})
 
         test_ctx = WorkstackContext(
             git_ops=git_ops,
@@ -531,7 +531,7 @@ def test_sync_dry_run() -> None:
         )
 
         graphite_ops = FakeGraphiteOps()
-        github_ops = FakeGithubOps(pr_statuses={"feature-1": ("MERGED", 123, "Feature 1")})
+        github_ops = FakeGitHubOps(pr_statuses={"feature-1": ("MERGED", 123, "Feature 1")})
 
         test_ctx = WorkstackContext(
             git_ops=git_ops,
@@ -586,7 +586,7 @@ def test_sync_return_to_original_worktree() -> None:
         )
 
         graphite_ops = FakeGraphiteOps()
-        github_ops = FakeGithubOps(pr_statuses={"feature-1": ("OPEN", 123, "Feature 1")})
+        github_ops = FakeGitHubOps(pr_statuses={"feature-1": ("OPEN", 123, "Feature 1")})
 
         test_ctx = WorkstackContext(
             git_ops=git_ops,
@@ -638,7 +638,7 @@ def test_sync_original_worktree_deleted() -> None:
         )
 
         graphite_ops = FakeGraphiteOps()
-        github_ops = FakeGithubOps(pr_statuses={"feature-1": ("MERGED", 123, "Feature 1")})
+        github_ops = FakeGitHubOps(pr_statuses={"feature-1": ("MERGED", 123, "Feature 1")})
 
         test_ctx = WorkstackContext(
             git_ops=git_ops,

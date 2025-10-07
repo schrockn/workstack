@@ -4,6 +4,7 @@ import click
 
 from workstack.context import WorkstackContext
 from workstack.core import discover_repo_context, ensure_work_dir
+from workstack.github_ops import PullRequestInfo
 from workstack.graphite import _load_graphite_cache, get_branch_stack
 
 
@@ -168,6 +169,55 @@ def _is_trunk_branch(
     return False
 
 
+def _format_pr_info(
+    ctx: WorkstackContext,
+    repo_root: Path,
+    branch: str,
+    prs: dict[str, PullRequestInfo],
+) -> str:
+    """Format PR status indicator with emoji and link.
+
+    Args:
+        ctx: Workstack context with GitHub/Graphite operations
+        repo_root: Repository root directory
+        branch: Branch name
+        prs: Mapping of branch name -> PullRequestInfo
+
+    Returns:
+        Formatted PR info string (e.g., "✅ #23") or empty string if no PR
+    """
+    pr = prs.get(branch)
+    if pr is None:
+        return ""
+
+    # Determine status emoji
+    if pr.is_draft:
+        emoji = "🚧"
+    elif pr.state == "MERGED":
+        emoji = "🟣"
+    elif pr.state == "CLOSED":
+        emoji = "⭕"
+    elif pr.checks_passing is True:
+        emoji = "✅"
+    elif pr.checks_passing is False:
+        emoji = "❌"
+    else:
+        # Open PR with no checks
+        emoji = "◯"
+
+    # Try to get Graphite URL first, fall back to GitHub URL
+    url = ctx.graphite_ops.get_graphite_url(repo_root, branch, pr.number)
+    if url is None:
+        url = pr.url
+
+    # Format as clickable link using OSC 8 terminal escape sequence
+    # Format: \033]8;;URL\033\\TEXT\033]8;;\033\\
+    pr_text = f"#{pr.number}"
+    clickable_link = f"\033]8;;{url}\033\\{pr_text}\033]8;;\033\\"
+
+    return f"{emoji} {clickable_link}"
+
+
 def _display_branch_stack(
     ctx: WorkstackContext,
     repo_root: Path,
@@ -175,11 +225,13 @@ def _display_branch_stack(
     branch: str,
     all_branches: dict[Path, str | None],
     cache_data: dict | None = None,
+    prs: dict[str, PullRequestInfo] | None = None,
 ) -> None:
-    """Display the graphite stack for a worktree with colorization.
+    """Display the graphite stack for a worktree with colorization and PR info.
 
     Shows branches with colored markers indicating which is currently checked out.
     Current branch is emphasized with bright green, others are de-emphasized with gray.
+    Also displays PR status and links for branches that have PRs.
 
     Args:
         ctx: Workstack context with git operations
@@ -188,6 +240,7 @@ def _display_branch_stack(
         branch: Branch name to display stack for
         all_branches: Mapping of all worktree paths to their checked-out branches
         cache_data: Pre-loaded graphite cache data (optional optimization)
+        prs: Mapping of branch names to PR information (optional)
     """
     stack = get_branch_stack(ctx, repo_root, branch)
     if not stack:
@@ -202,7 +255,7 @@ def _display_branch_stack(
     actual_branch = ctx.git_ops.get_current_branch(worktree_path)
     highlight_branch = actual_branch if actual_branch else branch
 
-    # Display stack with colored markers
+    # Display stack with colored markers and PR info
     for branch_name in reversed(filtered_stack):
         is_current = branch_name == highlight_branch
 
@@ -215,7 +268,17 @@ def _display_branch_stack(
             marker = click.style("◯", fg="bright_black")
             branch_text = branch_name  # Normal white text
 
-        click.echo(f"  {marker}  {branch_text}")
+        # Add PR info if available
+        if prs:
+            pr_info = _format_pr_info(ctx, repo_root, branch_name, prs)
+            if pr_info:
+                line = f"  {marker}  {branch_text} {pr_info}"
+            else:
+                line = f"  {marker}  {branch_text}"
+        else:
+            line = f"  {marker}  {branch_text}"
+
+        click.echo(line)
 
 
 def _list_worktrees(ctx: WorkstackContext, show_stacks: bool) -> None:
@@ -232,7 +295,7 @@ def _list_worktrees(ctx: WorkstackContext, show_stacks: bool) -> None:
         if not ctx.global_config_ops.get_use_graphite():
             click.echo(
                 "Error: --stacks requires graphite to be enabled. "
-                "Run 'workstack config use-graphite true'",
+                "Run 'workstack config set use_graphite true'",
                 err=True,
             )
             raise SystemExit(1)
@@ -244,12 +307,17 @@ def _list_worktrees(ctx: WorkstackContext, show_stacks: bool) -> None:
             if cache_file.exists():
                 cache_data = _load_graphite_cache(cache_file)
 
+    # Fetch PR information once for all branches (if show_pr_info is enabled)
+    prs: dict[str, PullRequestInfo] | None = None
+    if ctx.global_config_ops.get_show_pr_info():
+        prs = ctx.github_ops.get_prs_for_repo(repo.root)
+
     # Show root repo first (display as "root" to distinguish from worktrees)
     root_branch = branches.get(repo.root)
     click.echo(_format_worktree_line("root", root_branch, path=None, is_root=True))
 
     if show_stacks and root_branch:
-        _display_branch_stack(ctx, repo.root, repo.root, root_branch, branches, cache_data)
+        _display_branch_stack(ctx, repo.root, repo.root, root_branch, branches, cache_data, prs)
 
     # Show worktrees
     work_dir = ensure_work_dir(repo)
@@ -275,7 +343,7 @@ def _list_worktrees(ctx: WorkstackContext, show_stacks: bool) -> None:
         click.echo(_format_worktree_line(name, wt_branch, path=None, is_root=False))
 
         if show_stacks and wt_branch and wt_path:
-            _display_branch_stack(ctx, repo.root, wt_path, wt_branch, branches, cache_data)
+            _display_branch_stack(ctx, repo.root, wt_path, wt_branch, branches, cache_data, prs)
 
 
 @click.command("list")

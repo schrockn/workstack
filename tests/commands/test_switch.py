@@ -204,6 +204,7 @@ def test_complete_worktree_names_without_context(tmp_path: Path, monkeypatch: ob
     from workstack.cli import cli
     from workstack.commands.switch import complete_worktree_names
     from workstack.context import WorkstackContext
+    from workstack.github_ops import RealGitHubOps
     from workstack.gitops import RealGitOps
     from workstack.global_config_ops import RealGlobalConfigOps
     from workstack.graphite_ops import RealGraphiteOps
@@ -244,7 +245,9 @@ def test_complete_worktree_names_without_context(tmp_path: Path, monkeypatch: ob
         return WorkstackContext(
             git_ops=RealGitOps(),
             global_config_ops=RealGlobalConfigOps(),
+            github_ops=RealGitHubOps(),
             graphite_ops=RealGraphiteOps(),
+            dry_run=False,
         )
 
     # Patch Path.home() to return tmp_path so config loading uses test config

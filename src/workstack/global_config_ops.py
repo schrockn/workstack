@@ -60,12 +60,25 @@ class GlobalConfigOps(ABC):
         ...
 
     @abstractmethod
+    def get_show_pr_info(self) -> bool:
+        """Get whether to show PR information in ls output.
+
+        Returns:
+            True if PR info should be shown, False otherwise
+
+        Raises:
+            FileNotFoundError: If config file doesn't exist
+        """
+        ...
+
+    @abstractmethod
     def set(
         self,
         *,
         workstacks_root: Path | _UnchangedType = _UNCHANGED,
         use_graphite: bool | _UnchangedType = _UNCHANGED,
         shell_setup_complete: bool | _UnchangedType = _UNCHANGED,
+        show_pr_info: bool | _UnchangedType = _UNCHANGED,
     ) -> None:
         """Update config fields. Only provided fields are changed.
 
@@ -76,6 +89,7 @@ class GlobalConfigOps(ABC):
             workstacks_root: New workstacks root, or _UNCHANGED to keep current
             use_graphite: New graphite preference, or _UNCHANGED to keep current
             shell_setup_complete: New shell setup status, or _UNCHANGED to keep current
+            show_pr_info: New PR info display preference, or _UNCHANGED to keep current
 
         Raises:
             ValueError: If all fields are _UNCHANGED (nothing to update)
@@ -127,6 +141,7 @@ class RealGlobalConfigOps(GlobalConfigOps):
             "workstacks_root": Path(root).expanduser().resolve(),
             "use_graphite": bool(data.get("use_graphite", False)),
             "shell_setup_complete": bool(data.get("shell_setup_complete", False)),
+            "show_pr_info": bool(data.get("show_pr_info", True)),
         }
 
     def _ensure_cache(self) -> dict[str, Path | bool]:
@@ -160,18 +175,27 @@ class RealGlobalConfigOps(GlobalConfigOps):
             raise TypeError(f"Expected bool, got {type(result)}")
         return result
 
+    def get_show_pr_info(self) -> bool:
+        cache = self._ensure_cache()
+        result = cache["show_pr_info"]
+        if not isinstance(result, bool):
+            raise TypeError(f"Expected bool, got {type(result)}")
+        return result
+
     def set(
         self,
         *,
         workstacks_root: Path | _UnchangedType = _UNCHANGED,
         use_graphite: bool | _UnchangedType = _UNCHANGED,
         shell_setup_complete: bool | _UnchangedType = _UNCHANGED,
+        show_pr_info: bool | _UnchangedType = _UNCHANGED,
     ) -> None:
         # Check if at least one field is being updated
         if (
             isinstance(workstacks_root, _UnchangedType)
             and isinstance(use_graphite, _UnchangedType)
             and isinstance(shell_setup_complete, _UnchangedType)
+            and isinstance(show_pr_info, _UnchangedType)
         ):
             raise ValueError("At least one field must be provided")
 
@@ -180,6 +204,7 @@ class RealGlobalConfigOps(GlobalConfigOps):
             current_root = self.get_workstacks_root()
             current_graphite = self.get_use_graphite()
             current_shell = self.get_shell_setup_complete()
+            current_pr_info = self.get_show_pr_info()
         else:
             # For new config, all fields must be provided (no defaults)
             if isinstance(workstacks_root, _UnchangedType):
@@ -187,6 +212,7 @@ class RealGlobalConfigOps(GlobalConfigOps):
             current_root = workstacks_root
             current_graphite = False
             current_shell = False
+            current_pr_info = True
 
         # Apply updates
         final_root = (
@@ -200,6 +226,9 @@ class RealGlobalConfigOps(GlobalConfigOps):
             if isinstance(shell_setup_complete, _UnchangedType)
             else shell_setup_complete
         )
+        final_pr_info = (
+            current_pr_info if isinstance(show_pr_info, _UnchangedType) else show_pr_info
+        )
 
         # Write to disk
         self._path.parent.mkdir(parents=True, exist_ok=True)
@@ -207,6 +236,7 @@ class RealGlobalConfigOps(GlobalConfigOps):
 workstacks_root = "{final_root}"
 use_graphite = {str(final_graphite).lower()}
 shell_setup_complete = {str(final_shell).lower()}
+show_pr_info = {str(final_pr_info).lower()}
 """
         self._path.write_text(content, encoding="utf-8")
         self._invalidate_cache()

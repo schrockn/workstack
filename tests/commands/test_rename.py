@@ -2,7 +2,7 @@ from pathlib import Path
 
 from click.testing import CliRunner
 
-from tests.fakes.github_ops import FakeGithubOps
+from tests.fakes.github_ops import FakeGitHubOps
 from tests.fakes.gitops import FakeGitOps
 from tests.fakes.global_config_ops import FakeGlobalConfigOps
 from tests.fakes.graphite_ops import FakeGraphiteOps
@@ -43,8 +43,8 @@ def test_rename_successful() -> None:
         test_ctx = WorkstackContext(
             git_ops=git_ops,
             global_config_ops=global_config_ops,
+            github_ops=FakeGitHubOps(),
             graphite_ops=graphite_ops,
-            github_ops=FakeGithubOps(),
             dry_run=False,
         )
 
@@ -82,8 +82,8 @@ def test_rename_old_worktree_not_found() -> None:
         test_ctx = WorkstackContext(
             git_ops=git_ops,
             global_config_ops=global_config_ops,
+            github_ops=FakeGitHubOps(),
             graphite_ops=graphite_ops,
-            github_ops=FakeGithubOps(),
             dry_run=False,
         )
 
@@ -123,8 +123,8 @@ def test_rename_new_name_already_exists() -> None:
         test_ctx = WorkstackContext(
             git_ops=git_ops,
             global_config_ops=global_config_ops,
+            github_ops=FakeGitHubOps(),
             graphite_ops=graphite_ops,
-            github_ops=FakeGithubOps(),
             dry_run=False,
         )
 
@@ -163,8 +163,8 @@ def test_rename_sanitizes_new_name() -> None:
         test_ctx = WorkstackContext(
             git_ops=git_ops,
             global_config_ops=global_config_ops,
+            github_ops=FakeGitHubOps(),
             graphite_ops=graphite_ops,
-            github_ops=FakeGithubOps(),
             dry_run=False,
         )
 
@@ -206,8 +206,8 @@ def test_rename_regenerates_env_file() -> None:
         test_ctx = WorkstackContext(
             git_ops=git_ops,
             global_config_ops=global_config_ops,
+            github_ops=FakeGitHubOps(),
             graphite_ops=graphite_ops,
-            github_ops=FakeGithubOps(),
             dry_run=False,
         )
 
@@ -255,8 +255,8 @@ def test_rename_dry_run_does_not_move() -> None:
         test_ctx = WorkstackContext(
             git_ops=git_ops,
             global_config_ops=global_config_ops,
+            github_ops=FakeGitHubOps(),
             graphite_ops=graphite_ops,
-            github_ops=FakeGithubOps(),
             dry_run=True,
         )
 

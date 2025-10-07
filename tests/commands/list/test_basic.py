@@ -3,7 +3,7 @@ from pathlib import Path
 from click.testing import CliRunner
 
 from tests.commands.list import strip_ansi
-from tests.fakes.github_ops import FakeGithubOps
+from tests.fakes.github_ops import FakeGitHubOps
 from tests.fakes.gitops import FakeGitOps
 from tests.fakes.global_config_ops import FakeGlobalConfigOps
 from tests.fakes.graphite_ops import FakeGraphiteOps
@@ -51,8 +51,8 @@ def test_list_outputs_names_not_paths() -> None:
         test_ctx = WorkstackContext(
             git_ops=git_ops,
             global_config_ops=global_config_ops,
+            github_ops=FakeGitHubOps(),
             graphite_ops=graphite_ops,
-            github_ops=FakeGithubOps(),
             dry_run=False,
         )
 
