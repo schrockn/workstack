@@ -427,14 +427,14 @@ def test_list_with_stacks_root_repo_does_not_duplicate_branch() -> None:
 
 def test_list_with_stacks_shows_descendants_with_worktrees() -> None:
     """
-    Descendants with worktrees should appear in the root's stack.
+    Non-root worktrees should show descendants with worktrees.
+    Root worktree shows only current branch (no descendants).
 
     When root is on master with stack [master, foo] and there's a foo worktree:
 
     EXPECTED:
         root [master]
-          ◯  foo       <- foo SHOULD appear because it has a worktree
-          ◉  master
+          ◉  master     <- only current branch (root shows no descendants)
 
         foo [foo]
           ◉  foo
@@ -521,12 +521,11 @@ def test_list_with_stacks_shows_descendants_with_worktrees() -> None:
         # Get root section lines (from root header to foo header)
         root_section = lines[root_section_start:foo_section_start]
 
-        # Root section should show BOTH master and foo (foo has a worktree)
+        # Root section should show ONLY master (root shows no descendants)
         root_section_text = "\n".join(root_section)
         assert "◉  master" in root_section_text, "Root should show master"
-        assert "◯  foo" in root_section_text, (
-            "Root section SHOULD contain foo branch since it's checked out "
-            f"in a worktree. Root section:\n{root_section_text}"
+        assert "foo" not in root_section_text, (
+            f"Root section should NOT show foo (descendant). Root section:\n{root_section_text}"
         )
 
         # Get foo section lines (from foo header to end)
@@ -616,7 +615,8 @@ def test_list_with_stacks_hides_descendants_without_worktrees() -> None:
 
 def test_list_with_stacks_shows_descendants_with_gaps() -> None:
     """
-    Should show descendants with worktrees, skipping intermediate branches without worktrees.
+    Non-root worktrees show descendants with worktrees (skipping intermediates).
+    Root worktree shows only current branch.
 
     Setup:
         - Stack: main → f1 → f2 → f3
@@ -625,9 +625,7 @@ def test_list_with_stacks_shows_descendants_with_gaps() -> None:
 
     EXPECTED:
         root [main]
-          ◯  f3         <- f3 shown (has worktree)
-          ◉  main       <- main shown (current branch)
-                         <- f1, f2 hidden (no worktrees)
+          ◉  main       <- only current branch (root shows no descendants)
 
         f3 [f3]
           ◉  f3
@@ -719,14 +717,16 @@ def test_list_with_stacks_shows_descendants_with_gaps() -> None:
         root_section = lines[root_section_start:f3_section_start]
         root_section_text = "\n".join(root_section)
 
-        # Root section should show main and f3, but NOT f1 or f2
+        # Root section should show ONLY main (no descendants)
         assert "◉  main" in root_section_text, "Root should show main"
-        assert "◯  f3" in root_section_text, "Root should show f3 (has worktree)"
+        assert "f3" not in root_section_text, (
+            f"Root should NOT show f3 (descendant). Root section:\n{root_section_text}"
+        )
         assert "f1" not in root_section_text, (
-            f"Root should NOT show f1 (no worktree). Root section:\n{root_section_text}"
+            f"Root should NOT show f1 (descendant). Root section:\n{root_section_text}"
         )
         assert "f2" not in root_section_text, (
-            f"Root should NOT show f2 (no worktree). Root section:\n{root_section_text}"
+            f"Root should NOT show f2 (descendant). Root section:\n{root_section_text}"
         )
 
         # Get f3 section lines (from f3 header to end)
