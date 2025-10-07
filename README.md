@@ -67,23 +67,45 @@ workstack create --plan Add_Auth.md                # Creates worktree, moves pla
 
 ```bash
 workstack switch NAME            # Switch between worktrees (or 'root' for repo root)
-workstack ls                     # List all worktrees
+workstack list                   # List all worktrees (alias: ls)
+workstack list --stacks          # List with graphite stacks and PR status
 workstack tree                   # Show tree of worktrees with dependencies
 workstack rename OLD NEW         # Rename a worktree
 workstack rm NAME                # Remove worktree
 workstack gc                     # Find safe-to-delete worktrees (merged PRs)
 workstack sync                   # Sync with Graphite, show cleanup candidates
-workstack sync --auto-clean      # Sync and auto-remove merged workstacks
+workstack sync -f                # Sync and auto-remove merged workstacks
 ```
 
 Example output:
 
 ```bash
-$ workstack ls
+$ workstack list
 root [master]
 feature-a [feature-a]
 feature-b [work/feature-b]
+
+$ workstack list --stacks
+root [master]
+  ◉  master
+
+feature-a [feature-a]
+  ◯  master
+  ◉  feature-a ✅ #123
+
+feature-b [work/feature-b]
+  ◯  master
+  ◉  work/feature-b 🚧 #456
 ```
+
+**PR Status Indicators:**
+
+- ✅ Checks passing
+- ❌ Checks failing
+- 🟣 Merged
+- 🚧 Draft
+- ⭕ Closed
+- ◯ Open (no checks)
 
 Note: The repository root is displayed as `root` and can be accessed with `workstack switch root`.
 
@@ -116,9 +138,13 @@ The `tree` command shows:
 
 ```bash
 workstack init                   # Initialize in repository
+workstack init --shell           # Set up shell integration (completion + auto-activation)
+workstack init --list-presets    # List available config presets
+workstack init --repo            # Initialize repo config only (skip global)
 workstack config list            # Show all configuration
 workstack config get KEY         # Get config value
 workstack config set KEY VALUE   # Set config value
+workstack completion bash/zsh/fish  # Generate shell completion script
 ```
 
 ## Configuration Files
@@ -127,7 +153,8 @@ workstack config set KEY VALUE   # Set config value
 
 ```toml
 workstacks_root = "/Users/you/worktrees"
-use_graphite = true  # Auto-detected if gt CLI installed
+use_graphite = true     # Auto-detected if gt CLI installed
+show_pr_info = true     # Display PR status in list --stacks (requires gh CLI)
 ```
 
 **Per-Repository** (`~/worktrees/<repo>/config.toml`):
@@ -213,21 +240,23 @@ workstack create --from-current-branch
 After merging PRs, sync your local branches and clean up:
 
 ```bash
-workstack sync --auto-clean
+workstack sync
 # This will:
 # 1. Switch to root (avoiding git conflicts)
 # 2. Run gt sync to update branch tracking
 # 3. Identify merged/closed PR workstacks
-# 4. Remove them (with confirmation)
+# 4. Prompt for confirmation before removing them
 # 5. Switch back to your original worktree
+
+# Or use -f to skip confirmation:
+workstack sync -f
 ```
 
 Options:
 
 ```bash
 workstack sync                   # Sync and show cleanup candidates
-workstack sync -f                # Force gt sync, skip prompts
-workstack sync --auto-clean      # Sync and auto-remove merged workstacks
+workstack sync -f                # Force gt sync and auto-remove merged workstacks
 workstack sync --dry-run         # Preview without executing
 ```
 
@@ -245,6 +274,43 @@ Requires Graphite CLI (`gt`) and GitHub CLI (`gh`) installed.
 | `--from-current-branch` | Move current branch to worktree     |
 | `--from-branch BRANCH`  | Create from existing branch         |
 | `--no-post`             | Skip post-create commands           |
+
+### `list` / `ls` Options
+
+| Option         | Description                        |
+| -------------- | ---------------------------------- |
+| `-s, --stacks` | Show graphite stacks and PR status |
+
+### `remove` / `rm` Options
+
+| Option               | Description                               |
+| -------------------- | ----------------------------------------- |
+| `-f, --force`        | Do not prompt for confirmation            |
+| `-s, --delete-stack` | Delete all branches in Graphite stack     |
+| `--dry-run`          | Show what would be done without executing |
+
+### `rename` Options
+
+| Option      | Description                               |
+| ----------- | ----------------------------------------- |
+| `--dry-run` | Show what would be done without executing |
+
+### `sync` Options
+
+| Option        | Description                                     |
+| ------------- | ----------------------------------------------- |
+| `-f, --force` | Force gt sync and auto-remove merged workstacks |
+| `--dry-run`   | Show what would be done without executing       |
+
+### `init` Options
+
+| Option           | Description                                |
+| ---------------- | ------------------------------------------ |
+| `--force`        | Overwrite existing repo config             |
+| `--preset NAME`  | Config template (auto/generic/dagster/etc) |
+| `--list-presets` | List available presets and exit            |
+| `--repo`         | Initialize repo config only (skip global)  |
+| `--shell`        | Set up shell integration only              |
 
 ### Environment Variables
 
