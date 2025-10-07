@@ -10,6 +10,7 @@ from workstack.commands.remove import remove_cmd, rm_cmd
 from workstack.commands.rename import rename_cmd
 from workstack.commands.switch import hidden_switch_cmd, switch_cmd
 from workstack.commands.sync import sync_cmd
+from workstack.commands.tree import tree_cmd
 from workstack.context import create_context
 
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])  # terse help flags
@@ -39,3 +40,4 @@ cli.add_command(rename_cmd)
 cli.add_command(config_group)
 cli.add_command(gc_cmd)
 cli.add_command(sync_cmd)
+cli.add_command(tree_cmd)

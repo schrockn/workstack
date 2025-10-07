@@ -68,6 +68,7 @@ workstack create --plan Add_Auth.md                # Creates worktree, moves pla
 ```bash
 workstack switch NAME            # Switch between worktrees (or 'root' for repo root)
 workstack ls                     # List all worktrees
+workstack tree                   # Show tree of worktrees with dependencies
 workstack rename OLD NEW         # Rename a worktree
 workstack rm NAME                # Remove worktree
 workstack gc                     # Find safe-to-delete worktrees (merged PRs)
@@ -85,6 +86,31 @@ feature-b [work/feature-b]
 ```
 
 Note: The repository root is displayed as `root` and can be accessed with `workstack switch root`.
+
+### Visualizing Worktrees
+
+```bash
+workstack tree               # Show tree of worktrees with dependencies
+```
+
+Example output:
+
+```bash
+$ workstack tree
+main [@root]
+├─ feature-a [@feature-a]
+│  └─ feature-a-2 [@feature-a-2]
+└─ feature-b [@feature-b]
+```
+
+The `tree` command shows:
+
+- **Only branches with active worktrees** (not all branches)
+- **Dependency relationships** from Graphite stacks
+- **Current worktree** highlighted in bright green
+- **Worktree names** in brackets `[@name]`
+
+**Note:** Requires Graphite to be enabled.
 
 ### Configuration
 
