@@ -9,19 +9,6 @@ from workstack.context import WorkstackContext
 from workstack.core import discover_repo_context, ensure_work_dir, worktree_path_for
 
 
-def _return_to_original_worktree(work_dir: Path, current_worktree_name: str | None) -> None:
-    """Return to original worktree if it exists."""
-    if current_worktree_name is None:
-        return
-
-    wt_path = worktree_path_for(work_dir, current_worktree_name)
-    if not wt_path.exists():
-        return
-
-    click.echo(f"\nReturning to: {current_worktree_name}")
-    os.chdir(wt_path)
-
-
 @click.command("sync")
 @click.option(
     "-f",
@@ -127,10 +114,33 @@ def sync_cmd(ctx: WorkstackContext, force: bool, dry_run: bool) -> None:
             name = wt.path.name
             deletable.append((name, wt.branch, state, pr_number))
 
+    # Check if current worktree will be deleted
+    current_worktree_will_be_deleted = False
+    if current_worktree_name is not None:
+        deletable_names = {name for name, _, _, _ in deletable}
+        current_worktree_will_be_deleted = current_worktree_name in deletable_names
+
     # Step 6: Display and optionally clean
     if not deletable:
         click.echo("\nNo workstacks to clean up.")
     else:
+        # Show warning if current worktree will be deleted
+        if current_worktree_will_be_deleted:
+            click.echo()
+            click.echo(
+                click.style("⚠️  Warning: ", fg="yellow", bold=True)
+                + "Your current worktree will be deleted."
+            )
+            click.echo(
+                click.style("⚠️  ", fg="yellow", bold=True)
+                + "After deletion, you will remain in the root worktree."
+            )
+            click.echo(
+                click.style("⚠️  ", fg="yellow", bold=True)
+                + f"Run 'cd {repo.root}' if your shell doesn't update."
+            )
+            click.echo()
+
         click.echo("\nWorkstacks safe to delete:\n")
 
         for name, branch, state, pr_number in deletable:
@@ -148,7 +158,12 @@ def sync_cmd(ctx: WorkstackContext, force: bool, dry_run: bool) -> None:
         if not force and not dry_run:
             if not click.confirm(f"Remove {len(deletable)} worktree(s)?", default=False):
                 click.echo("Cleanup cancelled.")
-                _return_to_original_worktree(work_dir, current_worktree_name)
+                # Return to original worktree if it exists
+                if current_worktree_name is not None:
+                    wt_path = worktree_path_for(work_dir, current_worktree_name)
+                    if wt_path.exists():
+                        click.echo(f"\nReturning to: {current_worktree_name}")
+                        os.chdir(wt_path)
                 return
 
         # Remove each worktree
@@ -168,7 +183,7 @@ def sync_cmd(ctx: WorkstackContext, force: bool, dry_run: bool) -> None:
 
         click.echo("\nNext step: Run 'gt sync -f' to delete the merged branches.")
 
-    # Step 7: Return to original worktree
+    # Step 7: Return to original worktree (if applicable)
     if current_worktree_name:
         wt_path = worktree_path_for(work_dir, current_worktree_name)
 
@@ -176,6 +191,13 @@ def sync_cmd(ctx: WorkstackContext, force: bool, dry_run: bool) -> None:
             click.echo(f"\nReturning to: {current_worktree_name}")
             os.chdir(wt_path)
         else:
+            # Original worktree was deleted - stay in root
+            click.echo()
             click.echo(
-                f"\nNote: Original worktree '{current_worktree_name}' was deleted during cleanup."
+                click.style("✓ ", fg="green")
+                + "Staying in root worktree (original worktree was deleted)."
+            )
+            click.echo(
+                click.style("💡 ", fg="blue")
+                + f"If you're still in the deleted directory, run: cd {repo.root}"
             )
