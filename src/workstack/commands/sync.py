@@ -27,12 +27,7 @@ def _return_to_original_worktree(work_dir: Path, current_worktree_name: str | No
     "-f",
     "--force",
     is_flag=True,
-    help="Pass --force to gt sync and skip confirmation prompts.",
-)
-@click.option(
-    "--auto-clean",
-    is_flag=True,
-    help="Automatically remove workstacks with merged/closed PRs.",
+    help="Pass --force to gt sync and automatically remove merged worktrees without confirmation.",
 )
 @click.option(
     "--dry-run",
@@ -42,8 +37,8 @@ def _return_to_original_worktree(work_dir: Path, current_worktree_name: str | No
     help="Show what would be done without executing destructive operations.",
 )
 @click.pass_obj
-def sync_cmd(ctx: WorkstackContext, force: bool, auto_clean: bool, dry_run: bool) -> None:
-    """Sync with Graphite and optionally clean up merged worktrees.
+def sync_cmd(ctx: WorkstackContext, force: bool, dry_run: bool) -> None:
+    """Sync with Graphite and clean up merged worktrees.
 
     This command must be run from a workstack-managed repository.
 
@@ -52,9 +47,10 @@ def sync_cmd(ctx: WorkstackContext, force: bool, auto_clean: bool, dry_run: bool
     2. Save current worktree location
     3. Switch to root worktree (to avoid git checkout conflicts)
     4. Run `gt sync [-f]` from root
-    5. Run `ws gc` to identify safe-to-delete workstacks
-    6. With --auto-clean: remove merged/closed workstacks
-    7. Return to original worktree (if it still exists)
+    5. Identify merged/closed workstacks
+    6. With -f: automatically remove worktrees without confirmation
+    7. Without -f: show deletable worktrees and prompt for confirmation
+    8. Return to original worktree (if it still exists)
     """
 
     # Step 1: Verify Graphite is enabled
@@ -146,35 +142,31 @@ def sync_cmd(ctx: WorkstackContext, force: bool, auto_clean: bool, dry_run: bool
 
             click.echo(f"  {name_part} {branch_part} - {state_part} ({pr_part})")
 
-        if auto_clean:
-            click.echo()  # Blank line
+        click.echo()  # Blank line
 
-            # Confirm unless --force or --dry-run
-            if not force and not dry_run:
-                if not click.confirm(f"Delete {len(deletable)} workstack(s)?", default=False):
-                    click.echo("Cleanup cancelled.")
-                    _return_to_original_worktree(work_dir, current_worktree_name)
-                    return
+        # Confirm unless --force or --dry-run
+        if not force and not dry_run:
+            if not click.confirm(f"Remove {len(deletable)} worktree(s)?", default=False):
+                click.echo("Cleanup cancelled.")
+                _return_to_original_worktree(work_dir, current_worktree_name)
+                return
 
-            # Remove each workstack
-            for name, _branch, _state, _pr_number in deletable:
-                if dry_run:
-                    click.echo(f"[DRY RUN] Would delete worktree: {name} (branch: {_branch})")
-                    # Skip actual removal in dry-run
-                else:
-                    click.echo(f"Deleting worktree: {name} (branch: {_branch})")
-                    # Reuse remove logic from remove.py
-                    _remove_worktree(
-                        ctx,
-                        name,
-                        force=True,  # Already confirmed above
-                        delete_stack=True,  # Delete graphite stack
-                        dry_run=False,
-                    )
+        # Remove each worktree
+        for name, _branch, _state, _pr_number in deletable:
+            if dry_run:
+                click.echo(f"[DRY RUN] Would remove worktree: {name} (branch: {_branch})")
+            else:
+                click.echo(f"Removing worktree: {name} (branch: {_branch})")
+                # Reuse remove logic from remove.py
+                _remove_worktree(
+                    ctx,
+                    name,
+                    force=True,  # Already confirmed above
+                    delete_stack=False,  # Leave branches for gt sync -f
+                    dry_run=False,
+                )
 
-            click.echo("\nNext step: Run 'gt sync -f' to delete the merged branches.")
-        else:
-            click.echo("\nRun with --auto-clean to delete these workstacks.")
+        click.echo("\nNext step: Run 'gt sync -f' to delete the merged branches.")
 
     # Step 7: Return to original worktree
     if current_worktree_name:

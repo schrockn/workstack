@@ -291,7 +291,8 @@ def test_sync_identifies_deletable_workstacks() -> None:
             dry_run=False,
         )
 
-        result = runner.invoke(cli, ["sync"], obj=test_ctx)
+        # User cancels (just want to see the list, not actually delete)
+        result = runner.invoke(cli, ["sync"], obj=test_ctx, input="n\n")
 
         assert result.exit_code == 0
         assert "Workstacks safe to delete:" in result.output
@@ -343,8 +344,8 @@ def test_sync_no_deletable_workstacks() -> None:
         assert "No workstacks to clean up." in result.output
 
 
-def test_sync_auto_clean_with_confirmation() -> None:
-    """Test sync --auto-clean with user confirmation."""
+def test_sync_with_confirmation() -> None:
+    """Test sync with user confirmation."""
     runner = CliRunner()
     with runner.isolated_filesystem():
         cwd = Path.cwd()
@@ -388,15 +389,15 @@ def test_sync_auto_clean_with_confirmation() -> None:
         )
 
         # User confirms deletion
-        result = runner.invoke(cli, ["sync", "--auto-clean"], obj=test_ctx, input="y\n")
+        result = runner.invoke(cli, ["sync"], obj=test_ctx, input="y\n")
 
         assert result.exit_code == 0
-        assert "Delete 1 workstack(s)?" in result.output
-        assert "Deleting worktree: feature-1" in result.output
+        assert "Remove 1 worktree(s)?" in result.output
+        assert "Removing worktree: feature-1" in result.output
 
 
-def test_sync_auto_clean_user_cancels() -> None:
-    """Test sync --auto-clean when user cancels."""
+def test_sync_user_cancels() -> None:
+    """Test sync when user cancels."""
     runner = CliRunner()
     with runner.isolated_filesystem():
         cwd = Path.cwd()
@@ -439,7 +440,7 @@ def test_sync_auto_clean_user_cancels() -> None:
         )
 
         # User cancels deletion
-        result = runner.invoke(cli, ["sync", "--auto-clean"], obj=test_ctx, input="n\n")
+        result = runner.invoke(cli, ["sync"], obj=test_ctx, input="n\n")
 
         assert result.exit_code == 0
         assert "Cleanup cancelled." in result.output
@@ -447,8 +448,8 @@ def test_sync_auto_clean_user_cancels() -> None:
         assert wt1.exists()
 
 
-def test_sync_auto_clean_with_force() -> None:
-    """Test sync --auto-clean --force skips confirmation."""
+def test_sync_force_skips_confirmation() -> None:
+    """Test sync -f skips confirmation."""
     runner = CliRunner()
     with runner.isolated_filesystem():
         cwd = Path.cwd()
@@ -490,12 +491,12 @@ def test_sync_auto_clean_with_force() -> None:
             dry_run=False,
         )
 
-        result = runner.invoke(cli, ["sync", "--auto-clean", "-f"], obj=test_ctx)
+        result = runner.invoke(cli, ["sync", "-f"], obj=test_ctx)
 
         assert result.exit_code == 0
         # Should not prompt for confirmation
-        assert "Delete 1 workstack(s)?" not in result.output
-        assert "Deleting worktree: feature-1" in result.output
+        assert "Remove 1 worktree(s)?" not in result.output
+        assert "Removing worktree: feature-1" in result.output
 
 
 def test_sync_dry_run() -> None:
@@ -541,11 +542,11 @@ def test_sync_dry_run() -> None:
             dry_run=False,
         )
 
-        result = runner.invoke(cli, ["sync", "--auto-clean", "--dry-run"], obj=test_ctx)
+        result = runner.invoke(cli, ["sync", "--dry-run"], obj=test_ctx)
 
         assert result.exit_code == 0
         assert "[DRY RUN] Would run gt sync" in result.output
-        assert "[DRY RUN] Would delete worktree: feature-1" in result.output
+        assert "[DRY RUN] Would remove worktree: feature-1" in result.output
 
         # Verify sync was not called
         assert len(graphite_ops.sync_calls) == 0
@@ -648,11 +649,11 @@ def test_sync_original_worktree_deleted() -> None:
             dry_run=False,
         )
 
-        result = runner.invoke(cli, ["sync", "--auto-clean", "-f"], obj=test_ctx)
+        result = runner.invoke(cli, ["sync", "-f"], obj=test_ctx)
 
         assert result.exit_code == 0
         # Should mention that original worktree was deleted
         assert (
             "Original worktree 'feature-1' was deleted" in result.output
-            or "Deleting worktree: feature-1" in result.output
+            or "Removing worktree: feature-1" in result.output
         )
