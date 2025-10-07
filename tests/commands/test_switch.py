@@ -3,6 +3,8 @@ import re
 import subprocess
 from pathlib import Path
 
+import pytest
+
 
 def strip_ansi(text: str) -> str:
     """Remove ANSI escape codes from text."""
@@ -193,7 +195,9 @@ def test_list_includes_root(tmp_path: Path) -> None:
     assert any("myfeature" in line for line in lines)
 
 
-def test_complete_worktree_names_without_context(tmp_path: Path, monkeypatch: object) -> None:
+def test_complete_worktree_names_without_context(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """Test completion function works even when Click context obj is None.
 
     This simulates the shell completion scenario where the CLI group callback
