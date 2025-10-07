@@ -1,9 +1,9 @@
 """Factory functions for creating test contexts."""
 
-from tests.fakes.githubops import FakeGitHubOps
+from tests.fakes.github_ops import FakeGitHubOps
 from tests.fakes.gitops import FakeGitOps
 from tests.fakes.global_config_ops import FakeGlobalConfigOps
-from tests.fakes.graphiteops import FakeGraphiteOps
+from tests.fakes.graphite_ops import FakeGraphiteOps
 from workstack.context import WorkstackContext
 
 

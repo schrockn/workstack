@@ -1,135 +1,193 @@
-"""GitHub CLI operations interface.
+"""High-level GitHub operations interface.
 
-This module provides a clean abstraction over GitHub CLI subprocess calls,
-making the codebase more testable and maintainable.
+This module provides a clean abstraction over GitHub CLI (gh) calls, making the
+codebase more testable and maintainable.
 
 Architecture:
-- GithubOps: Abstract base class defining the interface
-- RealGithubOps: Production implementation using subprocess
+- GitHubOps: Abstract base class defining the interface
+- RealGitHubOps: Production implementation using gh CLI
+- Standalone functions: Convenience wrappers if needed
 """
 
 import json
 import subprocess
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from pathlib import Path
 
-import click
 
-# ============================================================================
-# Abstract Interface
-# ============================================================================
+@dataclass(frozen=True)
+class PullRequestInfo:
+    """Information about a GitHub pull request."""
+
+    number: int
+    state: str  # "OPEN", "MERGED", "CLOSED"
+    url: str
+    is_draft: bool
+    checks_passing: bool | None  # None if no checks, True if all pass, False if any fail
 
 
-class GithubOps(ABC):
-    """Abstract interface for GitHub CLI operations.
+class GitHubOps(ABC):
+    """Abstract interface for GitHub operations.
 
     All implementations (real and fake) must implement this interface.
-    This interface contains ONLY runtime operations - no test setup methods.
     """
 
     @abstractmethod
+    def get_prs_for_repo(self, repo_root: Path) -> dict[str, PullRequestInfo]:
+        """Get PR information for all branches in the repository.
+
+        Returns:
+            Mapping of branch name -> PullRequestInfo
+            Empty dict if gh CLI is not available or not authenticated
+        """
+        ...
+
+    @abstractmethod
     def get_pr_status(
-        self,
-        repo_root: Path,
-        branch: str,
-        # debug=False: Suppresses verbose CLI output by default for cleaner UX
-        debug: bool = False,
-    ) -> tuple[str | None, int | None, str | None]:
-        """Get PR status for a branch using GitHub CLI.
+        self, repo_root: Path, branch: str, *, debug: bool
+    ) -> tuple[str, int | None, str | None]:
+        """Get PR status for a specific branch.
 
         Args:
             repo_root: Repository root directory
             branch: Branch name to check
-            debug: Whether to print debug messages
+            debug: If True, print debug information
 
         Returns:
-            Tuple of (state, pr_number, title) where:
-            - state is "MERGED", "CLOSED", "OPEN", or None if no PR found
-            - pr_number is the PR number or None
-            - title is the PR title or None
-
-        Note: Returns (None, None, None) if gh CLI is not installed or not authenticated.
+            Tuple of (state, pr_number, title)
+            - state: "OPEN", "MERGED", "CLOSED", or "NONE" if no PR exists
+            - pr_number: PR number or None if no PR exists
+            - title: PR title or None if no PR exists
         """
         ...
 
 
-# ============================================================================
-# Production Implementation
-# ============================================================================
+class RealGitHubOps(GitHubOps):
+    """Production implementation using gh CLI.
 
-
-class RealGithubOps(GithubOps):
-    """Production implementation using subprocess.
-
-    All GitHub operations execute actual CLI commands via subprocess.
+    All GitHub operations execute actual gh commands via subprocess.
     """
 
-    def get_pr_status(
-        self, repo_root: Path, branch: str, debug: bool = False
-    ) -> tuple[str | None, int | None, str | None]:
-        """Get PR status for a branch using GitHub CLI.
-
-        Returns tuple of (state, pr_number, title) where:
-        - state is "MERGED", "CLOSED", "OPEN", or None if no PR found
-        - pr_number is the PR number or None
-        - title is the PR title or None
-
-        Returns (None, None, None) if gh CLI is not installed or not authenticated.
+    def get_prs_for_repo(self, repo_root: Path) -> dict[str, PullRequestInfo]:
+        """Get PR information for all branches in the repository.
 
         Note: Uses try/except as an acceptable error boundary for handling gh CLI
         availability and authentication. We cannot reliably check gh installation
         and authentication status a priori without duplicating gh's logic.
         """
-
-        def debug_print(msg: str) -> None:
-            if debug:
-                click.echo(click.style(msg, fg="bright_black"))
-
         try:
-            # Check merged PRs first, then closed, then open
-            for state in ["merged", "closed", "open"]:
-                cmd = [
+            # Fetch all PRs in one call for efficiency
+            result = subprocess.run(
+                [
                     "gh",
                     "pr",
                     "list",
                     "--state",
-                    state,
-                    "--head",
-                    branch,
+                    "all",
                     "--json",
-                    "number,title,state",
-                    "--jq",
-                    ".[0] | {number, title, state}",
-                ]
+                    "number,headRefName,url,state,isDraft,statusCheckRollup",
+                ],
+                cwd=repo_root,
+                capture_output=True,
+                text=True,
+                check=True,
+            )
 
-                debug_print(f"Running: {' '.join(cmd)}")
+            prs_data = json.loads(result.stdout)
+            prs: dict[str, PullRequestInfo] = {}
 
-                result = subprocess.run(
-                    cmd,
-                    cwd=repo_root,
-                    capture_output=True,
-                    text=True,
-                    check=True,
+            for pr in prs_data:
+                branch = pr["headRefName"]
+                checks_passing = self._determine_checks_status(pr.get("statusCheckRollup", []))
+
+                prs[branch] = PullRequestInfo(
+                    number=pr["number"],
+                    state=pr["state"],
+                    url=pr["url"],
+                    is_draft=pr["isDraft"],
+                    checks_passing=checks_passing,
                 )
 
-                output = result.stdout.strip()
-                debug_print(f"Output: {output}")
-
-                if not output or output == "null":
-                    continue
-
-                # Parse JSON output
-                data = json.loads(output)
-                pr_number = data.get("number")
-                title = data.get("title")
-                pr_state = data.get("state")
-
-                if pr_number is not None:
-                    return (pr_state, pr_number, title)
-
-            # No PR found
-            return (None, None, None)
+            return prs
 
         except (subprocess.CalledProcessError, FileNotFoundError, json.JSONDecodeError):
-            # gh not installed, not authenticated, or other error
-            return (None, None, None)
+            # gh not installed, not authenticated, or JSON parsing failed
+            return {}
+
+    def get_pr_status(
+        self, repo_root: Path, branch: str, *, debug: bool
+    ) -> tuple[str, int | None, str | None]:
+        """Get PR status for a specific branch.
+
+        Note: Uses try/except as an acceptable error boundary for handling gh CLI
+        availability and authentication. We cannot reliably check gh installation
+        and authentication status a priori without duplicating gh's logic.
+        """
+        try:
+            # Query gh for PR info for this specific branch
+            cmd = [
+                "gh",
+                "pr",
+                "list",
+                "--head",
+                branch,
+                "--state",
+                "all",
+                "--json",
+                "number,state,title",
+                "--limit",
+                "1",
+            ]
+
+            if debug:
+                import click
+
+                click.echo(f"$ {' '.join(cmd)}")
+
+            result = subprocess.run(
+                cmd,
+                cwd=repo_root,
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+
+            prs_data = json.loads(result.stdout)
+
+            # If no PR exists for this branch
+            if not prs_data:
+                return ("NONE", None, None)
+
+            # Take the first (and should be only) PR
+            pr = prs_data[0]
+            return (pr["state"], pr["number"], pr["title"])
+
+        except (subprocess.CalledProcessError, FileNotFoundError, json.JSONDecodeError):
+            # gh not installed, not authenticated, or JSON parsing failed
+            return ("NONE", None, None)
+
+    def _determine_checks_status(self, check_rollup: list[dict]) -> bool | None:
+        """Determine overall CI checks status.
+
+        Returns:
+            None if no checks configured
+            True if all checks passed
+            False if any check failed or is pending
+        """
+        if not check_rollup:
+            return None
+
+        for check in check_rollup:
+            status = check.get("status")
+            conclusion = check.get("conclusion")
+
+            # If any check is not completed, consider it failing
+            if status != "COMPLETED":
+                return False
+
+            # If any completed check didn't succeed, consider it failing
+            if conclusion != "SUCCESS":
+                return False
+
+        return True

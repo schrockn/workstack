@@ -2,10 +2,10 @@
 
 from dataclasses import dataclass
 
-from workstack.githubops import GitHubOps, RealGitHubOps
+from workstack.github_ops import GitHubOps, RealGitHubOps
 from workstack.gitops import DryRunGitOps, GitOps, RealGitOps
 from workstack.global_config_ops import GlobalConfigOps, RealGlobalConfigOps
-from workstack.graphiteops import DryRunGraphiteOps, GraphiteOps, RealGraphiteOps
+from workstack.graphite_ops import DryRunGraphiteOps, GraphiteOps, RealGraphiteOps
 
 
 @dataclass(frozen=True)

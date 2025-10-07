@@ -4,7 +4,7 @@ import click
 
 from workstack.context import WorkstackContext
 from workstack.core import discover_repo_context, ensure_work_dir
-from workstack.githubops import PullRequestInfo
+from workstack.github_ops import PullRequestInfo
 from workstack.graphite import _load_graphite_cache, get_branch_stack
 
 

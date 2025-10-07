@@ -214,6 +214,10 @@ def create_context_engine():
 - **Constants:** `UPPER_SNAKE_CASE` (e.g., `GLOBAL_CONFIG_PATH`)
 - **Private functions:** prefix with `_` (e.g., `_remove_worktree`, `_list_worktrees`)
 - **CLI commands:** kebab-case (e.g., `workstack create`, `workstack switch`)
+- **Module names:** Use underscores for multi-word modules (e.g., `github_ops.py`, not `githubops.py`)
+- **Brand names in code:** Use proper capitalization:
+  - ✅ `GitHub` (capital H) - in class names, comments, docstrings
+  - ❌ `Github` (lowercase h) - incorrect capitalization
 
 ### Code Indentation and Nesting
 

@@ -3,7 +3,7 @@ from pathlib import Path
 
 from click.testing import CliRunner
 
-from tests.fakes.github_ops import FakeGithubOps
+from tests.fakes.github_ops import FakeGitHubOps
 from tests.fakes.gitops import FakeGitOps
 from tests.fakes.global_config_ops import FakeGlobalConfigOps
 from tests.fakes.graphite_ops import FakeGraphiteOps
@@ -38,7 +38,7 @@ def test_trunk_branch_with_validation_result_trunk() -> None:
             git_ops=git_ops,
             global_config_ops=global_config_ops,
             graphite_ops=graphite_ops,
-            github_ops=FakeGithubOps(),
+            github_ops=FakeGitHubOps(),
             dry_run=False,
         )
 
@@ -72,7 +72,7 @@ def test_non_trunk_branch_with_no_parent() -> None:
             git_ops=git_ops,
             global_config_ops=global_config_ops,
             graphite_ops=graphite_ops,
-            github_ops=FakeGithubOps(),
+            github_ops=FakeGitHubOps(),
             dry_run=False,
         )
 
@@ -106,7 +106,7 @@ def test_branch_with_parent() -> None:
             git_ops=git_ops,
             global_config_ops=global_config_ops,
             graphite_ops=graphite_ops,
-            github_ops=FakeGithubOps(),
+            github_ops=FakeGitHubOps(),
             dry_run=False,
         )
 
@@ -139,7 +139,7 @@ def test_branch_not_in_cache() -> None:
             git_ops=git_ops,
             global_config_ops=global_config_ops,
             graphite_ops=graphite_ops,
-            github_ops=FakeGithubOps(),
+            github_ops=FakeGitHubOps(),
             dry_run=False,
         )
 
@@ -161,7 +161,7 @@ def test_missing_git_directory() -> None:
         git_ops=git_ops,
         global_config_ops=global_config_ops,
         graphite_ops=graphite_ops,
-        github_ops=FakeGithubOps(),
+        github_ops=FakeGitHubOps(),
         dry_run=False,
     )
 
@@ -188,7 +188,7 @@ def test_missing_cache_file() -> None:
             git_ops=git_ops,
             global_config_ops=global_config_ops,
             graphite_ops=graphite_ops,
-            github_ops=FakeGithubOps(),
+            github_ops=FakeGitHubOps(),
             dry_run=False,
         )
 
@@ -210,7 +210,7 @@ def test_cache_data_optimization() -> None:
         git_ops=git_ops,
         global_config_ops=global_config_ops,
         graphite_ops=graphite_ops,
-        github_ops=FakeGithubOps(),
+        github_ops=FakeGitHubOps(),
         dry_run=False,
     )
 

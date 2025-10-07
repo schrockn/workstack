@@ -4,10 +4,10 @@ from pathlib import Path
 from click.testing import CliRunner
 
 from tests.commands.list import strip_ansi
-from tests.fakes.githubops import FakeGitHubOps
+from tests.fakes.github_ops import FakeGitHubOps
 from tests.fakes.gitops import FakeGitOps
 from tests.fakes.global_config_ops import FakeGlobalConfigOps
-from tests.fakes.graphiteops import FakeGraphiteOps
+from tests.fakes.graphite_ops import FakeGraphiteOps
 from workstack.cli import cli
 from workstack.context import WorkstackContext
 from workstack.gitops import WorktreeInfo

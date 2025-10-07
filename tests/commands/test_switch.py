@@ -204,10 +204,10 @@ def test_complete_worktree_names_without_context(tmp_path: Path, monkeypatch: ob
     from workstack.cli import cli
     from workstack.commands.switch import complete_worktree_names
     from workstack.context import WorkstackContext
-    from workstack.githubops import RealGitHubOps
+    from workstack.github_ops import RealGitHubOps
     from workstack.gitops import RealGitOps
     from workstack.global_config_ops import RealGlobalConfigOps
-    from workstack.graphiteops import RealGraphiteOps
+    from workstack.graphite_ops import RealGraphiteOps
 
     # Set up isolated global config
     global_config_dir = tmp_path / ".workstack"
