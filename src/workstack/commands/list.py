@@ -40,36 +40,33 @@ def _filter_stack_for_worktree(
     stack: list[str],
     current_worktree_path: Path,
     all_worktree_branches: dict[Path, str | None],
-    is_trunk: bool,
+    is_root_worktree: bool,
 ) -> list[str]:
     """Filter a graphite stack to only show branches relevant to the current worktree.
 
     When displaying a stack for a specific worktree, we want to show:
-    1. The current branch checked out in this worktree
-    2. All ancestor branches (going down to trunk) - provides context
-    3. Descendant branches ONLY if they're checked out in some worktree
-    4. Exception: If current branch is trunk (e.g., main), show ONLY the trunk itself
+    - Root worktree: Current branch + all ancestors (no descendants)
+    - Other worktrees: Ancestors + current + descendants that are checked out somewhere
 
     This ensures that:
-    - Branches without active worktrees don't clutter the display
-    - Ancestor context is preserved (even if ancestors aren't checked out)
-    - Only "active" descendants (with worktrees) appear
-    - Trunk branches don't show unrelated child branches
+    - Root worktree shows context from trunk down to current branch
+    - Other worktrees show full context but only "active" descendants with worktrees
+    - Branches without active worktrees don't clutter non-root displays
 
     Example:
         Stack: [main, foo, bar, baz]
         Worktrees:
-          - root on main
+          - root on bar
           - worktree-baz on baz
 
-        Root display: [main]  (trunk shows only itself)
-        Worktree-baz display: [main, foo, bar, baz]  (ancestors shown for context)
+        Root display: [main, foo, bar]  (ancestors + current, no descendants)
+        Worktree-baz display: [main, foo, bar, baz]  (full context with checked-out descendants)
 
     Args:
         stack: The full graphite stack (ordered from trunk to leaf)
         current_worktree_path: Path to the worktree we're displaying the stack for
         all_worktree_branches: Mapping of all worktree paths to their checked-out branches
-        is_trunk: True if the current branch is a trunk branch (has no parent)
+        is_root_worktree: True if this is the root repository worktree
 
     Returns:
         Filtered stack with only relevant branches
@@ -83,33 +80,20 @@ def _filter_stack_for_worktree(
     # Find the index of the current branch in the stack
     current_idx = stack.index(current_branch)
 
-    # Build a set of branches that are checked out in ANY worktree (including current)
-    all_checked_out_branches = {
-        branch for branch in all_worktree_branches.values() if branch is not None
-    }
+    # Filter the stack based on whether this is the root worktree
+    if is_root_worktree:
+        # Root worktree: show only ancestors + current (no descendants)
+        # This keeps the display clean and focused on context
+        return stack[: current_idx + 1]
+    else:
+        # Non-root worktree: show ancestors + current + descendants with worktrees
+        # Build a set of branches that are checked out in ANY worktree
+        all_checked_out_branches = {
+            branch for branch in all_worktree_branches.values() if branch is not None
+        }
 
-    # Filter the stack:
-    # - If current branch is trunk:
-    #   - Keep the trunk itself
-    #   - Keep descendants ONLY if they're checked out in some worktree
-    # - If current branch is not trunk:
-    #   - Keep all ancestors (indices < current_idx) regardless of where they're checked out
-    #   - Keep the current branch
-    #   - For descendants (indices > current_idx):
-    #     - Only keep if checked out in some worktree
-    result = []
-    for i, branch in enumerate(stack):
-        if is_trunk:
-            # Trunk case: show trunk + descendants with worktrees
-            if i == current_idx:
-                # Always show the trunk itself
-                result.append(branch)
-            elif i > current_idx and branch in all_checked_out_branches:
-                # Show descendants that have worktrees
-                result.append(branch)
-            # else: skip ancestors (shouldn't exist for trunk) and descendants without worktrees
-        else:
-            # Non-trunk case: show ancestors + current + descendants with worktrees
+        result = []
+        for i, branch in enumerate(stack):
             if i <= current_idx:
                 # Ancestors and current branch: always keep
                 result.append(branch)
@@ -117,9 +101,8 @@ def _filter_stack_for_worktree(
                 # Descendants: only keep if checked out in some worktree
                 if branch in all_checked_out_branches:
                     result.append(branch)
-                # else: skip it (not checked out anywhere)
 
-    return result
+        return result
 
 
 def _is_trunk_branch(
@@ -232,6 +215,7 @@ def _display_branch_stack(
     worktree_path: Path,
     branch: str,
     all_branches: dict[Path, str | None],
+    is_root_worktree: bool,
     cache_data: dict | None = None,  # If None, cache will be loaded from disk
     prs: dict[str, PullRequestInfo] | None = None,  # If None, no PR info displayed
 ) -> None:
@@ -254,8 +238,9 @@ def _display_branch_stack(
     if not stack:
         return
 
-    is_trunk = _is_trunk_branch(ctx, repo_root, branch, cache_data)
-    filtered_stack = _filter_stack_for_worktree(stack, worktree_path, all_branches, is_trunk)
+    filtered_stack = _filter_stack_for_worktree(
+        stack, worktree_path, all_branches, is_root_worktree
+    )
     if not filtered_stack:
         return
 
@@ -325,7 +310,9 @@ def _list_worktrees(ctx: WorkstackContext, show_stacks: bool) -> None:
     click.echo(_format_worktree_line("root", root_branch, path=None, is_root=True))
 
     if show_stacks and root_branch:
-        _display_branch_stack(ctx, repo.root, repo.root, root_branch, branches, cache_data, prs)
+        _display_branch_stack(
+            ctx, repo.root, repo.root, root_branch, branches, True, cache_data, prs
+        )
 
     # Show worktrees
     work_dir = ensure_work_dir(repo)
@@ -351,7 +338,9 @@ def _list_worktrees(ctx: WorkstackContext, show_stacks: bool) -> None:
         click.echo(_format_worktree_line(name, wt_branch, path=None, is_root=False))
 
         if show_stacks and wt_branch and wt_path:
-            _display_branch_stack(ctx, repo.root, wt_path, wt_branch, branches, cache_data, prs)
+            _display_branch_stack(
+                ctx, repo.root, wt_path, wt_branch, branches, False, cache_data, prs
+            )
 
 
 @click.command("list")
