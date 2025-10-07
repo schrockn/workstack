@@ -204,11 +204,14 @@ class RealGitHubOps(GitHubOps):
 
         Returns:
             None if no checks configured
-            True if all checks passed
+            True if all checks passed (SUCCESS, SKIPPED, or NEUTRAL)
             False if any check failed or is pending
         """
         if not check_rollup:
             return None
+
+        # GitHub check conclusions that should be treated as passing
+        passing_conclusions = {"SUCCESS", "SKIPPED", "NEUTRAL"}
 
         for check in check_rollup:
             status = check.get("status")
@@ -218,8 +221,8 @@ class RealGitHubOps(GitHubOps):
             if status != "COMPLETED":
                 return False
 
-            # If any completed check didn't succeed, consider it failing
-            if conclusion != "SUCCESS":
+            # If any completed check didn't pass, consider it failing
+            if conclusion not in passing_conclusions:
                 return False
 
         return True

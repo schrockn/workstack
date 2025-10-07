@@ -47,13 +47,18 @@ def quote(s: str) -> str:
 
 
 def complete_worktree_names(
-    ctx: click.Context, param: click.Parameter, incomplete: str
+    ctx: click.Context, param: click.Parameter | None, incomplete: str
 ) -> list[str]:
     """Shell completion for worktree names. Includes 'root' for the repository root.
 
     This is a shell completion function, which is an acceptable error boundary.
     Exceptions are caught to provide graceful degradation - if completion fails,
     we return an empty list rather than breaking the user's shell experience.
+
+    Args:
+        ctx: Click context
+        param: Click parameter (unused, but required by Click's completion protocol)
+        incomplete: Partial input string to complete
     """
     try:
         # Get WorkstackContext from click.Context.obj

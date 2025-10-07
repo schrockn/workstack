@@ -169,6 +169,29 @@ def _is_trunk_branch(
     return False
 
 
+def _get_pr_status_emoji(pr: PullRequestInfo) -> str:
+    """Determine the emoji to display for a PR based on its status.
+
+    Args:
+        pr: Pull request information
+
+    Returns:
+        Emoji character representing the PR's current state
+    """
+    if pr.is_draft:
+        return "🚧"
+    if pr.state == "MERGED":
+        return "🟣"
+    if pr.state == "CLOSED":
+        return "⭕"
+    if pr.checks_passing is True:
+        return "✅"
+    if pr.checks_passing is False:
+        return "❌"
+    # Open PR with no checks
+    return "◯"
+
+
 def _format_pr_info(
     ctx: WorkstackContext,
     repo_root: Path,
@@ -190,20 +213,7 @@ def _format_pr_info(
     if pr is None:
         return ""
 
-    # Determine status emoji
-    if pr.is_draft:
-        emoji = "🚧"
-    elif pr.state == "MERGED":
-        emoji = "🟣"
-    elif pr.state == "CLOSED":
-        emoji = "⭕"
-    elif pr.checks_passing is True:
-        emoji = "✅"
-    elif pr.checks_passing is False:
-        emoji = "❌"
-    else:
-        # Open PR with no checks
-        emoji = "◯"
+    emoji = _get_pr_status_emoji(pr)
 
     # Get Graphite URL (always available since we have owner/repo from GitHub)
     url = ctx.graphite_ops.get_graphite_url(pr.owner, pr.repo, pr.number)
@@ -222,8 +232,8 @@ def _display_branch_stack(
     worktree_path: Path,
     branch: str,
     all_branches: dict[Path, str | None],
-    cache_data: dict | None = None,
-    prs: dict[str, PullRequestInfo] | None = None,
+    cache_data: dict | None = None,  # If None, cache will be loaded from disk
+    prs: dict[str, PullRequestInfo] | None = None,  # If None, no PR info displayed
 ) -> None:
     """Display the graphite stack for a worktree with colorization and PR info.
 
@@ -237,8 +247,8 @@ def _display_branch_stack(
         worktree_path: Path to the current worktree
         branch: Branch name to display stack for
         all_branches: Mapping of all worktree paths to their checked-out branches
-        cache_data: Pre-loaded graphite cache data (optional optimization)
-        prs: Mapping of branch names to PR information (optional)
+        cache_data: Pre-loaded graphite cache data (if None, loaded from disk)
+        prs: Mapping of branch names to PR information (if None, no PR info displayed)
     """
     stack = get_branch_stack(ctx, repo_root, branch)
     if not stack:
