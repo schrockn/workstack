@@ -780,7 +780,7 @@ def test_list_with_stacks_corrupted_cache() -> None:
             git_ops=git_ops,
             global_config_ops=global_config_ops,
             graphite_ops=graphite_ops,
-            github_ops=FakeGithubOps(),
+            github_ops=FakeGitHubOps(),
             dry_run=False,
         )
 
