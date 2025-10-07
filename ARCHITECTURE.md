@@ -1,0 +1,565 @@
+# Workstack Architecture
+
+**Last Updated**: 2025-10-07
+**Status**: Living document
+
+---
+
+## Table of Contents
+
+- [System Purpose](#system-purpose)
+- [Core Concepts](#core-concepts)
+- [Architecture Overview](#architecture-overview)
+- [Module Organization](#module-organization)
+- [Dependency Graph](#dependency-graph)
+- [Command Execution Flow](#command-execution-flow)
+- [Key Design Patterns](#key-design-patterns)
+- [Testing Architecture](#testing-architecture)
+- [Integration Points](#integration-points)
+- [Design Decisions](#design-decisions)
+- [Quick Navigation](#quick-navigation)
+
+---
+
+## System Purpose
+
+Workstack is a CLI tool that manages git worktrees in a centralized location with:
+
+- **Automatic environment setup** - Each worktree gets configured env vars
+- **Graphite integration** - Optional integration with graphite stack management
+- **GitHub PR tracking** - Display PR status alongside worktrees
+- **Shell activation** - Automatic environment activation when switching worktrees
+
+**Core Problem Solved**: Managing multiple feature branches without switching branches in a single working directory. Instead, each branch gets its own directory (worktree) with proper environment configuration.
+
+---
+
+## Core Concepts
+
+See [GLOSSARY.md](GLOSSARY.md) for detailed term definitions. Key concepts:
+
+- **Worktree**: Git's native feature for multiple working directories
+- **Workstack**: A _managed_ worktree with additional features (config, env vars)
+- **Repo Root**: Original git repository directory (contains `.git/`)
+- **Work Dir**: Global directory containing all workstacks for a specific repo
+- **Workstacks Root**: Top-level directory for all managed repos (e.g., `~/worktrees/`)
+
+**Relationship**:
+
+```
+~/.workstack/config.toml  (global config)
+    ↓
+~/worktrees/              (workstacks root)
+    ├── workstack/        (work dir for "workstack" repo)
+    │   ├── feature-a/    (individual workstack)
+    │   ├── feature-b/    (individual workstack)
+    │   └── config.toml   (repo-specific config)
+    └── other-repo/       (work dir for another repo)
+```
+
+---
+
+## Architecture Overview
+
+### Layer Architecture
+
+Workstack uses a **3-layer architecture**:
+
+```
+┌─────────────────────────────────────────┐
+│         CLI Layer (Commands)            │  User-facing commands
+│   commands/*.py                         │  Click decorators
+└────────────────┬────────────────────────┘
+                 │
+                 │ uses WorkstackContext
+                 ↓
+┌─────────────────────────────────────────┐
+│       Core Layer (Business Logic)       │  Pure functions
+│   core.py, config.py, tree.py          │  No side effects
+│   graphite.py                           │
+└────────────────┬────────────────────────┘
+                 │
+                 │ calls through context
+                 ↓
+┌─────────────────────────────────────────┐
+│    Operations Layer (External I/O)      │  ABC interfaces
+│   gitops.py, github_ops.py              │  Real & Fake impls
+│   graphite_ops.py, global_config_ops.py │  DryRun wrappers
+└─────────────────────────────────────────┘
+```
+
+**Key Principle**: Dependencies flow downward only. Commands never directly call subprocess or filesystem operations.
+
+---
+
+## Module Organization
+
+### Root Level (`src/workstack/`)
+
+**Entry Point**:
+
+- `cli.py` (43 lines) - Creates `WorkstackContext`, registers commands
+- `__main__.py` - Entry point for `python -m workstack`
+
+**Core Modules**:
+
+- `context.py` (57 lines) - `WorkstackContext` frozen dataclass, dependency injection
+- `core.py` (95 lines) - Pure business logic (repo discovery, path construction)
+- `config.py` (41 lines) - Configuration loading from TOML
+- `tree.py` (410 lines) - Tree visualization logic
+- `graphite.py` (241 lines) - Graphite-specific integration logic
+
+**Operations Modules** (ABC Pattern):
+
+- `gitops.py` (368 lines) - Git worktree operations (9 methods)
+- `github_ops.py` (228 lines) - GitHub API operations (2 methods)
+- `graphite_ops.py` (125 lines) - Graphite CLI operations (2 methods)
+- `global_config_ops.py` (248 lines) - Global config management (7 methods)
+
+### Commands (`src/workstack/commands/`)
+
+Each command is a self-contained module:
+
+| Command         | Lines | Purpose                                      |
+| --------------- | ----- | -------------------------------------------- |
+| `create.py`     | 365   | Create new worktree with plan file support   |
+| `list.py`       | 371   | List worktrees with PR status/graphite info  |
+| `remove.py`     | 305   | Remove worktree and optionally delete branch |
+| `switch.py`     | 222   | Switch worktrees, generate shell activation  |
+| `sync.py`       | 181   | Sync with graphite, identify merged PRs      |
+| `init.py`       | 373   | Initialize global/repo config, shell setup   |
+| `config.py`     | 179   | Manage configuration (list/get/set)          |
+| `completion.py` | 112   | Generate shell completion scripts            |
+| `gc.py`         | 90    | Garbage collect merged worktrees             |
+| `rename.py`     | 69    | Rename worktree (move directory)             |
+| `tree.py`       | 44    | Display tree visualization                   |
+
+### Testing (`tests/`)
+
+```
+tests/
+├── fakes/                    # In-memory implementations
+│   ├── gitops.py            # FakeGitOps
+│   ├── github_ops.py        # FakeGitHubOps
+│   ├── graphite_ops.py      # FakeGraphiteOps
+│   └── global_config_ops.py # FakeGlobalConfigOps
+├── commands/                 # Command-level tests
+│   ├── test_rm.py
+│   ├── test_switch.py
+│   ├── list/                # Complex tests in subdirectory
+│   └── ...
+├── core/                     # Core logic tests
+└── integration/              # Real git integration tests
+```
+
+---
+
+## Dependency Graph
+
+### Module Dependencies
+
+```
+cli.py
+  │
+  ├──> context.py ────────> gitops.py (ABC)
+  │                    ├──> github_ops.py (ABC)
+  │                    ├──> graphite_ops.py (ABC)
+  │                    └──> global_config_ops.py (ABC)
+  │
+  └──> commands/*.py
+         │
+         ├──> core.py ────> context.py (for types)
+         ├──> config.py
+         ├──> tree.py ───> graphite.py ───> graphite_ops.py (via context)
+         └──> graphite.py
+```
+
+**Import Rules**:
+
+1. Commands import `core`, `config`, `tree`, `graphite` - NEVER ops directly
+2. Core modules use ops through injected `WorkstackContext` parameter
+3. Ops modules have zero dependencies on commands or core
+4. No circular dependencies (enforced by design)
+
+### Data Flow
+
+```
+User Input (CLI)
+    ↓
+Click Command Handler (commands/*.py)
+    ↓
+WorkstackContext (injected via @click.pass_obj)
+    ↓
+Core Business Logic (core.py functions)
+    ↓
+Ops Interfaces (via ctx.git_ops, ctx.github_ops, etc.)
+    ↓
+Real Implementations (RealGitOps, RealGitHubOps, etc.)
+    ↓
+Subprocess / Filesystem / External APIs
+```
+
+---
+
+## Command Execution Flow
+
+### Detailed Flow Example: `workstack create my-feature`
+
+```
+1. User runs: workstack create my-feature
+   ↓
+2. cli.py main() called
+   ↓
+3. create_context(dry_run=False) creates WorkstackContext
+   - Instantiates RealGitOps()
+   - Instantiates RealGlobalConfigOps()
+   - Instantiates RealGitHubOps()
+   - Instantiates RealGraphiteOps()
+   ↓
+4. Click routes to create_cmd() in commands/create.py
+   ↓
+5. create_cmd receives WorkstackContext via @click.pass_obj
+   ↓
+6. Calls discover_repo_context(ctx, Path.cwd())
+   - Walks up directory tree to find .git
+   - Gets workstacks root from ctx.global_config_ops
+   - Returns RepoContext(root, repo_name, work_dir)
+   ↓
+7. Validates worktree name doesn't already exist
+   - Calls ctx.git_ops.list_worktrees(repo.root)
+   - RealGitOps runs: git worktree list --porcelain
+   ↓
+8. Creates new worktree
+   - Calls ctx.git_ops.add_worktree(repo.root, branch, path)
+   - RealGitOps runs: git worktree add -b branch path
+   ↓
+9. Sets up environment
+   - Loads config from work_dir/config.toml
+   - Writes .env file to worktree
+   ↓
+10. Runs post-create commands
+    - Executes commands from config.post_create
+    ↓
+11. Success message displayed via click.echo()
+```
+
+### Error Handling Flow
+
+```
+Exception in Real Ops (e.g., git command fails)
+    ↓
+subprocess.CalledProcessError raised
+    ↓
+Bubbles up through Core Layer (no try/except)
+    ↓
+Bubbles up through Command Layer
+    ↓
+Click catches at CLI boundary
+    ↓
+User sees error message and traceback
+```
+
+**Key Principle**: LBYL (Look Before You Leap) - Check conditions proactively rather than catching exceptions.
+
+See: [docs/EXCEPTION_HANDLING.md](docs/EXCEPTION_HANDLING.md) for complete guide.
+
+---
+
+## Key Design Patterns
+
+### 1. ABC-Based Dependency Injection
+
+**Why**: Enables testing with in-memory fakes, no filesystem I/O in unit tests.
+
+**Pattern**:
+
+```python
+# 1. Define ABC interface
+class GitOps(ABC):
+    @abstractmethod
+    def list_worktrees(self, repo_root: Path) -> list[WorktreeInfo]:
+        ...
+
+# 2. Real implementation
+class RealGitOps(GitOps):
+    def list_worktrees(self, repo_root: Path) -> list[WorktreeInfo]:
+        result = subprocess.run(["git", "worktree", "list", ...], ...)
+        return parse_worktrees(result.stdout)
+
+# 3. Fake for testing
+class FakeGitOps(GitOps):
+    def __init__(self, *, worktrees: list[WorktreeInfo] | None = None):
+        self._worktrees = worktrees or []
+
+    def list_worktrees(self, repo_root: Path) -> list[WorktreeInfo]:
+        return self._worktrees
+
+# 4. Inject via context
+ctx = WorkstackContext(
+    git_ops=RealGitOps(),  # or FakeGitOps() in tests
+    ...
+)
+```
+
+**Benefits**:
+
+- Fast tests (no subprocess calls)
+- Deterministic tests (no filesystem state)
+- Easy to mock edge cases
+- Clear interface contracts
+
+See: [docs/guides/ADDING_AN_OPS_INTERFACE.md](docs/guides/ADDING_AN_OPS_INTERFACE.md) for complete guide.
+
+### 2. Frozen Dataclass Contexts
+
+**Why**: Prevents accidental mutation during command execution.
+
+**Pattern**:
+
+```python
+@dataclass(frozen=True)
+class WorkstackContext:
+    git_ops: GitOps
+    global_config_ops: GlobalConfigOps
+    github_ops: GitHubOps
+    graphite_ops: GraphiteOps
+    dry_run: bool
+```
+
+**Benefits**:
+
+- Immutable = thread-safe
+- Clear dependencies
+- Type-safe access
+- Cannot be modified after creation
+
+### 3. Pure Core Functions
+
+**Why**: Easier to reason about, test, and refactor.
+
+**Pattern**:
+
+```python
+def discover_repo_context(ctx: WorkstackContext, start: Path) -> RepoContext:
+    """Pure function: takes context + input, returns output.
+
+    No side effects. All external interactions through ctx.
+    """
+    # Uses ctx.git_ops and ctx.global_config_ops
+    # Returns new RepoContext
+    # Doesn't modify anything
+```
+
+**Benefits**:
+
+- Predictable behavior
+- Easy to test
+- Composable
+- No hidden side effects
+
+### 4. Click Context Passing
+
+**Why**: Standardized way to pass dependencies through command hierarchy.
+
+**Pattern**:
+
+```python
+@click.command("create")
+@click.argument("name")
+@click.pass_obj  # ← Receives WorkstackContext
+def create_cmd(ctx: WorkstackContext, name: str) -> None:
+    # ctx is the WorkstackContext created in cli.py
+    repo = discover_repo_context(ctx, Path.cwd())
+    ctx.git_ops.add_worktree(repo.root, name, path)
+```
+
+### 5. Dry-Run Wrapper Pattern
+
+**Why**: Allow users to preview destructive operations without executing them.
+
+**Pattern**:
+
+```python
+class DryRunGitOps(GitOps):
+    def __init__(self, wrapped: GitOps) -> None:
+        self._wrapped = wrapped
+
+    def list_worktrees(self, repo_root: Path) -> list[WorktreeInfo]:
+        # Read-only: delegate to wrapped
+        return self._wrapped.list_worktrees(repo_root)
+
+    def remove_worktree(self, repo_root: Path, path: Path, force: bool) -> None:
+        # Destructive: print instead of execute
+        click.echo(f"[DRY RUN] Would remove worktree: {path}")
+```
+
+---
+
+## Testing Architecture
+
+### Test Types
+
+**Unit Tests** (fast, isolated):
+
+- Use `FakeGitOps`, `FakeGitHubOps`, etc.
+- Use `CliRunner.isolated_filesystem()` for filesystem tests
+- No subprocess calls
+- Test business logic in isolation
+
+**Integration Tests** (slower, real git):
+
+- Use `RealGitOps` with temporary repositories
+- Test git interactions work correctly
+- Located in `tests/integration/`
+
+### Fake Pattern
+
+**Key Rule**: All state configured via constructor, NO public setup methods.
+
+```python
+# ✅ CORRECT: State via constructor
+git_ops = FakeGitOps(
+    worktrees=[
+        WorktreeInfo(path=Path("/repo/main"), branch="main", ...),
+        WorktreeInfo(path=Path("/repo/feature"), branch="feature", ...),
+    ],
+    git_common_dirs={Path("/repo"): Path("/repo/.git")},
+)
+
+# ❌ WRONG: Setup methods
+git_ops = FakeGitOps()
+git_ops.add_worktree(...)  # No such method!
+```
+
+**Why**: Forces test to be explicit about initial state, prevents order-dependent bugs.
+
+See: [tests/CLAUDE.md](tests/CLAUDE.md) and [docs/guides/TESTING_GUIDE.md](docs/guides/TESTING_GUIDE.md) for details.
+
+---
+
+## Integration Points
+
+### Git Integration (`gitops.py`)
+
+**Operations**:
+
+- List worktrees: `git worktree list --porcelain`
+- Add worktree: `git worktree add -b <branch> <path>`
+- Remove worktree: `git worktree remove <path> [--force]`
+- Move worktree: `git worktree move <source> <dest>`
+- Get/checkout branches
+- Detect default branch: `git symbolic-ref refs/remotes/origin/HEAD`
+
+**Error Handling**: All git errors bubble up as `subprocess.CalledProcessError`.
+
+### GitHub Integration (`github_ops.py`)
+
+**Operations**:
+
+- Get all PRs: `gh pr list --repo <repo> --json ...`
+- Get PR status: Parse PR state, checks, reviews
+
+**Graceful Degradation**: If `gh` CLI not available, operations return `None`.
+
+### Graphite Integration (`graphite_ops.py`)
+
+**Operations**:
+
+- Get graphite URL: Construct web URL for repo
+- Sync: `gt repo sync`
+
+**Optional**: Graphite features only available if `use_graphite` config is true.
+
+### Configuration Storage
+
+**Global Config**: `~/.workstack/config.toml`
+
+```toml
+workstacks_root = "/Users/you/worktrees"
+use_graphite = true
+show_pr_info = true
+```
+
+**Repo Config**: `<workstacks_root>/<repo>/config.toml`
+
+```toml
+[env]
+DATABASE_URL = "postgresql://localhost/dev_db"
+
+[[post_create]]
+command = ["uv", "sync"]
+```
+
+---
+
+## Design Decisions
+
+### Why ABC instead of Protocol?
+
+**Decision**: Use `abc.ABC` for all interfaces.
+
+**Rationale**:
+
+- Explicit inheritance is more discoverable
+- Runtime validation of complete implementations
+- Better IDE support
+- Clearer intent: this is a formal interface contract
+
+### Why frozen dataclasses?
+
+**Decision**: Use `@dataclass(frozen=True)` for all contexts and data classes.
+
+**Rationale**:
+
+- Prevents accidental mutation
+- Makes data flow explicit
+- Thread-safe by default
+- Easier to reason about
+
+### Why LBYL over EAFP?
+
+**Decision**: Prefer checking conditions before operations (LBYL) over catching exceptions (EAFP).
+
+**Rationale**:
+
+- Makes error conditions explicit
+- Prevents using exceptions for control flow
+- More predictable behavior
+- Easier to test edge cases
+
+See: [docs/EXCEPTION_HANDLING.md](docs/EXCEPTION_HANDLING.md) for complete guide.
+
+### Why no relative imports?
+
+**Decision**: Always use absolute imports (`from workstack.config import load_config`).
+
+**Rationale**:
+
+- Clearer where modules live
+- Easier to move code around
+- Avoids ambiguity
+- Better for tooling
+
+---
+
+## Quick Navigation
+
+### "I want to..."
+
+- **Add a new command** → [docs/guides/ADDING_A_COMMAND.md](docs/guides/ADDING_A_COMMAND.md)
+- **Add a new ops interface** → [docs/guides/ADDING_AN_OPS_INTERFACE.md](docs/guides/ADDING_AN_OPS_INTERFACE.md)
+- **Understand terminology** → [GLOSSARY.md](GLOSSARY.md)
+- **Find where feature lives** → [FEATURE_INDEX.md](FEATURE_INDEX.md)
+- **See module details** → [docs/MODULE_MAP.md](docs/MODULE_MAP.md)
+- **Write tests** → [docs/guides/TESTING_GUIDE.md](docs/guides/TESTING_GUIDE.md)
+- **See code examples** → [docs/PATTERNS.md](docs/PATTERNS.md)
+
+---
+
+## Related Documentation
+
+- [GLOSSARY.md](GLOSSARY.md) - Term definitions
+- [FEATURE_INDEX.md](FEATURE_INDEX.md) - Feature → file mapping
+- [docs/MODULE_MAP.md](docs/MODULE_MAP.md) - Detailed module guide
+- [CLAUDE.md](CLAUDE.md) - Coding standards
+- [README.md](README.md) - User-facing documentation
