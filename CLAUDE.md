@@ -153,23 +153,22 @@ from workstack.core import discover_repo_context
 
 ```python
 # ✅ GOOD: Top-level imports
-from contextlib import contextmanager
-from csbot.contextengine.contextstore_protocol import GitCommitInfo, GitInfo
-from csbot.contextengine.file_tree import FilesystemFileTree
+from pathlib import Path
 
-@contextmanager
-def my_function():
-    tree = FilesystemFileTree(path)
-    # Use GitCommitInfo, GitInfo directly
+from workstack.gitops import GitOps, RealGitOps
+from workstack.global_config_ops import GlobalConfigOps, RealGlobalConfigOps
+
+def create_worktree(name: str, git_ops: GitOps, config_ops: GlobalConfigOps) -> None:
+    workstacks_root = config_ops.get_workstacks_root()
+    # Use git_ops and config_ops directly
 ```
 
 ```python
 # ❌ BAD: Function-scoped imports without justification
-@contextmanager
-def my_function():
-    from csbot.contextengine.contextstore_protocol import GitCommitInfo, GitInfo
-    from csbot.contextengine.file_tree import FilesystemFileTree
-    tree = FilesystemFileTree(path)
+def create_worktree(name: str) -> None:
+    from workstack.gitops import RealGitOps
+    from workstack.global_config_ops import RealGlobalConfigOps
+    # These should be injected via context, not imported in function
 ```
 
 ```python
@@ -177,17 +176,17 @@ def my_function():
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from anthropic import Anthropic
-    from csbot.contextengine.file_tree import FileTree
+    from workstack.gitops import GitOps
+    from workstack.github_ops import GitHubOps
 ```
 
 ```python
 # ✅ ACCEPTABLE: Avoiding circular imports
-def create_context_engine():
-    # Import here to avoid circular dependency:
-    # context_engine.py -> github_working_dir.py -> context_engine.py
-    from csbot.contextengine.context_engine import ContextEngine
-    return ContextEngine(...)
+def create_real_ops():
+    # Import here to avoid circular dependency if it existed:
+    # (example only - workstack doesn't currently have this issue)
+    from workstack.gitops import RealGitOps
+    return RealGitOps()
 ```
 
 ### Code Formatting & Type Checking
@@ -707,15 +706,3 @@ return PurePosixPath(path).match(pattern)
 ```
 
 **Rationale**: Exception swallowing masks real problems and makes debugging extremely difficult. If an exception occurs, it usually indicates a genuine issue that needs to be addressed, not hidden.
-
-## Async/Sync Interface Pattern
-
-When you need to maintain parallel sync and async interfaces for the same business logic, consult `@src/csbot/utils/async_thread.py` for a Protocol-based pattern that:
-
-- Eliminates code duplication between sync and async implementations
-- Provides automatic conversion through decorators
-- Maintains type safety through protocols
-- Creates a single source of truth for business logic
-- Allows easy testing of sync logic without async complexity
-
-This pattern is particularly useful when you have business logic that needs to be available in both synchronous and asynchronous contexts without duplicating the implementation.
