@@ -88,9 +88,8 @@ def sync_cmd(ctx: WorkstackContext, force: bool, auto_clean: bool, dry_run: bool
     if force:
         cmd.append("-f")
 
-    click.echo(f"Running: {' '.join(cmd)}")
-
     if not dry_run:
+        click.echo(f"Running: {' '.join(cmd)}")
         try:
             ctx.graphite_ops.sync(repo.root, force=force)
         except subprocess.CalledProcessError as e:
@@ -104,7 +103,7 @@ def sync_cmd(ctx: WorkstackContext, force: bool, auto_clean: bool, dry_run: bool
             )
             raise SystemExit(1) from e
     else:
-        click.echo("[DRY RUN] Would run gt sync")
+        click.echo(f"[DRY RUN] Would run {' '.join(cmd)}")
 
     # Step 5: Identify deletable workstacks
     worktrees = ctx.git_ops.list_worktrees(repo.root)
@@ -160,17 +159,20 @@ def sync_cmd(ctx: WorkstackContext, force: bool, auto_clean: bool, dry_run: bool
             # Remove each workstack
             for name, _branch, _state, _pr_number in deletable:
                 if dry_run:
-                    click.echo(f"[DRY RUN] Would delete: {name}")
+                    click.echo(f"[DRY RUN] Would delete worktree: {name} (branch: {_branch})")
+                    # Skip actual removal in dry-run
                 else:
-                    click.echo(f"Deleting: {name}")
+                    click.echo(f"Deleting worktree: {name} (branch: {_branch})")
                     # Reuse remove logic from remove.py
                     _remove_worktree(
                         ctx,
                         name,
                         force=True,  # Already confirmed above
                         delete_stack=True,  # Delete graphite stack
-                        dry_run=dry_run,
+                        dry_run=False,
                     )
+
+            click.echo("\nNext step: Run 'gt sync -f' to delete the merged branches.")
         else:
             click.echo("\nRun with --auto-clean to delete these workstacks.")
 
