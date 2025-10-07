@@ -13,6 +13,9 @@ All CLI commands receive a `WorkstackContext` frozen dataclass containing inject
 class WorkstackContext:
     git_ops: GitOps
     global_config_ops: GlobalConfigOps
+    github_ops: GitHubOps
+    graphite_ops: GraphiteOps
+    dry_run: bool
 ```
 
 **Why**: This allows tests to inject fake implementations without mocking or monkeypatching.
@@ -39,9 +42,14 @@ def test_rm_force_removes_directory() -> None:
         )
 
         # Create context and inject via Click
+        # Note: In real tests, you'll need to provide all required fields
+        # or use helper functions to create minimal contexts
         test_ctx = WorkstackContext(
             git_ops=git_ops,
-            global_config_ops=global_config_ops
+            global_config_ops=global_config_ops,
+            github_ops=FakeGitHubOps(),
+            graphite_ops=FakeGraphiteOps(),
+            dry_run=False,
         )
 
         result = runner.invoke(cli, ["rm", "foo", "-f"], obj=test_ctx)
@@ -172,7 +180,10 @@ def test_command_behavior() -> None:
         # 3. Create context
         test_ctx = WorkstackContext(
             git_ops=git_ops,
-            global_config_ops=global_config_ops
+            global_config_ops=global_config_ops,
+            github_ops=FakeGitHubOps(),
+            graphite_ops=FakeGraphiteOps(),
+            dry_run=False,
         )
 
         # 4. Invoke command with context
