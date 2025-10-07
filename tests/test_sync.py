@@ -392,7 +392,7 @@ def test_sync_auto_clean_with_confirmation() -> None:
 
         assert result.exit_code == 0
         assert "Delete 1 workstack(s)?" in result.output
-        assert "Deleting: feature-1" in result.output
+        assert "Deleting worktree: feature-1" in result.output
 
 
 def test_sync_auto_clean_user_cancels() -> None:
@@ -495,7 +495,7 @@ def test_sync_auto_clean_with_force() -> None:
         assert result.exit_code == 0
         # Should not prompt for confirmation
         assert "Delete 1 workstack(s)?" not in result.output
-        assert "Deleting: feature-1" in result.output
+        assert "Deleting worktree: feature-1" in result.output
 
 
 def test_sync_dry_run() -> None:
@@ -545,7 +545,7 @@ def test_sync_dry_run() -> None:
 
         assert result.exit_code == 0
         assert "[DRY RUN] Would run gt sync" in result.output
-        assert "[DRY RUN] Would delete: feature-1" in result.output
+        assert "[DRY RUN] Would delete worktree: feature-1" in result.output
 
         # Verify sync was not called
         assert len(graphite_ops.sync_calls) == 0
@@ -654,5 +654,5 @@ def test_sync_original_worktree_deleted() -> None:
         # Should mention that original worktree was deleted
         assert (
             "Original worktree 'feature-1' was deleted" in result.output
-            or "Deleting: feature-1" in result.output
+            or "Deleting worktree: feature-1" in result.output
         )
