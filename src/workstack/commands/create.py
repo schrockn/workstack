@@ -137,6 +137,18 @@ def quote_env_value(value: str) -> str:
     return f'"{escaped}"'
 
 
+def _render_cd_script(worktree_path: Path) -> str:
+    """Return shell code that changes to the newly created worktree."""
+    wt = str(worktree_path)
+    quoted_wt = "'" + wt.replace("'", "'\\''") + "'"
+    lines = [
+        "# workstack create - cd to new worktree",
+        f"cd {quoted_wt}",
+        'echo "✓ Switched to new worktree."',
+    ]
+    return "\n".join(lines) + "\n"
+
+
 @click.command("create")
 @click.argument("name", metavar="NAME", required=False)
 @click.option(
@@ -181,6 +193,12 @@ def quote_env_value(value: str) -> str:
     default=None,
     help=("Create worktree from an existing branch. NAME defaults to the branch name."),
 )
+@click.option(
+    "--script",
+    is_flag=True,
+    hidden=True,
+    help="Output shell script for directory change instead of messages.",
+)
 @click.pass_obj
 def create(
     ctx: WorkstackContext,
@@ -191,6 +209,7 @@ def create(
     plan_file: Path | None,
     from_current_branch: bool,
     from_branch: str | None,
+    script: bool,
 ) -> None:
     """Create a worktree and write a .env file.
 
@@ -344,8 +363,11 @@ def create(
             shell=cfg.post_create_shell,
         )
 
-    click.echo(f"Created workstack at {wt_path} checked out at branch '{branch}'")
-    click.echo(f"\nworkstack switch {name}")
+    if script:
+        click.echo(_render_cd_script(wt_path), nl=False)
+    else:
+        click.echo(f"Created workstack at {wt_path} checked out at branch '{branch}'")
+        click.echo(f"\nworkstack switch {name}")
 
 
 def run_commands_in_worktree(

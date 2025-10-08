@@ -1,5 +1,6 @@
 """Tests for the sync command."""
 
+import os
 import subprocess
 from pathlib import Path
 
@@ -10,6 +11,8 @@ from tests.fakes.gitops import FakeGitOps
 from tests.fakes.global_config_ops import FakeGlobalConfigOps
 from tests.fakes.graphite_ops import FakeGraphiteOps
 from workstack.cli import cli
+from workstack.commands.shell_integration import hidden_shell_cmd
+from workstack.commands.sync import _render_return_to_root_script, sync_cmd
 from workstack.context import WorkstackContext
 from workstack.gitops import WorktreeInfo
 
@@ -649,11 +652,147 @@ def test_sync_original_worktree_deleted() -> None:
             dry_run=False,
         )
 
-        result = runner.invoke(cli, ["sync", "-f"], obj=test_ctx)
+        os.chdir(wt1)
+        try:
+            result = runner.invoke(cli, ["sync", "-f"], obj=test_ctx)
+        finally:
+            os.chdir(cwd)
 
         assert result.exit_code == 0
         # Should mention that original worktree was deleted
-        assert (
-            "Original worktree 'feature-1' was deleted" in result.output
-            or "Removing worktree: feature-1" in result.output
+        assert "original worktree was deleted" in result.output
+
+
+def test_render_return_to_root_script() -> None:
+    """Return-to-root script renders expected shell snippet."""
+    root = Path("/example/repo/root")
+    script = _render_return_to_root_script(root)
+
+    assert "# workstack sync - return to root" in script
+    assert f"cd '{root}'" in script
+    assert 'echo "✓ Switched to root worktree."' in script
+
+
+def test_sync_script_mode_when_worktree_deleted() -> None:
+    """--script outputs cd command when current worktree is deleted."""
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        cwd = Path.cwd()
+        workstacks_root = cwd / "workstacks"
+        repo_name = cwd.name
+        work_dir = workstacks_root / repo_name
+        work_dir.mkdir(parents=True)
+
+        repo_root = cwd
+        (repo_root / ".git").mkdir()
+
+        wt1 = work_dir / "feature-1"
+        wt1.mkdir()
+
+        git_ops = FakeGitOps(
+            git_common_dirs={wt1: cwd / ".git"},
+            worktrees={
+                repo_root: [
+                    WorktreeInfo(path=repo_root, branch="main"),
+                    WorktreeInfo(path=wt1, branch="feature-1"),
+                ],
+            },
         )
+
+        global_config_ops = FakeGlobalConfigOps(
+            workstacks_root=workstacks_root,
+            use_graphite=True,
+        )
+
+        graphite_ops = FakeGraphiteOps()
+        github_ops = FakeGitHubOps(pr_statuses={"feature-1": ("MERGED", 123, "Feature 1")})
+
+        test_ctx = WorkstackContext(
+            git_ops=git_ops,
+            global_config_ops=global_config_ops,
+            graphite_ops=graphite_ops,
+            github_ops=github_ops,
+            dry_run=False,
+        )
+
+        os.chdir(wt1)
+        try:
+            result = runner.invoke(
+                sync_cmd,
+                ["-f", "--script"],
+                obj=test_ctx,
+            )
+        finally:
+            os.chdir(cwd)
+
+        assert result.exit_code == 0
+        expected_script = _render_return_to_root_script(repo_root).strip()
+        assert expected_script in result.output
+        assert not wt1.exists()
+
+
+def test_sync_script_mode_when_worktree_exists() -> None:
+    """--script outputs nothing when worktree still exists."""
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        cwd = Path.cwd()
+        workstacks_root = cwd / "workstacks"
+        repo_name = cwd.name
+        work_dir = workstacks_root / repo_name
+        work_dir.mkdir(parents=True)
+
+        repo_root = cwd
+        (repo_root / ".git").mkdir()
+
+        wt1 = work_dir / "feature-1"
+        wt1.mkdir()
+
+        git_ops = FakeGitOps(
+            git_common_dirs={wt1: cwd / ".git"},
+            worktrees={
+                repo_root: [
+                    WorktreeInfo(path=repo_root, branch="main"),
+                    WorktreeInfo(path=wt1, branch="feature-1"),
+                ],
+            },
+        )
+
+        global_config_ops = FakeGlobalConfigOps(
+            workstacks_root=workstacks_root,
+            use_graphite=True,
+        )
+
+        graphite_ops = FakeGraphiteOps()
+        github_ops = FakeGitHubOps(pr_statuses={"feature-1": ("OPEN", 123, "Feature 1")})
+
+        test_ctx = WorkstackContext(
+            git_ops=git_ops,
+            global_config_ops=global_config_ops,
+            graphite_ops=graphite_ops,
+            github_ops=github_ops,
+            dry_run=False,
+        )
+
+        os.chdir(wt1)
+        try:
+            result = runner.invoke(
+                sync_cmd,
+                ["--script"],
+                obj=test_ctx,
+            )
+        finally:
+            os.chdir(cwd)
+
+        assert result.exit_code == 0
+        unexpected_script = _render_return_to_root_script(repo_root).strip()
+        assert unexpected_script not in result.output
+        assert wt1.exists()
+
+
+def test_hidden_shell_cmd_sync_passthrough_on_help() -> None:
+    """Shell integration command signals passthrough for help."""
+    runner = CliRunner()
+    result = runner.invoke(hidden_shell_cmd, ["sync", "--help"])
+
+    assert result.exit_code == 0
+    assert result.output.strip() == "__WORKSTACK_PASSTHROUGH__"

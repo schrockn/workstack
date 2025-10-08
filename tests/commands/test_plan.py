@@ -2,6 +2,11 @@ import os
 import subprocess
 from pathlib import Path
 
+from click.testing import CliRunner
+
+from workstack.commands.create import _render_cd_script
+from workstack.commands.shell_integration import hidden_shell_cmd
+
 
 def test_create_with_plan_file(tmp_path: Path) -> None:
     """Test creating a worktree from a plan file."""
@@ -311,3 +316,78 @@ def test_create_rejects_master_as_worktree_name(tmp_path: Path) -> None:
     # Verify worktree was not created
     worktree_path = workstacks_root / "repo" / "master"
     assert not worktree_path.exists()
+
+
+def test_render_cd_script() -> None:
+    """Test that _render_cd_script generates proper shell code."""
+    worktree_path = Path("/example/workstacks/repo/my-worktree")
+    script = _render_cd_script(worktree_path)
+
+    assert "# workstack create - cd to new worktree" in script
+    assert f"cd '{worktree_path}'" in script
+    assert 'echo "✓ Switched to new worktree."' in script
+
+
+def test_create_with_script_flag(tmp_path: Path) -> None:
+    """Test that --script flag outputs cd script instead of regular messages."""
+    # Set up isolated global config
+    global_config_dir = tmp_path / ".workstack"
+    global_config_dir.mkdir()
+    workstacks_root = tmp_path / "workstacks"
+    (global_config_dir / "config.toml").write_text(
+        f'workstacks_root = "{workstacks_root}"\nuse_graphite = false\n'
+    )
+
+    # Set up a fake git repo
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    subprocess.run(["git", "init", "-b", "main"], cwd=repo, check=True)
+    subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=repo, check=True)
+    subprocess.run(["git", "config", "user.name", "Test User"], cwd=repo, check=True)
+
+    # Create an initial commit
+    (repo / "README.md").write_text("test")
+    subprocess.run(["git", "add", "."], cwd=repo, check=True)
+    subprocess.run(["git", "commit", "-m", "Initial commit"], cwd=repo, check=True)
+
+    # Run workstack create with --script flag, using isolated config
+    env = os.environ.copy()
+    env["HOME"] = str(tmp_path)
+    result = subprocess.run(
+        ["uv", "run", "workstack", "create", "test-worktree", "--no-post", "--script"],
+        cwd=repo,
+        capture_output=True,
+        text=True,
+        env=env,
+    )
+
+    assert result.returncode == 0, f"Command failed: {result.stderr}"
+
+    # Verify worktree was created
+    worktree_path = workstacks_root / "repo" / "test-worktree"
+    assert worktree_path.exists()
+
+    # Verify script output contains the cd command
+    expected_script = _render_cd_script(worktree_path).strip()
+    assert expected_script in result.stdout
+
+
+def test_hidden_shell_cmd_create_passthrough_on_help() -> None:
+    """Shell integration command signals passthrough for help."""
+    runner = CliRunner()
+    result = runner.invoke(hidden_shell_cmd, ["create", "--help"])
+
+    assert result.exit_code == 0
+    assert result.output.strip() == "__WORKSTACK_PASSTHROUGH__"
+
+
+def test_hidden_shell_cmd_create_passthrough_on_error() -> None:
+    """Shell integration command signals passthrough for errors."""
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        # Try to create without any setup - should error
+        result = runner.invoke(hidden_shell_cmd, ["create", "test-worktree"])
+
+        # Should passthrough on error
+        assert result.exit_code != 0
+        assert result.output.strip() == "__WORKSTACK_PASSTHROUGH__"

@@ -1,7 +1,6 @@
 from pathlib import Path
 
 import click
-from click.testing import CliRunner
 
 from workstack.context import WorkstackContext, create_context
 from workstack.core import discover_repo_context, ensure_work_dir, worktree_path_for
@@ -174,49 +173,3 @@ def switch_cmd(ctx: WorkstackContext, name: str, script: bool) -> None:
             "Run 'workstack init --shell' to set up automatic activation."
         )
         click.echo(f"\nOr use: source <(workstack switch {name} --script)")
-
-
-@click.command(
-    "__switch",
-    hidden=True,
-    add_help_option=False,
-    context_settings={"ignore_unknown_options": True, "allow_interspersed_args": False},
-)
-@click.argument("args", nargs=-1, type=click.UNPROCESSED)
-def hidden_switch_cmd(args: tuple[str, ...]) -> None:
-    """Hidden command used by shell wrapper to handle switch logic.
-
-    This command intelligently delegates to the regular switch command
-    or outputs the activation script based on the arguments.
-
-    If arguments indicate the user wants help or explicit script output,
-    we output a special marker that tells the shell wrapper to pass through
-    to the regular command instead of using eval.
-    """
-    # Check if help flags or --script are present
-    # These should pass through to the regular command, not be eval'd
-    if "-h" in args or "--help" in args or "--script" in args:
-        # Output special marker for shell wrapper to detect and pass through
-        click.echo("__WORKSTACK_PASSTHROUGH__")
-        raise SystemExit(0)
-
-    # Normal case: output activation script
-    # args should be just the worktree name
-    if len(args) != 1:
-        click.echo("Usage: workstack __switch NAME", err=True)
-        raise SystemExit(1)
-
-    name = args[0]
-
-    # Use the regular switch logic with --script flag
-    runner = CliRunner()
-    result = runner.invoke(switch_cmd, [name, "--script"], obj=create_context(dry_run=False))
-
-    # If the command failed, output passthrough marker so the shell wrapper
-    # will call the regular command instead of trying to eval the error message
-    if result.exit_code != 0:
-        click.echo("__WORKSTACK_PASSTHROUGH__")
-        raise SystemExit(result.exit_code)
-
-    click.echo(result.output, nl=False)
-    raise SystemExit(result.exit_code)

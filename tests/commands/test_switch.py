@@ -4,6 +4,9 @@ import subprocess
 from pathlib import Path
 
 import pytest
+from click.testing import CliRunner
+
+from workstack.commands.shell_integration import hidden_shell_cmd
 
 
 def strip_ansi(text: str) -> str:
@@ -140,6 +143,15 @@ def test_switch_to_root(tmp_path: Path) -> None:
     assert "cd" in result.stdout
     assert str(repo) in result.stdout
     assert "root" in result.stdout.lower()
+
+
+def test_hidden_shell_cmd_switch_passthrough_on_help() -> None:
+    """Shell integration wrapper defers to regular switch help."""
+    runner = CliRunner()
+    result = runner.invoke(hidden_shell_cmd, ["switch", "--help"])
+
+    assert result.exit_code == 0
+    assert result.output.strip() == "__WORKSTACK_PASSTHROUGH__"
 
 
 def test_list_includes_root(tmp_path: Path) -> None:
