@@ -64,7 +64,7 @@ workstack (CLI tool)
 
 ### CLI Layer
 
-#### `cli.py` (43 lines)
+#### `cli.py`
 
 **Purpose**: Application entry point and command registration.
 
@@ -97,7 +97,7 @@ def cli(click_ctx, dry_run):
 
 ---
 
-#### `commands/create.py` (365 lines)
+#### `commands/create.py`
 
 **Purpose**: Implements `workstack create` command.
 
@@ -131,7 +131,7 @@ workstack create --branch existing-branch my-worktree
 
 ---
 
-#### `commands/switch.py` (222 lines)
+#### `commands/switch.py`
 
 **Purpose**: Implements `workstack switch` command.
 
@@ -162,7 +162,7 @@ workstack switch my-feature
 
 ---
 
-#### `commands/list.py` (371 lines)
+#### `commands/list.py`
 
 **Purpose**: Implements `workstack list` and `workstack ls` commands.
 
@@ -195,7 +195,7 @@ workstack ls  # alias
 
 ---
 
-#### `commands/remove.py` (305 lines)
+#### `commands/remove.py`
 
 **Purpose**: Implements `workstack rm` and `workstack remove` commands.
 
@@ -228,7 +228,7 @@ workstack rm my-feature --force
 
 ---
 
-#### `commands/rename.py` (69 lines)
+#### `commands/rename.py`
 
 **Purpose**: Implements `workstack rename` command.
 
@@ -257,7 +257,7 @@ workstack rename old-name new-name
 
 ---
 
-#### `commands/tree.py` (44 lines)
+#### `commands/tree.py`
 
 **Purpose**: Implements `workstack tree` command.
 
@@ -285,7 +285,7 @@ workstack tree
 
 ---
 
-#### `commands/sync.py` (181 lines)
+#### `commands/sync.py`
 
 **Purpose**: Implements `workstack sync` command.
 
@@ -315,7 +315,7 @@ workstack sync --yes  # auto-confirm removals
 
 ---
 
-#### `commands/init.py` (373 lines)
+#### `commands/init.py`
 
 **Purpose**: Implements `workstack init` command.
 
@@ -349,7 +349,7 @@ workstack init --shell-only
 
 ---
 
-#### `commands/config.py` (179 lines)
+#### `commands/config.py`
 
 **Purpose**: Implements `workstack config` command group.
 
@@ -381,7 +381,7 @@ workstack config set workstacks_root ~/worktrees
 
 ---
 
-#### `commands/gc.py` (90 lines)
+#### `commands/gc.py`
 
 **Purpose**: Implements `workstack gc` command (garbage collection).
 
@@ -410,7 +410,7 @@ workstack gc
 
 ---
 
-#### `commands/completion.py` (112 lines)
+#### `commands/completion.py`
 
 **Purpose**: Implements `workstack completion` command group.
 
@@ -442,7 +442,7 @@ workstack completion zsh > ~/.workstack-completion.zsh
 
 ### Core Layer
 
-#### `context.py` (57 lines)
+#### `context.py`
 
 **Purpose**: Dependency injection container.
 
@@ -476,7 +476,7 @@ class WorkstackContext:
 
 ---
 
-#### `core.py` (95 lines)
+#### `core.py`
 
 **Purpose**: Core business logic (pure functions).
 
@@ -515,7 +515,7 @@ class RepoContext:
 
 ---
 
-#### `config.py` (41 lines)
+#### `config.py`
 
 **Purpose**: Configuration loading from TOML.
 
@@ -544,7 +544,7 @@ class LoadedConfig:
 
 ---
 
-#### `tree.py` (410 lines)
+#### `tree.py`
 
 **Purpose**: Tree visualization logic.
 
@@ -568,7 +568,7 @@ class LoadedConfig:
 
 ---
 
-#### `graphite.py` (241 lines)
+#### `graphite.py`
 
 **Purpose**: Graphite integration logic.
 
@@ -594,7 +594,7 @@ class LoadedConfig:
 
 ### Operations Layer
 
-#### `gitops.py` (368 lines)
+#### `gitops.py`
 
 **Purpose**: Git operations abstraction.
 
@@ -624,7 +624,7 @@ class LoadedConfig:
 
 ---
 
-#### `github_ops.py` (228 lines)
+#### `github_ops.py`
 
 **Purpose**: GitHub API operations.
 
@@ -646,7 +646,7 @@ class LoadedConfig:
 
 ---
 
-#### `graphite_ops.py` (125 lines)
+#### `graphite_ops.py`
 
 **Purpose**: Graphite CLI operations.
 
@@ -667,7 +667,7 @@ class LoadedConfig:
 
 ---
 
-#### `global_config_ops.py` (248 lines)
+#### `global_config_ops.py`
 
 **Purpose**: Global configuration management.
 
