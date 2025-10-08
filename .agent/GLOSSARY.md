@@ -189,7 +189,7 @@ class RepoContext:
 
 **Creation**: `discover_repo_context(ctx, Path.cwd())`
 
-**File**: `src/workstack/core.py:9-15`
+**File**: `src/workstack/core.py`
 
 ### Workstack Context
 
@@ -213,7 +213,7 @@ class WorkstackContext:
 
 **Usage**: Commands receive via `@click.pass_obj` decorator.
 
-**File**: `src/workstack/context.py:11-23`
+**File**: `src/workstack/context.py`
 
 ---
 

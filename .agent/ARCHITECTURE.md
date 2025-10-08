@@ -98,41 +98,41 @@ Workstack uses a **3-layer architecture**:
 
 **Entry Point**:
 
-- `cli.py` (43 lines) - Creates `WorkstackContext`, registers commands
+- `cli.py` - Creates `WorkstackContext`, registers commands
 - `__main__.py` - Entry point for `python -m workstack`
 
 **Core Modules**:
 
-- `context.py` (57 lines) - `WorkstackContext` frozen dataclass, dependency injection
-- `core.py` (95 lines) - Pure business logic (repo discovery, path construction)
-- `config.py` (41 lines) - Configuration loading from TOML
-- `tree.py` (410 lines) - Tree visualization logic
-- `graphite.py` (241 lines) - Graphite-specific integration logic
+- `context.py` - `WorkstackContext` frozen dataclass, dependency injection
+- `core.py` - Pure business logic (repo discovery, path construction)
+- `config.py` - Configuration loading from TOML
+- `tree.py` - Tree visualization logic
+- `graphite.py` - Graphite-specific integration logic
 
 **Operations Modules** (ABC Pattern):
 
-- `gitops.py` (368 lines) - Git worktree operations (9 methods)
-- `github_ops.py` (228 lines) - GitHub API operations (2 methods)
-- `graphite_ops.py` (125 lines) - Graphite CLI operations (2 methods)
-- `global_config_ops.py` (248 lines) - Global config management (7 methods)
+- `gitops.py` - Git worktree operations
+- `github_ops.py` - GitHub API operations
+- `graphite_ops.py` - Graphite CLI operations
+- `global_config_ops.py` - Global config management
 
 ### Commands (`src/workstack/commands/`)
 
 Each command is a self-contained module:
 
-| Command         | Lines | Purpose                                      |
-| --------------- | ----- | -------------------------------------------- |
-| `create.py`     | 365   | Create new worktree with plan file support   |
-| `list.py`       | 371   | List worktrees with PR status/graphite info  |
-| `remove.py`     | 305   | Remove worktree and optionally delete branch |
-| `switch.py`     | 222   | Switch worktrees, generate shell activation  |
-| `sync.py`       | 181   | Sync with graphite, identify merged PRs      |
-| `init.py`       | 373   | Initialize global/repo config, shell setup   |
-| `config.py`     | 179   | Manage configuration (list/get/set)          |
-| `completion.py` | 112   | Generate shell completion scripts            |
-| `gc.py`         | 90    | Garbage collect merged worktrees             |
-| `rename.py`     | 69    | Rename worktree (move directory)             |
-| `tree.py`       | 44    | Display tree visualization                   |
+| Command         | Purpose                                      |
+| --------------- | -------------------------------------------- |
+| `create.py`     | Create new worktree with plan file support   |
+| `list.py`       | List worktrees with PR status/graphite info  |
+| `remove.py`     | Remove worktree and optionally delete branch |
+| `switch.py`     | Switch worktrees, generate shell activation  |
+| `sync.py`       | Sync with graphite, identify merged PRs      |
+| `init.py`       | Initialize global/repo config, shell setup   |
+| `config.py`     | Manage configuration (list/get/set)          |
+| `completion.py` | Generate shell completion scripts            |
+| `gc.py`         | Garbage collect merged worktrees             |
+| `rename.py`     | Rename worktree (move directory)             |
+| `tree.py`       | Display tree visualization                   |
 
 ### Testing (`tests/`)
 
