@@ -369,6 +369,18 @@ A: Yes! Configure `post_create` commands for any stack.
 **Q: What if I don't use Graphite?**  
 A: Works perfectly with standard git commands.
 
+## Documentation
+
+Machine-generated comprehensive documentation is available in the `.agent/` directory:
+
+- **Architecture** - System design and component relationships
+- **Feature Index** - Complete feature catalog with implementation locations
+- **Glossary** - Terminology and concepts
+- **Module Map** - Module structure and exports
+- **Coding Patterns** - Detailed implementation patterns and best practices
+
+See [`.agent/README.md`](.agent/README.md) for details. All files in `.agent/` are machine-generated and maintained via automation.
+
 ## Links
 
 - **GitHub:** https://github.com/schrockn/workstack
