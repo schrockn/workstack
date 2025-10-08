@@ -308,8 +308,6 @@ ctx = WorkstackContext(
 - Easy to mock edge cases
 - Clear interface contracts
 
-See: [docs/guides/ADDING_AN_OPS_INTERFACE.md](docs/guides/ADDING_AN_OPS_INTERFACE.md) for complete guide.
-
 ### 2. Frozen Dataclass Contexts
 
 **Why**: Prevents accidental mutation during command execution.
@@ -433,7 +431,7 @@ git_ops.add_worktree(...)  # No such method!
 
 **Why**: Forces test to be explicit about initial state, prevents order-dependent bugs.
 
-See: [tests/CLAUDE.md](tests/CLAUDE.md) and [docs/guides/TESTING_GUIDE.md](docs/guides/TESTING_GUIDE.md) for details.
+See: [tests/CLAUDE.md](../../tests/CLAUDE.md) for details.
 
 ---
 
@@ -546,13 +544,11 @@ See: [.agent/docs/EXCEPTION_HANDLING.md](.agent/docs/EXCEPTION_HANDLING.md) for 
 
 ### "I want to..."
 
-- **Add a new command** → [docs/guides/ADDING_A_COMMAND.md](docs/guides/ADDING_A_COMMAND.md)
-- **Add a new ops interface** → [docs/guides/ADDING_AN_OPS_INTERFACE.md](docs/guides/ADDING_AN_OPS_INTERFACE.md)
 - **Understand terminology** → [GLOSSARY.md](GLOSSARY.md)
 - **Find where feature lives** → [FEATURE_INDEX.md](FEATURE_INDEX.md)
-- **See module details** → [.agent/docs/MODULE_MAP.md](.agent/docs/MODULE_MAP.md)
-- **Write tests** → [docs/guides/TESTING_GUIDE.md](docs/guides/TESTING_GUIDE.md)
-- **See code examples** → [.agent/docs/PATTERNS.md](.agent/docs/PATTERNS.md)
+- **See module details** → [docs/MODULE_MAP.md](docs/MODULE_MAP.md)
+- **See code examples** → [docs/PATTERNS.md](docs/PATTERNS.md)
+- **Write tests** → [../tests/CLAUDE.md](../tests/CLAUDE.md)
 
 ---
 

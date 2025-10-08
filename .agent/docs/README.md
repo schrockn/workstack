@@ -177,15 +177,14 @@ Still stuck? The documentation may need improvement - consider opening an issue 
 
 ## Future Documentation (Planned)
 
-These documents are referenced in .PLAN.md but not yet implemented:
+These documents have been planned but not yet implemented:
 
-- **ARCHITECTURE.md** - System design overview
-- **GLOSSARY.md** - Terminology reference
-- **FEATURE_INDEX.md** - Feature → file mapping
 - **guides/ADDING_A_COMMAND.md** - Step-by-step command guide
 - **guides/ADDING_AN_OPS_INTERFACE.md** - Step-by-step ops interface guide
 - **COMMON_TASKS.md** - FAQ and common tasks
 
+Note: ARCHITECTURE.md, GLOSSARY.md, and FEATURE_INDEX.md now exist in the `.agent/` directory.
+
 ---
 
-**Last updated**: 2025-10-07 (Phase 2: CLAUDE.md refactor - updated to only reference existing files)
+**Last updated**: 2025-10-08 (Documentation restructure - moved to .agent/ directory)

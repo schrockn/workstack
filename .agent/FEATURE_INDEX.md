@@ -213,12 +213,10 @@ All graphite operations are defined in `src/workstack/graphite_ops.py`.
 
 **For new command**:
 
-- See: [docs/guides/ADDING_A_COMMAND.md](docs/guides/ADDING_A_COMMAND.md)
 - Pattern: Study `commands/rename.py` (simple) or `commands/create.py` (complex)
 
 **For new ops interface**:
 
-- See: [docs/guides/ADDING_AN_OPS_INTERFACE.md](docs/guides/ADDING_AN_OPS_INTERFACE.md)
 - Pattern: Study `gitops.py` (ABC + Real + DryRun)
 
 ---
@@ -231,13 +229,6 @@ All graphite operations are defined in `src/workstack/graphite_ops.py`.
 - **Commands** → `src/workstack/commands/*.py` (see [.agent/docs/MODULE_MAP.md](.agent/docs/MODULE_MAP.md))
 - **Operations** → `src/workstack/*_ops.py` (see [ARCHITECTURE.md](ARCHITECTURE.md))
 - **Testing** → `tests/fakes/*.py` (see [tests/CLAUDE.md](tests/CLAUDE.md))
-
-### By Task
-
-- **Add command** → [docs/guides/ADDING_A_COMMAND.md](docs/guides/ADDING_A_COMMAND.md)
-- **Add ops interface** → [docs/guides/ADDING_AN_OPS_INTERFACE.md](docs/guides/ADDING_AN_OPS_INTERFACE.md)
-- **Write tests** → [docs/guides/TESTING_GUIDE.md](docs/guides/TESTING_GUIDE.md)
-- **Understand patterns** → [.agent/docs/PATTERNS.md](.agent/docs/PATTERNS.md)
 
 ### By Concept
 
