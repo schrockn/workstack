@@ -228,7 +228,7 @@ All graphite operations are defined in `src/workstack/graphite_ops.py`.
 ### By Module
 
 - **CLI entry** → `src/workstack/cli.py`
-- **Commands** → `src/workstack/commands/*.py` (see [docs/MODULE_MAP.md](docs/MODULE_MAP.md))
+- **Commands** → `src/workstack/commands/*.py` (see [.agent/docs/MODULE_MAP.md](.agent/docs/MODULE_MAP.md))
 - **Operations** → `src/workstack/*_ops.py` (see [ARCHITECTURE.md](ARCHITECTURE.md))
 - **Testing** → `tests/fakes/*.py` (see [tests/CLAUDE.md](tests/CLAUDE.md))
 
@@ -237,12 +237,12 @@ All graphite operations are defined in `src/workstack/graphite_ops.py`.
 - **Add command** → [docs/guides/ADDING_A_COMMAND.md](docs/guides/ADDING_A_COMMAND.md)
 - **Add ops interface** → [docs/guides/ADDING_AN_OPS_INTERFACE.md](docs/guides/ADDING_AN_OPS_INTERFACE.md)
 - **Write tests** → [docs/guides/TESTING_GUIDE.md](docs/guides/TESTING_GUIDE.md)
-- **Understand patterns** → [docs/PATTERNS.md](docs/PATTERNS.md)
+- **Understand patterns** → [.agent/docs/PATTERNS.md](.agent/docs/PATTERNS.md)
 
 ### By Concept
 
 - **Architecture overview** → [ARCHITECTURE.md](ARCHITECTURE.md)
-- **Module organization** → [docs/MODULE_MAP.md](docs/MODULE_MAP.md)
+- **Module organization** → [.agent/docs/MODULE_MAP.md](.agent/docs/MODULE_MAP.md)
 - **Terminology** → [GLOSSARY.md](GLOSSARY.md)
 - **Coding standards** → [CLAUDE.md](CLAUDE.md)
 
@@ -265,6 +265,6 @@ When adding or modifying features, keep this index current:
 
 - [ARCHITECTURE.md](ARCHITECTURE.md) - System design and patterns
 - [GLOSSARY.md](GLOSSARY.md) - Terminology reference
-- [docs/MODULE_MAP.md](docs/MODULE_MAP.md) - Detailed module guide
+- [.agent/docs/MODULE_MAP.md](.agent/docs/MODULE_MAP.md) - Detailed module guide
 - [CLAUDE.md](CLAUDE.md) - Coding standards
 - [README.md](README.md) - User-facing documentation

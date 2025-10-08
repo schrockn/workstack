@@ -261,7 +261,7 @@ User sees error message and traceback
 
 **Key Principle**: LBYL (Look Before You Leap) - Check conditions proactively rather than catching exceptions.
 
-See: [docs/EXCEPTION_HANDLING.md](docs/EXCEPTION_HANDLING.md) for complete guide.
+See: [.agent/docs/EXCEPTION_HANDLING.md](.agent/docs/EXCEPTION_HANDLING.md) for complete guide.
 
 ---
 
@@ -527,7 +527,7 @@ command = ["uv", "sync"]
 - More predictable behavior
 - Easier to test edge cases
 
-See: [docs/EXCEPTION_HANDLING.md](docs/EXCEPTION_HANDLING.md) for complete guide.
+See: [.agent/docs/EXCEPTION_HANDLING.md](.agent/docs/EXCEPTION_HANDLING.md) for complete guide.
 
 ### Why no relative imports?
 
@@ -550,9 +550,9 @@ See: [docs/EXCEPTION_HANDLING.md](docs/EXCEPTION_HANDLING.md) for complete guide
 - **Add a new ops interface** → [docs/guides/ADDING_AN_OPS_INTERFACE.md](docs/guides/ADDING_AN_OPS_INTERFACE.md)
 - **Understand terminology** → [GLOSSARY.md](GLOSSARY.md)
 - **Find where feature lives** → [FEATURE_INDEX.md](FEATURE_INDEX.md)
-- **See module details** → [docs/MODULE_MAP.md](docs/MODULE_MAP.md)
+- **See module details** → [.agent/docs/MODULE_MAP.md](.agent/docs/MODULE_MAP.md)
 - **Write tests** → [docs/guides/TESTING_GUIDE.md](docs/guides/TESTING_GUIDE.md)
-- **See code examples** → [docs/PATTERNS.md](docs/PATTERNS.md)
+- **See code examples** → [.agent/docs/PATTERNS.md](.agent/docs/PATTERNS.md)
 
 ---
 
@@ -560,6 +560,6 @@ See: [docs/EXCEPTION_HANDLING.md](docs/EXCEPTION_HANDLING.md) for complete guide
 
 - [GLOSSARY.md](GLOSSARY.md) - Term definitions
 - [FEATURE_INDEX.md](FEATURE_INDEX.md) - Feature → file mapping
-- [docs/MODULE_MAP.md](docs/MODULE_MAP.md) - Detailed module guide
+- [.agent/docs/MODULE_MAP.md](.agent/docs/MODULE_MAP.md) - Detailed module guide
 - [CLAUDE.md](CLAUDE.md) - Coding standards
 - [README.md](README.md) - User-facing documentation

@@ -1,8 +1,8 @@
-# .agent - Machine-Generated Documentation
+# .agent - Agent-Optimized Documentation
 
-**⚠️ All files in this directory are machine-generated and should NOT be edited manually.**
+**⚠️ These files are maintained for AI coding assistants and may be regenerated from source code.**
 
-These documents are automatically generated and maintained via automation to ensure consistency and accuracy. Any manual edits will be overwritten.
+This directory contains comprehensive, agent-friendly documentation for the workstack codebase. While these files are currently version-controlled, they may be regenerated in the future to stay in sync with the codebase.
 
 ## Contents
 
@@ -11,12 +11,17 @@ This directory contains comprehensive documentation for the workstack codebase:
 - **ARCHITECTURE.md** - System architecture, design patterns, and component relationships
 - **FEATURE_INDEX.md** - Complete index of all features with implementation locations
 - **GLOSSARY.md** - Terminology and concept definitions used throughout the codebase
-- **MODULE_MAP.md** - Map of all modules with their purposes and key exports
+- **MODULE_MAP.md** - Map of all modules with their purposes and key exports (located in docs/)
 - **docs/** - Detailed documentation on coding patterns, exception handling, and more
 
-## Updating Documentation
+## Purpose
 
-To regenerate or update these files, use the appropriate automation tooling. Do not manually edit.
+These documents are specifically structured for AI coding assistants to:
+
+- Quickly understand the codebase architecture
+- Find specific features and their implementations
+- Learn project-specific patterns and conventions
+- Navigate the module structure efficiently
 
 ## For Agents
 

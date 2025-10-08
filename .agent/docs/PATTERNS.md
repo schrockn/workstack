@@ -1,12 +1,12 @@
 # Code Patterns and Examples
 
-**📍 You are here**: [CLAUDE.md](../CLAUDE.md) → docs/PATTERNS.md
+**📍 You are here**: [CLAUDE.md](../../CLAUDE.md) → .agent/docs/PATTERNS.md
 
 **Purpose**: Detailed examples for patterns referenced in CLAUDE.md coding standards.
 
 **Related docs**:
 
-- [CLAUDE.md](../CLAUDE.md) - Core coding rules
+- [CLAUDE.md](../../CLAUDE.md) - Core coding rules
 - [EXCEPTION_HANDLING.md](EXCEPTION_HANDLING.md) - Exception handling guide
 - [README.md](README.md) - Documentation index
 

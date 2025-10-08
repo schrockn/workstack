@@ -371,15 +371,25 @@ A: Works perfectly with standard git commands.
 
 ## Documentation
 
-Machine-generated comprehensive documentation is available in the `.agent/` directory:
+### For Developers
 
-- **Architecture** - System design and component relationships
-- **Feature Index** - Complete feature catalog with implementation locations
-- **Glossary** - Terminology and concepts
-- **Module Map** - Module structure and exports
-- **Coding Patterns** - Detailed implementation patterns and best practices
+Core documentation for contributors:
 
-See [`.agent/README.md`](.agent/README.md) for details. All files in `.agent/` are machine-generated and maintained via automation.
+- **[CLAUDE.md](CLAUDE.md)** - Coding standards and conventions (required reading)
+- **[tests/CLAUDE.md](tests/CLAUDE.md)** - Testing patterns and practices
+
+### For AI Assistants
+
+Comprehensive, agent-optimized documentation is available in the `.agent/` directory:
+
+- **[Architecture](.agent/ARCHITECTURE.md)** - System design, patterns, and component relationships
+- **[Feature Index](.agent/FEATURE_INDEX.md)** - Complete feature catalog with implementation locations
+- **[Glossary](.agent/GLOSSARY.md)** - Terminology and concept definitions
+- **[Module Map](.agent/docs/MODULE_MAP.md)** - Module structure and exports
+- **[Coding Patterns](.agent/docs/PATTERNS.md)** - Detailed implementation patterns with examples
+- **[Exception Handling](.agent/docs/EXCEPTION_HANDLING.md)** - Complete exception handling guide
+
+See [`.agent/README.md`](.agent/README.md) for more details.
 
 ## Links
 
