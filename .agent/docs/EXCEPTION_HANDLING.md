@@ -1,12 +1,12 @@
 # Exception Handling Guide
 
-**📍 You are here**: [CLAUDE.md](../CLAUDE.md) → docs/EXCEPTION_HANDLING.md
+**📍 You are here**: [CLAUDE.md](../../CLAUDE.md) → .agent/docs/EXCEPTION_HANDLING.md
 
 **Purpose**: Complete guide to exception handling in workstack. This codebase has strict rules about exception usage.
 
 **Related docs**:
 
-- [CLAUDE.md](../CLAUDE.md) - Core coding rules
+- [CLAUDE.md](../../CLAUDE.md) - Core coding rules
 - [PATTERNS.md](PATTERNS.md) - Code examples and patterns
 - [README.md](README.md) - Documentation index
 

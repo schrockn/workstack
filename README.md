@@ -369,6 +369,28 @@ A: Yes! Configure `post_create` commands for any stack.
 **Q: What if I don't use Graphite?**  
 A: Works perfectly with standard git commands.
 
+## Documentation
+
+### For Developers
+
+Core documentation for contributors:
+
+- **[CLAUDE.md](CLAUDE.md)** - Coding standards and conventions (required reading)
+- **[tests/CLAUDE.md](tests/CLAUDE.md)** - Testing patterns and practices
+
+### For AI Assistants
+
+Comprehensive, agent-optimized documentation is available in the `.agent/` directory:
+
+- **[Architecture](.agent/ARCHITECTURE.md)** - System design, patterns, and component relationships
+- **[Feature Index](.agent/FEATURE_INDEX.md)** - Complete feature catalog with implementation locations
+- **[Glossary](.agent/GLOSSARY.md)** - Terminology and concept definitions
+- **[Module Map](.agent/docs/MODULE_MAP.md)** - Module structure and exports
+- **[Coding Patterns](.agent/docs/PATTERNS.md)** - Detailed implementation patterns with examples
+- **[Exception Handling](.agent/docs/EXCEPTION_HANDLING.md)** - Complete exception handling guide
+
+See [`.agent/README.md`](.agent/README.md) for more details.
+
 ## Links
 
 - **GitHub:** https://github.com/schrockn/workstack

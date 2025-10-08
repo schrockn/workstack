@@ -20,12 +20,12 @@ When adding new modules, place them in `src/workstack/` and add corresponding te
 
 ## Quick Reference
 
-| What You Need                  | Documentation                                            |
-| ------------------------------ | -------------------------------------------------------- |
-| **See code examples**          | [docs/PATTERNS.md](docs/PATTERNS.md)                     |
-| **Exception handling details** | [docs/EXCEPTION_HANDLING.md](docs/EXCEPTION_HANDLING.md) |
-| **Documentation index**        | [docs/README.md](docs/README.md)                         |
-| **Write tests**                | [tests/CLAUDE.md](tests/CLAUDE.md)                       |
+| What You Need                  | Documentation                                                          |
+| ------------------------------ | ---------------------------------------------------------------------- |
+| **See code examples**          | [.agent/docs/PATTERNS.md](.agent/docs/PATTERNS.md)                     |
+| **Exception handling details** | [.agent/docs/EXCEPTION_HANDLING.md](.agent/docs/EXCEPTION_HANDLING.md) |
+| **Documentation index**        | [.agent/docs/README.md](.agent/docs/README.md)                         |
+| **Write tests**                | [tests/CLAUDE.md](tests/CLAUDE.md)                                     |
 
 ---
 
@@ -50,7 +50,7 @@ When adding new modules, place them in `src/workstack/` and add corresponding te
 - **Return type for void functions**: Use `-> None`
 - **Immutable data structures**: Use `dataclass` with `frozen=True`
 
-**Examples**: [docs/PATTERNS.md#type-annotations](docs/PATTERNS.md#type-annotations)
+**Examples**: [.agent/docs/PATTERNS.md#type-annotations](.agent/docs/PATTERNS.md#type-annotations)
 
 ### Abstract Interfaces and Dependency Injection
 
@@ -61,7 +61,7 @@ When adding new modules, place them in `src/workstack/` and add corresponding te
 - **Test implementations must inherit from the ABC** - place fakes in `tests/fakes/`
 - **Fakes must be in-memory only** - no filesystem I/O in test implementations
 
-**Pattern & Examples**: [docs/PATTERNS.md#dependency-injection](docs/PATTERNS.md#dependency-injection)
+**Pattern & Examples**: [.agent/docs/PATTERNS.md#dependency-injection](.agent/docs/PATTERNS.md#dependency-injection)
 
 ### Import Organization
 
@@ -86,7 +86,7 @@ Within each group, imports should be alphabetically sorted.
 3. Optional dependencies (when import failure should be handled gracefully)
 4. Expensive lazy loading
 
-**Examples**: [docs/PATTERNS.md#import-organization](docs/PATTERNS.md#import-organization)
+**Examples**: [.agent/docs/PATTERNS.md#import-organization](.agent/docs/PATTERNS.md#import-organization)
 
 ### Exception Handling ⚠️ CRITICAL
 
@@ -100,7 +100,7 @@ Within each group, imports should be alphabetically sorted.
 
 **If you find yourself writing try/except, STOP and ask: "Should this exception bubble up instead?"**
 
-**Complete Guide**: [docs/EXCEPTION_HANDLING.md](docs/EXCEPTION_HANDLING.md) - Read this before handling exceptions
+**Complete Guide**: [.agent/docs/EXCEPTION_HANDLING.md](.agent/docs/EXCEPTION_HANDLING.md) - Read this before handling exceptions
 
 ### Code Formatting & Type Checking
 
@@ -144,7 +144,7 @@ Within each group, imports should be alphabetically sorted.
 - Document what None/empty returns mean for error handling
 - Prefix internal helpers with `_` to indicate they're not part of the public API
 
-**Examples**: [docs/PATTERNS.md#code-style](docs/PATTERNS.md#code-style) shows before/after refactoring
+**Examples**: [.agent/docs/PATTERNS.md#code-style](.agent/docs/PATTERNS.md#code-style) shows before/after refactoring
 
 ### Module Exports
 
@@ -159,7 +159,7 @@ Within each group, imports should be alphabetically sorted.
 - Use `.exists()`, `.is_dir()`, `.is_file()` for path checks
 - Use `.expanduser()` for paths with `~`
 
-**Examples**: [docs/PATTERNS.md#file-operations](docs/PATTERNS.md#file-operations)
+**Examples**: [.agent/docs/PATTERNS.md#file-operations](.agent/docs/PATTERNS.md#file-operations)
 
 ### CLI Development (Click)
 
@@ -176,7 +176,7 @@ Within each group, imports should be alphabetically sorted.
 - Use `subprocess.run(..., check=True)` for subprocess calls
 - Provide clear, actionable error messages
 
-**Examples**: [docs/PATTERNS.md#cli-development](docs/PATTERNS.md#cli-development)
+**Examples**: [.agent/docs/PATTERNS.md#cli-development](.agent/docs/PATTERNS.md#cli-development)
 
 ### Function Arguments
 
@@ -185,7 +185,7 @@ Within each group, imports should be alphabetically sorted.
 - **Exception**: Default arguments are acceptable when they significantly improve API ergonomics AND are accompanied by a comment explaining why the default is appropriate
 - **Rationale**: Explicit call sites prevent ambiguity, make refactoring easier, and avoid implicit behavior bugs
 
-**Examples**: [docs/PATTERNS.md#function-arguments](docs/PATTERNS.md#function-arguments)
+**Examples**: [.agent/docs/PATTERNS.md#function-arguments](.agent/docs/PATTERNS.md#function-arguments)
 
 ### Context Managers
 
@@ -195,7 +195,7 @@ Within each group, imports should be alphabetically sorted.
 
 **Rationale**: Assigning an unentered context manager to a variable can lead to resource leaks if the variable is accidentally used outside the context manager, and makes the code less clear about when resources are acquired and released.
 
-**Examples**: [docs/PATTERNS.md#context-managers](docs/PATTERNS.md#context-managers)
+**Examples**: [.agent/docs/PATTERNS.md#context-managers](.agent/docs/PATTERNS.md#context-managers)
 
 ### Resource Management and Cleanup
 
@@ -214,7 +214,7 @@ Within each group, imports should be alphabetically sorted.
 - **Separation of concerns**: Object lifecycle is separate from resource lifecycle
 - **Testing friendly**: Easy to test resource management independently
 
-**Examples**: [docs/PATTERNS.md#resource-management](docs/PATTERNS.md#resource-management)
+**Examples**: [.agent/docs/PATTERNS.md#resource-management](.agent/docs/PATTERNS.md#resource-management)
 
 ---
 
@@ -246,8 +246,8 @@ This pattern is particularly useful when you have business logic that needs to b
 
 ## Related Documentation
 
-- [docs/PATTERNS.md](docs/PATTERNS.md) - All code examples for patterns in this file
-- [docs/EXCEPTION_HANDLING.md](docs/EXCEPTION_HANDLING.md) - Complete exception handling guide
-- [docs/README.md](docs/README.md) - Documentation index and navigation guide
+- [.agent/docs/PATTERNS.md](.agent/docs/PATTERNS.md) - All code examples for patterns in this file
+- [.agent/docs/EXCEPTION_HANDLING.md](.agent/docs/EXCEPTION_HANDLING.md) - Complete exception handling guide
+- [.agent/docs/README.md](.agent/docs/README.md) - Documentation index and navigation guide
 - [tests/CLAUDE.md](tests/CLAUDE.md) - Testing patterns and practices
 - [README.md](README.md) - Project overview and getting started

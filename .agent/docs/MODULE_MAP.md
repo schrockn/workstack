@@ -754,8 +754,6 @@ tests/integration/ ──> src/workstack/ (real implementations)
 3. Implement in `FakeGitOps` (`tests/fakes/gitops.py`)
 4. Add to `DryRunGitOps` if destructive operation
 
-See: [docs/guides/ADDING_AN_OPS_INTERFACE.md](guides/ADDING_AN_OPS_INTERFACE.md)
-
 ---
 
 ### "I want to add a new command"
@@ -764,8 +762,6 @@ See: [docs/guides/ADDING_AN_OPS_INTERFACE.md](guides/ADDING_AN_OPS_INTERFACE.md)
 2. Follow pattern from existing commands (e.g., `commands/rename.py` is simple)
 3. Register in `cli.py`
 4. Add tests in `tests/commands/`
-
-See: [docs/guides/ADDING_A_COMMAND.md](guides/ADDING_A_COMMAND.md)
 
 ---
 
