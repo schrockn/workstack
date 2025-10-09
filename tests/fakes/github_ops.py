@@ -41,8 +41,14 @@ class FakeGitHubOps(GitHubOps):
             self._prs = prs or {}
             self._pr_statuses = None
 
-    def get_prs_for_repo(self, repo_root: Path) -> dict[str, PullRequestInfo]:
-        """Get PR information for all branches (returns pre-configured data)."""
+    def get_prs_for_repo(
+        self, repo_root: Path, *, include_checks: bool
+    ) -> dict[str, PullRequestInfo]:
+        """Get PR information for all branches (returns pre-configured data).
+
+        The include_checks parameter is accepted but ignored - fake returns the
+        same pre-configured data regardless of this parameter.
+        """
         return self._prs
 
     def get_pr_status(
