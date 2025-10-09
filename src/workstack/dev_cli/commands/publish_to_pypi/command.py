@@ -1,9 +1,10 @@
 """Publish to PyPI command."""
 
-import subprocess
 from pathlib import Path
 
 import click
+
+from workstack.dev_cli.utils import run_pep723_script
 
 
 @click.command(name="publish-to-pypi")
@@ -20,8 +21,8 @@ def command(dry_run: bool) -> None:
     """
     script_path = Path(__file__).parent / "script.py"
 
-    cmd = ["uv", "run", str(script_path)]
+    args = []
     if dry_run:
-        cmd.append("--dry-run")
+        args.append("--dry-run")
 
-    subprocess.run(cmd, check=True)
+    run_pep723_script(script_path, args)

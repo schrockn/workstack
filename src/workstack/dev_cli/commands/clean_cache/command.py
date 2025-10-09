@@ -1,9 +1,10 @@
 """Clean cache directories command."""
 
-import subprocess
 from pathlib import Path
 
 import click
+
+from workstack.dev_cli.utils import run_pep723_script
 
 
 @click.command(name="clean-cache")
@@ -13,10 +14,10 @@ def command(dry_run: bool, verbose: bool) -> None:
     """Clean all cache directories."""
     script_path = Path(__file__).parent / "script.py"
 
-    cmd = ["uv", "run", str(script_path)]
+    args = []
     if dry_run:
-        cmd.append("--dry-run")
+        args.append("--dry-run")
     if verbose:
-        cmd.append("--verbose")
+        args.append("--verbose")
 
-    subprocess.run(cmd, check=True)
+    run_pep723_script(script_path, args)

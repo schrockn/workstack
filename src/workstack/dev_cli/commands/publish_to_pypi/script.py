@@ -36,21 +36,21 @@ def run_command(cmd: list[str], cwd: Path | None = None, description: str = "") 
     Raises:
         SystemExit: If command fails
     """
-    result = subprocess.run(
-        cmd,
-        cwd=cwd,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-
-    if result.returncode != 0:
+    try:
+        result = subprocess.run(
+            cmd,
+            cwd=cwd,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        return result.stdout.strip()
+    except subprocess.CalledProcessError as e:
+        # Error boundary: CLI level
         click.echo(f"✗ Failed: {description}", err=True)
         click.echo(f"  Command: {' '.join(cmd)}", err=True)
-        click.echo(f"  Error: {result.stderr}", err=True)
-        raise SystemExit(1)
-
-    return result.stdout.strip()
+        click.echo(f"  Error: {e.stderr}", err=True)
+        raise SystemExit(1) from e
 
 
 def run_git_pull(repo_root: Path, dry_run: bool) -> None:
@@ -238,8 +238,15 @@ def main(dry_run: bool) -> None:
     status = get_git_status(repo_root)
     if status:
         # Filter out pyproject.toml and uv.lock changes
-        excluded_files = ("pyproject.toml", "uv.lock")
-        lines = [line for line in status.splitlines() if not line.endswith(excluded_files)]
+        # Git porcelain format: "XY filename" where X and Y are status codes
+        excluded_files = {"pyproject.toml", "uv.lock"}
+        lines = []
+        for line in status.splitlines():
+            # Split on whitespace and get the filename part (last element)
+            parts = line.split()
+            if parts and parts[-1] not in excluded_files:
+                lines.append(line)
+
         if lines:
             click.echo("✗ Working directory has uncommitted changes:", err=True)
             for line in lines:
