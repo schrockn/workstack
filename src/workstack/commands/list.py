@@ -330,15 +330,15 @@ def _list_worktrees(ctx: WorkstackContext, show_stacks: bool, show_checks: bool)
         need_checks = show_checks or ctx.global_config_ops.get_show_pr_checks()
 
         if need_checks:
-            # Fetch from GitHub (slow - includes CI status)
-            prs = ctx.github_ops.get_prs_for_repo(repo.root)
+            # Fetch from GitHub with check status (slower)
+            prs = ctx.github_ops.get_prs_for_repo(repo.root, include_checks=True)
         else:
             # Try Graphite first (fast - no CI status)
             prs = ctx.graphite_ops.get_prs_from_graphite(ctx.git_ops, repo.root)
 
-            # If Graphite data not available, fall back to GitHub
+            # If Graphite data not available, fall back to GitHub without checks
             if not prs:
-                prs = ctx.github_ops.get_prs_for_repo(repo.root)
+                prs = ctx.github_ops.get_prs_for_repo(repo.root, include_checks=False)
 
     # Show root repo first (display as "root" to distinguish from worktrees)
     root_branch = branches.get(repo.root)

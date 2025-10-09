@@ -56,11 +56,18 @@ class GitHubOps(ABC):
     """
 
     @abstractmethod
-    def get_prs_for_repo(self, repo_root: Path) -> dict[str, PullRequestInfo]:
+    def get_prs_for_repo(
+        self, repo_root: Path, *, include_checks: bool
+    ) -> dict[str, PullRequestInfo]:
         """Get PR information for all branches in the repository.
+
+        Args:
+            repo_root: Repository root directory
+            include_checks: If True, fetch CI check status (slower). If False, skip check status
 
         Returns:
             Mapping of branch name -> PullRequestInfo
+            - checks_passing is None when include_checks=False
             Empty dict if gh CLI is not available or not authenticated
         """
         ...
@@ -91,7 +98,9 @@ class RealGitHubOps(GitHubOps):
     All GitHub operations execute actual gh commands via subprocess.
     """
 
-    def get_prs_for_repo(self, repo_root: Path) -> dict[str, PullRequestInfo]:
+    def get_prs_for_repo(
+        self, repo_root: Path, *, include_checks: bool
+    ) -> dict[str, PullRequestInfo]:
         """Get PR information for all branches in the repository.
 
         Note: Uses try/except as an acceptable error boundary for handling gh CLI
@@ -99,6 +108,11 @@ class RealGitHubOps(GitHubOps):
         and authentication status a priori without duplicating gh's logic.
         """
         try:
+            # Build JSON fields list - conditionally include statusCheckRollup for performance
+            json_fields = "number,headRefName,url,state,isDraft"
+            if include_checks:
+                json_fields += ",statusCheckRollup"
+
             # Fetch all PRs in one call for efficiency
             result = subprocess.run(
                 [
@@ -108,7 +122,7 @@ class RealGitHubOps(GitHubOps):
                     "--state",
                     "all",
                     "--json",
-                    "number,headRefName,url,state,isDraft,statusCheckRollup",
+                    json_fields,
                 ],
                 cwd=repo_root,
                 capture_output=True,
@@ -121,7 +135,11 @@ class RealGitHubOps(GitHubOps):
 
             for pr in prs_data:
                 branch = pr["headRefName"]
-                checks_passing = self._determine_checks_status(pr.get("statusCheckRollup", []))
+
+                # Only determine check status if we fetched it
+                checks_passing = None
+                if include_checks:
+                    checks_passing = self._determine_checks_status(pr.get("statusCheckRollup", []))
 
                 # Parse owner and repo from GitHub URL
                 url = pr["url"]
