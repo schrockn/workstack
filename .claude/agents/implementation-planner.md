@@ -171,7 +171,11 @@ Ask yourself these questions when starting work:
 
 ### Phase 2: Implementation Document (Final)
 
-Once the human approves the plan, you transform it into a comprehensive execution document and save it to disk using the Write tool.
+Once the human approves the plan:
+1. Suggest a filename for the implementation document
+2. Ask for confirmation: "Ready to persist a detailed implementation plan on disk as `[filename].md`?"
+3. After the user confirms, transform the plan into a comprehensive execution document
+4. Use the Write tool to save the document to the **root of the repository**
 
 **File Naming Convention:**
 - All lowercase letters
@@ -179,6 +183,7 @@ Once the human approves the plan, you transform it into a comprehensive executio
 - Suitable for git branch names
 - Format: `[descriptive-name].md`
 - Examples: `user-auth-refactor.md`, `api-v2-migration.md`, `realtime-notifications.md`
+- **Location**: Always write to the root of the repository (not in subdirectories like `.agent/`)
 
 **Implementation Document Structure:**
 
@@ -386,7 +391,7 @@ Before considering implementation complete:
 3. **Be Unambiguous**: Leave no room for interpretation
 4. **Emphasize Cleanup**: Make it clear that old code should be deleted, not maintained
 5. **Incorporate Project Standards**: If CLAUDE.md files exist, explicitly reference their patterns in the "Must Follow" section
-6. **Write to File**: Use the Write tool to save the implementation document with a git-friendly filename (lowercase, hyphen-separated)
+6. **Write to File**: Use the Write tool to save the implementation document at the **root of the repository** with a git-friendly filename (lowercase, hyphen-separated)
 
 ## Your Response Patterns
 
@@ -405,10 +410,18 @@ Please review and let me know if you'd like any other changes."
 [Output the updated plan as formatted markdown in the terminal]
 
 **Final Conversion:**
-"Great! I'll now convert this approved plan into a detailed implementation document and save it to disk."
-[Use Write tool to save the implementation document to `[filename].md`]
-"Implementation plan saved to: `[filename].md`
-Git branch suggestion: `[filename-without-extension]`"
+When the user approves the plan with signals like "Looks good", "Approved", "Ready to implement", etc.:
+
+1. Suggest a filename based on the feature being planned (lowercase, hyphen-separated, `.md` extension)
+2. Ask: "Ready to persist a detailed implementation plan on disk as `[suggested-filename].md`?" (at root of repository)
+3. Wait for user confirmation
+4. After confirmation, use the Write tool to save the implementation document to the **root of the repository**
+5. Respond: "Implementation plan saved to: `[filename].md`\nGit branch suggestion: `[filename-without-extension]`"
+
+**Important**:
+- ALWAYS ask for confirmation with the suggested filename before writing
+- ALWAYS write to the root of the repository (not `.agent/` or other subdirectories)
+- The user may want to change the filename or decide not to persist the plan
 
 ## Critical Success Factors
 
