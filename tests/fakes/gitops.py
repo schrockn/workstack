@@ -68,10 +68,12 @@ class FakeGitOps(GitOps):
         ref: str | None = None,
         create_branch: bool = False,
     ) -> None:
-        """Add a new worktree (mutates internal state)."""
+        """Add a new worktree (mutates internal state and creates directory)."""
         if repo_root not in self._worktrees:
             self._worktrees[repo_root] = []
         self._worktrees[repo_root].append(WorktreeInfo(path=path, branch=branch))
+        # Create the worktree directory to simulate git worktree add behavior
+        path.mkdir(parents=True, exist_ok=True)
 
     def move_worktree(self, repo_root: Path, old_path: Path, new_path: Path) -> None:
         """Move a worktree (mutates internal state and simulates filesystem move)."""

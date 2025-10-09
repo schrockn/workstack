@@ -107,9 +107,7 @@ def bump_patch_version(version: str) -> str:
     return ".".join(parts)
 
 
-def update_version(
-    pyproject_path: Path, old_version: str, new_version: str, dry_run: bool
-) -> None:
+def update_version(pyproject_path: Path, old_version: str, new_version: str, dry_run: bool) -> None:
     """Update version in pyproject.toml.
 
     Args:
