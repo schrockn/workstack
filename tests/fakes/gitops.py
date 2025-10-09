@@ -96,6 +96,12 @@ class FakeGitOps(GitOps):
     def checkout_branch(self, cwd: Path, branch: str) -> None:
         """Checkout a branch (mutates internal state)."""
         self._current_branches[cwd] = branch
+        # Update worktree branch in the worktrees list
+        for repo_root, worktrees in self._worktrees.items():
+            for i, wt in enumerate(worktrees):
+                if wt.path.resolve() == cwd.resolve():
+                    self._worktrees[repo_root][i] = WorktreeInfo(path=wt.path, branch=branch)
+                    break
 
     def delete_branch_with_graphite(self, repo_root: Path, branch: str, *, force: bool) -> None:
         """Track which branches were deleted (mutates internal state)."""
