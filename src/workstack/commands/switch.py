@@ -60,26 +60,21 @@ def complete_worktree_names(
         incomplete: Partial input string to complete
     """
     try:
-        # Get WorkstackContext from click.Context.obj
-        # During shell completion, ctx.obj may not be initialized yet, so we create
-        # a context on-demand if needed
-        workstack_ctx = ctx.obj if isinstance(ctx.obj, WorkstackContext) else ctx.find_root().obj
-        if not isinstance(workstack_ctx, WorkstackContext):
-            # Create context for shell completion (CLI group callback not run yet)
+        # During shell completion, ctx.obj may be None if the CLI group callback
+        # hasn't run yet. Create a default context in this case.
+        workstack_ctx = ctx.find_root().obj
+        if workstack_ctx is None:
             workstack_ctx = create_context(dry_run=False)
 
         repo = discover_repo_context(workstack_ctx, Path.cwd())
-        work_dir = repo.work_dir
 
-        # Include 'root' for root repo
-        names = []
-        if "root".startswith(incomplete):
-            names.append("root")
+        names = ["root"] if "root".startswith(incomplete) else []
 
-        # Add worktree directories
-        if work_dir.exists():
+        if repo.work_dir.exists():
             names.extend(
-                [p.name for p in work_dir.iterdir() if p.is_dir() and p.name.startswith(incomplete)]
+                p.name
+                for p in repo.work_dir.iterdir()
+                if p.is_dir() and p.name.startswith(incomplete)
             )
 
         return names
