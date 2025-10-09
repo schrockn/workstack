@@ -21,6 +21,14 @@ def test_publish_to_pypi_help() -> None:
     assert "Publish workstack package to PyPI" in result.output
 
 
+def test_create_agents_symlinks_help() -> None:
+    """Test create-agents-symlinks help output."""
+    runner = CliRunner()
+    result = runner.invoke(cli, ["create-agents-symlinks", "--help"])
+    assert result.exit_code == 0
+    assert "Create AGENTS.md symlinks" in result.output
+
+
 def test_cli_help_shows_commands() -> None:
     """Test that CLI help shows available commands."""
     runner = CliRunner()
@@ -28,3 +36,4 @@ def test_cli_help_shows_commands() -> None:
     assert result.exit_code == 0
     assert "clean-cache" in result.output
     assert "publish-to-pypi" in result.output
+    assert "create-agents-symlinks" in result.output
