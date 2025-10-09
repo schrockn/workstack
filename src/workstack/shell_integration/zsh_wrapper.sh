@@ -17,6 +17,8 @@ workstack() {
     return $?
   fi
 
+  # If __shell returned non-zero, error messages are already sent to stderr.
+  # Return the error code to propagate failure to the shell.
   if [ $status -ne 0 ]; then
     return $status
   fi

@@ -10,6 +10,7 @@ import click
 from workstack.config import LoadedConfig, load_config
 from workstack.context import WorkstackContext
 from workstack.core import discover_repo_context, ensure_work_dir, worktree_path_for
+from workstack.shell_utils import render_cd_script
 
 _SAFE_COMPONENT_RE = re.compile(r"[^A-Za-z0-9._/-]+")
 
@@ -135,18 +136,6 @@ def quote_env_value(value: str) -> str:
     """Return a quoted value suitable for .env files."""
     escaped = value.replace("\\", "\\\\").replace('"', '\\"')
     return f'"{escaped}"'
-
-
-def _render_cd_script(worktree_path: Path) -> str:
-    """Return shell code that changes to the newly created worktree."""
-    wt = str(worktree_path)
-    quoted_wt = "'" + wt.replace("'", "'\\''") + "'"
-    lines = [
-        "# workstack create - cd to new worktree",
-        f"cd {quoted_wt}",
-        'echo "✓ Switched to new worktree."',
-    ]
-    return "\n".join(lines) + "\n"
 
 
 @click.command("create")
@@ -364,7 +353,14 @@ def create(
         )
 
     if script:
-        click.echo(_render_cd_script(wt_path), nl=False)
+        click.echo(
+            render_cd_script(
+                wt_path,
+                comment="workstack create - cd to new worktree",
+                success_message="✓ Switched to new worktree.",
+            ),
+            nl=False,
+        )
     else:
         click.echo(f"Created workstack at {wt_path} checked out at branch '{branch}'")
         click.echo(f"\nworkstack switch {name}")

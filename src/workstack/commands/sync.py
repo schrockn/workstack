@@ -7,35 +7,34 @@ import click
 from workstack.commands.remove import _remove_worktree
 from workstack.context import WorkstackContext
 from workstack.core import discover_repo_context, ensure_work_dir, worktree_path_for
+from workstack.shell_utils import render_cd_script
 
 
 def _emit(message: str, *, script_mode: bool, error: bool = False) -> None:
     """Emit a message to stdout or stderr based on script mode.
 
+    In script mode, ALL output goes to stderr (so the shell wrapper can capture
+    only the activation script from stdout). The `error` parameter has no effect
+    in script mode since everything is already sent to stderr.
+
+    In non-script mode, output goes to stdout by default, unless `error=True`.
+
     Args:
         message: Text to output.
-        script_mode: True when running in --script mode (send output to stderr).
-        error: Force stderr output (e.g., for error messages).
+        script_mode: True when running in --script mode (all output to stderr).
+        error: Force stderr output in non-script mode (ignored in script mode).
     """
     click.echo(message, err=error or script_mode)
-
-
-def _render_return_to_root_script(root_path: Path) -> str:
-    """Return shell code that changes to the repository root."""
-    root = str(root_path)
-    quoted_root = "'" + root.replace("'", "'\\''") + "'"
-    lines = [
-        "# workstack sync - return to root",
-        f"cd {quoted_root}",
-        'echo "✓ Switched to root worktree."',
-    ]
-    return "\n".join(lines) + "\n"
 
 
 def _return_to_original_worktree(
     work_dir: Path, current_worktree_name: str | None, *, script_mode: bool
 ) -> None:
-    """Return to original worktree if it exists."""
+    """Return to original worktree if it exists.
+
+    Only changes directory in non-script mode. In script mode, directory changes
+    are handled by shell wrapper executing the output script.
+    """
     if current_worktree_name is None:
         return
 
@@ -44,7 +43,9 @@ def _return_to_original_worktree(
         return
 
     _emit(f"\nReturning to: {current_worktree_name}", script_mode=script_mode)
-    os.chdir(wt_path)
+    # Only chdir in non-script mode; script output handles cd in script mode
+    if not script_mode:
+        os.chdir(wt_path)
 
 
 @click.command("sync")
@@ -215,9 +216,12 @@ def sync_cmd(ctx: WorkstackContext, force: bool, dry_run: bool, script: bool) ->
     if current_worktree_name:
         wt_path = worktree_path_for(work_dir, current_worktree_name)
 
+        # Check if worktree still exists
         if wt_path.exists():
             _emit(f"\nReturning to: {current_worktree_name}", script_mode=script)
-            os.chdir(wt_path)
+            # Only chdir in non-script mode; script output handles cd in script mode
+            if not script:
+                os.chdir(wt_path)
         else:
             _emit(
                 f"\n✓ Staying in root worktree (original worktree was deleted).\n"
@@ -225,7 +229,11 @@ def sync_cmd(ctx: WorkstackContext, force: bool, dry_run: bool, script: bool) ->
                 script_mode=script,
             )
             if not dry_run:
-                script_output = _render_return_to_root_script(repo.root)
+                script_output = render_cd_script(
+                    repo.root,
+                    comment="workstack sync - return to root",
+                    success_message="✓ Switched to root worktree.",
+                )
     else:
         script_output = None
 

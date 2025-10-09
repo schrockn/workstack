@@ -12,9 +12,10 @@ from tests.fakes.global_config_ops import FakeGlobalConfigOps
 from tests.fakes.graphite_ops import FakeGraphiteOps
 from workstack.cli import cli
 from workstack.commands.shell_integration import hidden_shell_cmd
-from workstack.commands.sync import _render_return_to_root_script, sync_cmd
+from workstack.commands.sync import sync_cmd
 from workstack.context import WorkstackContext
 from workstack.gitops import WorktreeInfo
+from workstack.shell_utils import render_cd_script
 
 
 def test_sync_requires_graphite() -> None:
@@ -666,7 +667,11 @@ def test_sync_original_worktree_deleted() -> None:
 def test_render_return_to_root_script() -> None:
     """Return-to-root script renders expected shell snippet."""
     root = Path("/example/repo/root")
-    script = _render_return_to_root_script(root)
+    script = render_cd_script(
+        root,
+        comment="workstack sync - return to root",
+        success_message="✓ Switched to root worktree.",
+    )
 
     assert "# workstack sync - return to root" in script
     assert f"cd '{root}'" in script
@@ -726,7 +731,11 @@ def test_sync_script_mode_when_worktree_deleted() -> None:
             os.chdir(cwd)
 
         assert result.exit_code == 0
-        expected_script = _render_return_to_root_script(repo_root).strip()
+        expected_script = render_cd_script(
+            repo_root,
+            comment="workstack sync - return to root",
+            success_message="✓ Switched to root worktree.",
+        ).strip()
         assert expected_script in result.output
         assert not wt1.exists()
 
@@ -784,7 +793,11 @@ def test_sync_script_mode_when_worktree_exists() -> None:
             os.chdir(cwd)
 
         assert result.exit_code == 0
-        unexpected_script = _render_return_to_root_script(repo_root).strip()
+        unexpected_script = render_cd_script(
+            repo_root,
+            comment="workstack sync - return to root",
+            success_message="✓ Switched to root worktree.",
+        ).strip()
         assert unexpected_script not in result.output
         assert wt1.exists()
 

@@ -4,8 +4,8 @@ from pathlib import Path
 
 from click.testing import CliRunner
 
-from workstack.commands.create import _render_cd_script
 from workstack.commands.shell_integration import hidden_shell_cmd
+from workstack.shell_utils import render_cd_script
 
 
 def test_create_with_plan_file(tmp_path: Path) -> None:
@@ -319,9 +319,13 @@ def test_create_rejects_master_as_worktree_name(tmp_path: Path) -> None:
 
 
 def test_render_cd_script() -> None:
-    """Test that _render_cd_script generates proper shell code."""
+    """Test that render_cd_script generates proper shell code."""
     worktree_path = Path("/example/workstacks/repo/my-worktree")
-    script = _render_cd_script(worktree_path)
+    script = render_cd_script(
+        worktree_path,
+        comment="workstack create - cd to new worktree",
+        success_message="✓ Switched to new worktree.",
+    )
 
     assert "# workstack create - cd to new worktree" in script
     assert f"cd '{worktree_path}'" in script
@@ -368,7 +372,11 @@ def test_create_with_script_flag(tmp_path: Path) -> None:
     assert worktree_path.exists()
 
     # Verify script output contains the cd command
-    expected_script = _render_cd_script(worktree_path).strip()
+    expected_script = render_cd_script(
+        worktree_path,
+        comment="workstack create - cd to new worktree",
+        success_message="✓ Switched to new worktree.",
+    ).strip()
     assert expected_script in result.stdout
 
 
