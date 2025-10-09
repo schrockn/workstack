@@ -10,6 +10,7 @@ import click
 from workstack.config import LoadedConfig, load_config
 from workstack.context import WorkstackContext
 from workstack.core import discover_repo_context, ensure_work_dir, worktree_path_for
+from workstack.shell_utils import render_cd_script
 
 _SAFE_COMPONENT_RE = re.compile(r"[^A-Za-z0-9._/-]+")
 
@@ -181,6 +182,12 @@ def quote_env_value(value: str) -> str:
     default=None,
     help=("Create worktree from an existing branch. NAME defaults to the branch name."),
 )
+@click.option(
+    "--script",
+    is_flag=True,
+    hidden=True,
+    help="Output shell script for directory change instead of messages.",
+)
 @click.pass_obj
 def create(
     ctx: WorkstackContext,
@@ -191,6 +198,7 @@ def create(
     plan_file: Path | None,
     from_current_branch: bool,
     from_branch: str | None,
+    script: bool,
 ) -> None:
     """Create a worktree and write a .env file.
 
@@ -344,8 +352,18 @@ def create(
             shell=cfg.post_create_shell,
         )
 
-    click.echo(f"Created workstack at {wt_path} checked out at branch '{branch}'")
-    click.echo(f"\nworkstack switch {name}")
+    if script:
+        click.echo(
+            render_cd_script(
+                wt_path,
+                comment="workstack create - cd to new worktree",
+                success_message="✓ Switched to new worktree.",
+            ),
+            nl=False,
+        )
+    else:
+        click.echo(f"Created workstack at {wt_path} checked out at branch '{branch}'")
+        click.echo(f"\nworkstack switch {name}")
 
 
 def run_commands_in_worktree(

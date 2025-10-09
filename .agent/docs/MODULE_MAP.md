@@ -38,7 +38,8 @@ workstack (CLI tool)
 │        ├─ config.py .............. Manage configuration
 │        ├─ gc.py .................. Garbage collection
 │        ├─ rename.py .............. Rename worktrees
-│        └─ completion.py .......... Shell completion
+│        ├─ completion.py .......... Shell completion
+│        └─ shell_integration.py ... Hidden __shell command for wrappers
 │
 ├─── Core Layer (Business Logic)
 │    ├─ context.py ................. Dependency injection container
@@ -55,7 +56,11 @@ workstack (CLI tool)
 │
 └─── Support
      ├─ presets/ ................... Configuration presets (dagster, generic, etc.)
-     └─ shell_integration/ ......... Shell completion and activation scripts
+     └─ shell_integration/ ......... Shell integration system
+         ├─ bash_wrapper.sh ........ Bash shell function wrapper
+         ├─ zsh_wrapper.sh ......... Zsh shell function wrapper
+         ├─ fish_wrapper.fish ...... Fish shell function wrapper
+         └─ handler.py ............. Unified shell integration handler
 ```
 
 ---
@@ -108,12 +113,16 @@ def cli(click_ctx, dry_run):
 - Set up environment variables
 - Run post-create commands
 - Handle branch naming conflicts
+- Generate directory change script (via `--script` flag)
 
 **Key Functions**:
 
-- `create_cmd()` - Main command handler
+- `create_cmd()` - Main command handler with optional `--script` flag
 - `_generate_worktree_name()` - Generate name from branch
+- `_render_cd_script()` - Generate shell cd script to new worktree
 - Various validation helpers
+
+**Shell Integration**: Supports `--script` flag for automatic directory change to newly created worktree
 
 **Dependencies**:
 
@@ -138,15 +147,15 @@ workstack create --branch existing-branch my-worktree
 **Responsibilities**:
 
 - Switch between worktrees
-- Generate shell activation scripts
-- Hidden `--internal` variant for shell integration
+- Generate shell activation scripts (via `--script` flag)
 - Display available worktrees if name ambiguous
 
 **Key Functions**:
 
-- `switch_cmd()` - Main command handler
-- `_hidden_switch_cmd()` - Internal variant for shell
-- Activation script generation logic
+- `switch_cmd()` - Main command handler with optional `--script` flag
+- `_render_activation_script()` - Generate shell activation script
+
+**Shell Integration**: Works through unified `__shell` handler (see `shell_integration.py`)
 
 **Dependencies**:
 
@@ -295,11 +304,15 @@ workstack tree
 - Identify merged PRs
 - Suggest cleanup of merged worktrees
 - Interactive removal prompts
+- Generate directory change script when worktree deleted (via `--script` flag)
 
 **Key Functions**:
 
-- `sync_cmd()` - Main command handler
-- Merged PR detection logic
+- `sync_cmd()` - Main command handler with optional `--script` flag
+- `_emit()` - Output messages to stdout or stderr based on script mode
+- `_render_return_to_root_script()` - Generate cd script to return to root
+
+**Shell Integration**: Supports `--script` flag for automatic directory change when current worktree is deleted during sync
 
 **Dependencies**:
 
@@ -437,6 +450,40 @@ workstack gc
 workstack completion bash > ~/.workstack-completion.bash
 workstack completion zsh > ~/.workstack-completion.zsh
 ```
+
+---
+
+#### `commands/shell_integration.py`
+
+**Purpose**: Implements hidden `workstack __shell` command for shell integration.
+
+**Responsibilities**:
+
+- Unified entry point for shell wrapper scripts
+- Routes commands to appropriate handlers with `--script` flag
+- Emits passthrough marker for help/error cases
+- Supports `switch`, `sync`, and `create` commands
+
+**Key Functions**:
+
+- `hidden_shell_cmd()` - Main hidden command handler
+- Uses `handler.py` for routing logic
+
+**Dependencies**:
+
+- `shell_integration/handler.py` - For `handle_shell_request()`
+
+**Usage** (internal, called by shell wrappers):
+
+```bash
+workstack __shell switch my-feature
+workstack __shell sync
+workstack __shell create new-feature
+```
+
+**Note**: Hidden command (not in `--help`), used only by shell wrapper functions.
+
+**Rationale**: Provides unified shell integration protocol, avoiding per-command hidden variants. See [Shell Integration Pattern](#shell-integration-pattern) for details.
 
 ---
 
@@ -589,6 +636,70 @@ class LoadedConfig:
 - Uses `graphite_ops` through context
 
 **Used By**: `commands/list.py`, `tree.py`
+
+---
+
+#### `shell_integration/handler.py`
+
+**Purpose**: Unified shell integration handler logic (Core Layer).
+
+**Responsibilities**:
+
+- Route shell wrapper requests to appropriate command handlers
+- Add `--script` flag to commands for shell integration mode
+- Determine when to passthrough vs. return script
+- Handle help flags and error cases
+
+**Key Types**:
+
+```python
+@dataclass(frozen=True)
+class ShellIntegrationResult:
+    passthrough: bool    # If true, shell wrapper calls regular command
+    script: str | None   # Shell code to eval (cd commands, etc.)
+    exit_code: int
+```
+
+**Key Functions**:
+
+- `handle_shell_request(args)` - Main dispatcher for shell requests
+  - Takes: Command args from shell wrapper
+  - Returns: `ShellIntegrationResult` with passthrough decision and script
+- `_invoke_hidden_command(command_name, args)` - Invoke command with `--script` flag
+  - Detects help/error cases → passthrough
+  - Otherwise runs command with `--script` → returns shell code
+
+**Constants**:
+
+- `PASSTHROUGH_MARKER: Final[str] = "__WORKSTACK_PASSTHROUGH__"` - Special marker that signals shell wrapper to call regular command instead of eval'ing output
+
+**Dependencies**:
+
+- `click.testing.CliRunner` - For invoking commands programmatically
+- `commands/create.py` - For `create` command with `--script`
+- `commands/switch.py` - For `switch_cmd` with `--script`
+- `commands/sync.py` - For `sync_cmd` with `--script`
+- `context.py` - For `create_context()`
+
+**Used By**: `commands/shell_integration.py`
+
+**Pattern**: Provides clean separation between shell integration logic and command logic. Commands only need to support `--script` flag; handler manages the routing and passthrough protocol.
+
+**Example Flow**:
+
+```
+Shell wrapper → __shell switch my-feature
+    ↓
+handler.handle_shell_request(["switch", "my-feature"])
+    ↓
+_invoke_hidden_command("switch", ("my-feature",))
+    ↓
+CliRunner.invoke(switch_cmd, ["my-feature", "--script"])
+    ↓
+Returns ShellIntegrationResult(passthrough=False, script="cd ...; export ...", exit_code=0)
+    ↓
+Shell wrapper evals script
+```
 
 ---
 
@@ -795,6 +906,130 @@ tests/integration/ ──> src/workstack/ (real implementations)
 ### "I want to find where a feature is implemented"
 
 See: [FEATURE_INDEX.md](../FEATURE_INDEX.md) - Lookup table mapping features to files
+
+---
+
+## Shell Integration Pattern
+
+### Overview
+
+Commands that need to modify the parent shell's environment (cd, export) cannot do so from a subprocess. The shell integration pattern solves this by having commands output shell code that the wrapper function evals.
+
+### Components
+
+1. **Shell Wrappers** (`shell_integration/*.sh`, `*.fish`)
+   - Intercept `workstack` commands in the user's shell
+   - Call `workstack __shell <command> <args>`
+   - Eval the output (unless passthrough marker detected)
+
+2. **Hidden Command** (`commands/shell_integration.py`)
+   - Single entry point: `workstack __shell`
+   - Routes to handler for processing
+
+3. **Handler** (`shell_integration/handler.py`)
+   - Core routing logic
+   - Invokes commands with `--script` flag
+   - Returns `ShellIntegrationResult`
+
+4. **Command Support** (commands with `--script` flag)
+   - `switch` - Outputs cd + env activation
+   - `sync` - Outputs cd to root if worktree deleted
+   - `create` - Outputs cd to new worktree
+
+### Protocol
+
+**Normal Flow**:
+
+```
+User: workstack switch my-feature
+  ↓
+Wrapper: output=$(workstack __shell switch my-feature)
+  ↓
+Handler: Invokes switch_cmd --script
+  ↓
+switch_cmd: Outputs "cd /path/to/worktree; export ..."
+  ↓
+Wrapper: eval "$output"
+  ↓
+Result: User's shell is now in the worktree
+```
+
+**Passthrough Flow**:
+
+```
+User: workstack switch --help
+  ↓
+Wrapper: output=$(workstack __shell switch --help)
+  ↓
+Handler: Detects --help, returns PASSTHROUGH_MARKER
+  ↓
+Wrapper: Detects marker, calls regular command
+  ↓
+Calls: workstack switch --help
+  ↓
+Result: Normal help output displayed
+```
+
+### Adding Shell Integration to a New Command
+
+```python
+@click.command("my-command")
+@click.option("--script", is_flag=True, hidden=True)
+@click.pass_obj
+def my_cmd(ctx: WorkstackContext, script: bool) -> None:
+    # Do normal work
+    result = do_something()
+
+    if script:
+        # Output shell code for wrapper to eval
+        click.echo(f"cd {some_path}")
+    else:
+        # Normal user-facing output
+        click.echo(f"Done! You can now run: cd {some_path}")
+```
+
+That's it! The handler will automatically route `workstack __shell my-command args` to your command with `--script`.
+
+### Why This Pattern?
+
+**Before** (per-command hidden variants):
+
+```
+commands/switch.py:
+  - switch_cmd()
+  - hidden_switch_cmd()  # Duplicate logic
+
+commands/sync.py:
+  - sync_cmd()
+  - hidden_sync_cmd()  # Duplicate logic
+
+commands/create.py:
+  - create()
+  - hidden_create_cmd()  # Duplicate logic
+```
+
+**After** (unified handler):
+
+```
+commands/switch.py:
+  - switch_cmd(script: bool)  # Single function
+
+commands/sync.py:
+  - sync_cmd(script: bool)  # Single function
+
+commands/create.py:
+  - create(script: bool)  # Single function
+
+shell_integration/handler.py:
+  - handle_shell_request()  # Single routing function
+```
+
+Benefits:
+
+- Less code duplication
+- Consistent behavior across commands
+- Easier to add new shell-integrated commands
+- Single source of truth for passthrough logic
 
 ---
 

@@ -140,12 +140,16 @@ All graphite operations are defined in `src/workstack/graphite_ops.py`.
 
 ## Shell Integration
 
-| Feature               | Implementation                                      | Description                         |
-| --------------------- | --------------------------------------------------- | ----------------------------------- |
-| Bash activation       | `src/workstack/shell_integration/bash_wrapper.sh`   | Source in `.bashrc`                 |
-| Zsh activation        | `src/workstack/shell_integration/zsh_wrapper.sh`    | Source in `.zshrc`                  |
-| Fish activation       | `src/workstack/shell_integration/fish_wrapper.fish` | Source in `config.fish`             |
-| Completion generation | `src/workstack/commands/completion.py`              | Generate shell-specific completions |
+| Feature               | Implementation                                      | Description                                   |
+| --------------------- | --------------------------------------------------- | --------------------------------------------- |
+| Bash activation       | `src/workstack/shell_integration/bash_wrapper.sh`   | Source in `.bashrc`                           |
+| Zsh activation        | `src/workstack/shell_integration/zsh_wrapper.sh`    | Source in `.zshrc`                            |
+| Fish activation       | `src/workstack/shell_integration/fish_wrapper.fish` | Source in `config.fish`                       |
+| Shell handler         | `src/workstack/shell_integration/handler.py`        | Unified handler for shell-integrated commands |
+| Shell command entry   | `src/workstack/commands/shell_integration.py`       | Hidden `__shell` command for wrappers         |
+| Completion generation | `src/workstack/commands/completion.py`              | Generate shell-specific completions           |
+
+**Shell Integration Pattern**: The `switch`, `sync`, and `create` commands support a hidden `--script` flag that outputs shell code instead of regular output. Shell wrapper functions use the unified `__shell` command to invoke these commands in script mode.
 
 **Setup**:
 

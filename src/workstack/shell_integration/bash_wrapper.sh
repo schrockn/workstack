@@ -5,20 +5,27 @@ workstack() {
   # Don't intercept if we're doing shell completion
   if [ -n "$_WORKSTACK_COMPLETE" ]; then
     command workstack "$@"
-  elif [ "$1" = "switch" ]; then
-    # Check if __switch returns the passthrough marker
-    shift
-    local output
-    output=$(command workstack __switch "$@")
-    if [ "$output" = "__WORKSTACK_PASSTHROUGH__" ]; then
-      # Pass through to regular command
-      command workstack switch "$@"
-    else
-      # Eval the activation script
-      eval "$output"
-    fi
-  else
-    # Pass through all other commands
-    command workstack "$@"
+    return $?
   fi
+
+  local output
+  output=$(command workstack __shell "$@")
+  local status=$?
+
+  if [ "$output" = "__WORKSTACK_PASSTHROUGH__" ]; then
+    command workstack "$@"
+    return $?
+  fi
+
+  # If __shell returned non-zero, error messages are already sent to stderr.
+  # Return the error code to propagate failure to the shell.
+  if [ $status -ne 0 ]; then
+    return $status
+  fi
+
+  if [ -n "$output" ]; then
+    eval "$output"
+  fi
+
+  return 0
 }

@@ -7,10 +7,34 @@ import click
 from workstack.commands.remove import _remove_worktree
 from workstack.context import WorkstackContext
 from workstack.core import discover_repo_context, ensure_work_dir, worktree_path_for
+from workstack.shell_utils import render_cd_script
 
 
-def _return_to_original_worktree(work_dir: Path, current_worktree_name: str | None) -> None:
-    """Return to original worktree if it exists."""
+def _emit(message: str, *, script_mode: bool, error: bool = False) -> None:
+    """Emit a message to stdout or stderr based on script mode.
+
+    In script mode, ALL output goes to stderr (so the shell wrapper can capture
+    only the activation script from stdout). The `error` parameter has no effect
+    in script mode since everything is already sent to stderr.
+
+    In non-script mode, output goes to stdout by default, unless `error=True`.
+
+    Args:
+        message: Text to output.
+        script_mode: True when running in --script mode (all output to stderr).
+        error: Force stderr output in non-script mode (ignored in script mode).
+    """
+    click.echo(message, err=error or script_mode)
+
+
+def _return_to_original_worktree(
+    work_dir: Path, current_worktree_name: str | None, *, script_mode: bool
+) -> None:
+    """Return to original worktree if it exists.
+
+    Only changes directory in non-script mode. In script mode, directory changes
+    are handled by shell wrapper executing the output script.
+    """
     if current_worktree_name is None:
         return
 
@@ -18,8 +42,10 @@ def _return_to_original_worktree(work_dir: Path, current_worktree_name: str | No
     if not wt_path.exists():
         return
 
-    click.echo(f"\nReturning to: {current_worktree_name}")
-    os.chdir(wt_path)
+    _emit(f"\nReturning to: {current_worktree_name}", script_mode=script_mode)
+    # Only chdir in non-script mode; script output handles cd in script mode
+    if not script_mode:
+        os.chdir(wt_path)
 
 
 @click.command("sync")
@@ -36,8 +62,14 @@ def _return_to_original_worktree(work_dir: Path, current_worktree_name: str | No
     default=False,
     help="Show what would be done without executing destructive operations.",
 )
+@click.option(
+    "--script",
+    is_flag=True,
+    hidden=True,
+    help="Output shell script for directory change instead of messages.",
+)
 @click.pass_obj
-def sync_cmd(ctx: WorkstackContext, force: bool, dry_run: bool) -> None:
+def sync_cmd(ctx: WorkstackContext, force: bool, dry_run: bool, script: bool) -> None:
     """Sync with Graphite and clean up merged worktrees.
 
     This command must be run from a workstack-managed repository.
@@ -56,10 +88,11 @@ def sync_cmd(ctx: WorkstackContext, force: bool, dry_run: bool) -> None:
     # Step 1: Verify Graphite is enabled
     use_graphite = ctx.global_config_ops.get_use_graphite()
     if not use_graphite:
-        click.echo(
+        _emit(
             "Error: 'workstack sync' requires Graphite. "
             "Run 'workstack config set use-graphite true'",
-            err=True,
+            script_mode=script,
+            error=True,
         )
         raise SystemExit(1)
 
@@ -76,7 +109,7 @@ def sync_cmd(ctx: WorkstackContext, force: bool, dry_run: bool) -> None:
 
     # Step 3: Switch to root (only if not already at root)
     if Path.cwd().resolve() != repo.root:
-        click.echo(f"Switching to root worktree: {repo.root}")
+        _emit(f"Switching to root worktree: {repo.root}", script_mode=script)
         os.chdir(repo.root)
 
     # Step 4: Run `gt sync`
@@ -85,21 +118,26 @@ def sync_cmd(ctx: WorkstackContext, force: bool, dry_run: bool) -> None:
         cmd.append("-f")
 
     if not dry_run:
-        click.echo(f"Running: {' '.join(cmd)}")
+        _emit(f"Running: {' '.join(cmd)}", script_mode=script)
         try:
             ctx.graphite_ops.sync(repo.root, force=force)
         except subprocess.CalledProcessError as e:
-            click.echo(f"Error: gt sync failed with exit code {e.returncode}", err=True)
+            _emit(
+                f"Error: gt sync failed with exit code {e.returncode}",
+                script_mode=script,
+                error=True,
+            )
             raise SystemExit(e.returncode) from e
         except FileNotFoundError as e:
-            click.echo(
+            _emit(
                 "Error: 'gt' command not found. Install Graphite CLI: "
                 "brew install withgraphite/tap/graphite",
-                err=True,
+                script_mode=script,
+                error=True,
             )
             raise SystemExit(1) from e
     else:
-        click.echo(f"[DRY RUN] Would run {' '.join(cmd)}")
+        _emit(f"[DRY RUN] Would run {' '.join(cmd)}", script_mode=script)
 
     # Step 5: Identify deletable workstacks
     worktrees = ctx.git_ops.list_worktrees(repo.root)
@@ -129,9 +167,9 @@ def sync_cmd(ctx: WorkstackContext, force: bool, dry_run: bool) -> None:
 
     # Step 6: Display and optionally clean
     if not deletable:
-        click.echo("\nNo workstacks to clean up.")
+        _emit("\nNo workstacks to clean up.", script_mode=script)
     else:
-        click.echo("\nWorkstacks safe to delete:\n")
+        _emit("\nWorkstacks safe to delete:\n", script_mode=script)
 
         for name, branch, state, pr_number in deletable:
             # Display formatted (reuse gc.py formatting)
@@ -140,23 +178,28 @@ def sync_cmd(ctx: WorkstackContext, force: bool, dry_run: bool) -> None:
             state_part = click.style(state.lower(), fg="green" if state == "MERGED" else "red")
             pr_part = click.style(f"PR #{pr_number}", fg="bright_black")
 
-            click.echo(f"  {name_part} {branch_part} - {state_part} ({pr_part})")
+            _emit(f"  {name_part} {branch_part} - {state_part} ({pr_part})", script_mode=script)
 
-        click.echo()  # Blank line
+        _emit("", script_mode=script)  # Blank line
 
         # Confirm unless --force or --dry-run
         if not force and not dry_run:
-            if not click.confirm(f"Remove {len(deletable)} worktree(s)?", default=False):
-                click.echo("Cleanup cancelled.")
-                _return_to_original_worktree(work_dir, current_worktree_name)
+            if not click.confirm(
+                f"Remove {len(deletable)} worktree(s)?", default=False, err=script
+            ):
+                _emit("Cleanup cancelled.", script_mode=script)
+                _return_to_original_worktree(work_dir, current_worktree_name, script_mode=script)
                 return
 
         # Remove each worktree
         for name, _branch, _state, _pr_number in deletable:
             if dry_run:
-                click.echo(f"[DRY RUN] Would remove worktree: {name} (branch: {_branch})")
+                _emit(
+                    f"[DRY RUN] Would remove worktree: {name} (branch: {_branch})",
+                    script_mode=script,
+                )
             else:
-                click.echo(f"Removing worktree: {name} (branch: {_branch})")
+                _emit(f"Removing worktree: {name} (branch: {_branch})", script_mode=script)
                 # Reuse remove logic from remove.py
                 _remove_worktree(
                     ctx,
@@ -166,16 +209,33 @@ def sync_cmd(ctx: WorkstackContext, force: bool, dry_run: bool) -> None:
                     dry_run=False,
                 )
 
-        click.echo("\nNext step: Run 'gt sync -f' to delete the merged branches.")
+        _emit("\nNext step: Run 'gt sync -f' to delete the merged branches.", script_mode=script)
 
     # Step 7: Return to original worktree
+    script_output: str | None = None
     if current_worktree_name:
         wt_path = worktree_path_for(work_dir, current_worktree_name)
 
+        # Check if worktree still exists
         if wt_path.exists():
-            click.echo(f"\nReturning to: {current_worktree_name}")
-            os.chdir(wt_path)
+            _emit(f"\nReturning to: {current_worktree_name}", script_mode=script)
+            # Only chdir in non-script mode; script output handles cd in script mode
+            if not script:
+                os.chdir(wt_path)
         else:
-            click.echo(
-                f"\nNote: Original worktree '{current_worktree_name}' was deleted during cleanup."
+            _emit(
+                f"\n✓ Staying in root worktree (original worktree was deleted).\n"
+                f"💡 If you're still in the deleted directory, run: cd {repo.root}",
+                script_mode=script,
             )
+            if not dry_run:
+                script_output = render_cd_script(
+                    repo.root,
+                    comment="workstack sync - return to root",
+                    success_message="✓ Switched to root worktree.",
+                )
+    else:
+        script_output = None
+
+    if script and not dry_run and script_output:
+        click.echo(script_output, nl=False)

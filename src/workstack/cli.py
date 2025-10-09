@@ -8,7 +8,8 @@ from workstack.commands.init import init_cmd
 from workstack.commands.list import list_cmd, ls_cmd
 from workstack.commands.remove import remove_cmd, rm_cmd
 from workstack.commands.rename import rename_cmd
-from workstack.commands.switch import hidden_switch_cmd, switch_cmd
+from workstack.commands.shell_integration import hidden_shell_cmd
+from workstack.commands.switch import switch_cmd
 from workstack.commands.sync import sync_cmd
 from workstack.commands.tree import tree_cmd
 from workstack.context import create_context
@@ -30,7 +31,6 @@ def cli(ctx: click.Context) -> None:
 cli.add_command(completion_group)
 cli.add_command(create)
 cli.add_command(switch_cmd)
-cli.add_command(hidden_switch_cmd)
 cli.add_command(list_cmd)
 cli.add_command(ls_cmd)
 cli.add_command(init_cmd)
@@ -41,3 +41,4 @@ cli.add_command(config_group)
 cli.add_command(gc_cmd)
 cli.add_command(sync_cmd)
 cli.add_command(tree_cmd)
+cli.add_command(hidden_shell_cmd)
