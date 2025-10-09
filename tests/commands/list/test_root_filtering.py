@@ -122,9 +122,9 @@ def test_root_on_trunk_shows_only_trunk() -> None:
         root_section_start = None
         feature_b_section_start = None
         for i, line in enumerate(lines):
-            if "root [main]" in line:
+            if line.startswith("root ["):
                 root_section_start = i
-            if "feature-b [feature-b]" in line:
+            if line.startswith("feature-b ["):
                 feature_b_section_start = i
 
         assert root_section_start is not None
@@ -236,9 +236,9 @@ def test_root_on_non_trunk_shows_ancestors_only() -> None:
         root_section_start = None
         feature_c_section_start = None
         for i, line in enumerate(lines):
-            if "root [feature-b]" in line:
+            if line.startswith("root ["):
                 root_section_start = i
-            if "feature-c [feature-c]" in line:
+            if line.startswith("feature-c ["):
                 feature_c_section_start = i
 
         assert root_section_start is not None
@@ -362,11 +362,11 @@ def test_non_root_worktree_shows_descendants_with_worktrees() -> None:
         worktree_a_section_start = None
         worktree_c_section_start = None
         for i, line in enumerate(lines):
-            if "root [main]" in line:
+            if line.startswith("root ["):
                 root_section_start = i
-            if "worktree-a [feature-a]" in line:
+            if line.startswith("worktree-a ["):
                 worktree_a_section_start = i
-            if "worktree-c [feature-c]" in line:
+            if line.startswith("worktree-c ["):
                 worktree_c_section_start = i
 
         assert root_section_start is not None

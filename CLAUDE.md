@@ -6,6 +6,43 @@ This document defines coding standards for the `workstack` project. These standa
 
 ---
 
+## ⚠️ BEFORE WRITING CODE (AI Assistant Checklist)
+
+**This codebase has strong opinions that differ from standard Python. You MUST check these rules before writing code:**
+
+### Immediate "Stop and Check" Patterns
+
+If you're about to write any of these, STOP and consult the relevant section:
+
+- **`try:`** or **`except:`** → [Exception Handling ⚠️ CRITICAL](#exception-handling--critical) - Default is to let exceptions bubble up
+- **`from __future__ import annotations`** → **FORBIDDEN** - See [Python Typing Conventions](#python-typing-conventions)
+- **`List[...]`**, **`Dict[...]`**, **`Union[...]`** → Use `list[...]`, `dict[...]`, `X | Y` instead - See [Python Typing Conventions](#python-typing-conventions)
+- **`typing.Protocol`** → Use `abc.ABC` instead - See [Abstract Interfaces](#abstract-interfaces-and-dependency-injection)
+- **`dict[key]`** without checking → Use `if key in dict:` or `.get()` - See [Exception Handling](#exception-handling--critical)
+- **`path.resolve()`** or **`path.is_relative_to()`** → Check `path.exists()` first - See [File Operations](#file-operations)
+- **Function with default argument** → Make explicit at call sites - See [Function Arguments](#function-arguments)
+- **`from .module import`** → Use absolute imports only - See [Import Organization](#import-organization)
+- **`import ... as`** → Avoid aliasing unless required - See [Import Organization](#import-organization)
+- **`print(...)`** in CLI code → Use `click.echo()` - See [CLI Development](#cli-development-click)
+- **`subprocess.run(...)`** → Add `check=True` - See [CLI Development](#cli-development-click)
+- **`__all__`** in `__init__.py` → Don't use - See [Module Exports](#module-exports)
+- **4+ levels of indentation** → Extract helper functions - See [Code Indentation and Nesting](#code-indentation-and-nesting)
+- **Context manager assigned to variable** → Use directly in `with:` - See [Context Managers](#context-managers)
+- **`__del__`** for cleanup → Use context managers - See [Resource Management and Cleanup](#resource-management-and-cleanup)
+
+### Your Default Assumption Should Be Wrong
+
+**Standard Python patterns are often WRONG in this codebase.** When in doubt:
+
+1. ✅ **DO**: Search CLAUDE.md for the pattern you're about to use
+2. ✅ **DO**: Check [EXCEPTION_HANDLING.md](.agent/docs/EXCEPTION_HANDLING.md) if using `try/except`
+3. ✅ **DO**: Look for examples in [PATTERNS.md](.agent/docs/PATTERNS.md)
+4. ❌ **DON'T**: Assume "normal Python" is acceptable here
+
+**Most Common Violation**: Using `try/except` for control flow. This codebase uses **LBYL (Look Before You Leap)**, not EAFP. If you write `try:`, you're probably wrong.
+
+---
+
 ## Project Structure
 
 This project uses the **src layout**:
@@ -90,17 +127,21 @@ Within each group, imports should be alphabetically sorted.
 
 ### Exception Handling ⚠️ CRITICAL
 
-**This codebase has strict exception handling rules:**
+**⚠️ THIS IS THE #1 MOST VIOLATED RULE.**
 
-- **NEVER use exceptions for control flow**
-- **Prefer "Look Before You Leap" (LBYL) over "Easier to Ask for Forgiveness than Permission" (EAFP)** - Check conditions before performing operations rather than catching exceptions
+**This codebase uses LBYL (Look Before You Leap), NOT EAFP (Easier to Ask Forgiveness than Permission).**
+
+**Core Rules:**
+
+- **NEVER use `try/except` for control flow** - Check conditions first instead
 - **NEVER write try/except blocks for alternate execution paths** - Let exceptions bubble up
-- **NEVER swallow exceptions silently** - Don't use empty `except:` blocks or `except Exception: pass` patterns
-- **ALWAYS let exceptions propagate to appropriate error boundaries** - Only handle exceptions at CLI level or when dealing with third-party API quirks
+- **NEVER catch exceptions to continue with different logic** - This masks real problems
+- **NEVER swallow exceptions silently** - No empty `except:` blocks or `except Exception: pass`
+- **ALWAYS let exceptions propagate to error boundaries** - Only handle at CLI level or for third-party API quirks
 
-**If you find yourself writing try/except, STOP and ask: "Should this exception bubble up instead?"**
+**The Test**: Before writing `try:`, ask "Should this exception bubble up?" The answer is almost always: **YES, let it bubble.**
 
-**Complete Guide**: [.agent/docs/EXCEPTION_HANDLING.md](.agent/docs/EXCEPTION_HANDLING.md) - Read this before handling exceptions
+**See**: [EXCEPTION_HANDLING.md](.agent/docs/EXCEPTION_HANDLING.md) for complete guide with examples
 
 ### Code Formatting & Type Checking
 
@@ -155,9 +196,11 @@ Within each group, imports should be alphabetically sorted.
 
 - **Always use `pathlib.Path`** (never `os.path`)
 - Always specify `encoding="utf-8"` when reading/writing text files
-- Use `.resolve()` to get absolute paths
-- Use `.exists()`, `.is_dir()`, `.is_file()` for path checks
+- **CRITICAL: Check `.exists()` BEFORE `.resolve()` or `.is_relative_to()`** - These can raise exceptions
+- Use `.exists()`, `.is_dir()`, `.is_file()` for path checks before operations
 - Use `.expanduser()` for paths with `~`
+
+**Anti-Pattern**: Using `try/except` with `.resolve()` or `.is_relative_to()`
 
 **Examples**: [.agent/docs/PATTERNS.md#file-operations](.agent/docs/PATTERNS.md#file-operations)
 
@@ -189,30 +232,20 @@ Within each group, imports should be alphabetically sorted.
 
 ### Context Managers
 
-**DO NOT assign unentered context manager objects to intermediate variables** - use them directly as the target of `with`:
+**DO NOT assign unentered context manager objects to intermediate variables** - use them directly as the target of `with`
 
-**Exception**: When you need to access properties of the context manager object after it exits (e.g., results set during `__exit__`), it's acceptable to assign to a variable.
-
-**Rationale**: Assigning an unentered context manager to a variable can lead to resource leaks if the variable is accidentally used outside the context manager, and makes the code less clear about when resources are acquired and released.
+**Exception**: When you need to access properties of the context manager object after it exits (e.g., results set during `__exit__`)
 
 **Examples**: [.agent/docs/PATTERNS.md#context-managers](.agent/docs/PATTERNS.md#context-managers)
 
 ### Resource Management and Cleanup
 
-**DO NOT use `__del__` for resource cleanup** - Python's garbage collection is not deterministic, making `__del__` unreliable for cleanup.
+- **DO NOT use `__del__` for resource cleanup** - Python's garbage collection is not deterministic
+- **DO NOT implement context manager protocol directly on objects** - Tightly couples resource lifecycle to object lifecycle
+- **PREFERRED: Use classmethod factories that return context managers** - Separates object construction from resource management
+- **ALTERNATIVE: Standalone factory functions** - Use `@contextmanager` decorator for simple cases
 
-**DO NOT implement context manager protocol directly on objects** - this tightly couples resource lifecycle to object lifecycle.
-
-**PREFERRED: Use classmethod factories that return context managers** - this separates object construction from resource management.
-
-**Alternative: Standalone factory functions** - use `@contextmanager` decorator for simple cases.
-
-**Rationale**:
-
-- **Deterministic cleanup**: Context managers guarantee cleanup happens when the `with` block exits
-- **Clear resource boundaries**: Resource acquisition and release are explicit and scoped
-- **Separation of concerns**: Object lifecycle is separate from resource lifecycle
-- **Testing friendly**: Easy to test resource management independently
+**Benefits**: Deterministic cleanup, clear resource boundaries, separation of concerns, testing friendly
 
 **Examples**: [.agent/docs/PATTERNS.md#resource-management](.agent/docs/PATTERNS.md#resource-management)
 

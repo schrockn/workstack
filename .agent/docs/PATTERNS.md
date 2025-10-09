@@ -17,6 +17,7 @@
 - [Type Annotations](#type-annotations)
 - [Dependency Injection](#dependency-injection)
 - [Import Organization](#import-organization)
+- [Exception Handling](#exception-handling)
 - [Code Style](#code-style)
 - [File Operations](#file-operations)
 - [CLI Development](#cli-development)

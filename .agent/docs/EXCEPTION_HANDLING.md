@@ -22,6 +22,7 @@
 - [Dictionary Access](#dictionary-access)
 - [Validation and Input Checking](#validation-and-input-checking)
 - [File Processing](#file-processing)
+- [Path Resolution and Comparison](#path-resolution-and-comparison)
 - [Exception Swallowing](#exception-swallowing)
 - [Summary Checklist](#summary-checklist)
 
@@ -359,6 +360,48 @@ def process_cmd(config_file: str) -> None:
         click.echo(f"Error: Invalid YAML in {config_file}: {e}", err=True)
         raise SystemExit(1)
 ```
+
+---
+
+## Path Resolution and Comparison
+
+**Common Anti-Pattern**: Using try/except with `.resolve()` or `.is_relative_to()`.
+
+### The Wrong Pattern
+
+```python
+# ❌ BAD: Using exceptions for path validation
+for wt_path in worktree_paths:
+    try:
+        wt_path_resolved = wt_path.resolve()
+        if current_dir.is_relative_to(wt_path_resolved):
+            current_worktree = wt_path_resolved
+            break
+    except (OSError, ValueError):
+        continue
+```
+
+### The Correct Pattern
+
+```python
+# ✅ GOOD: Check exists before resolution (LBYL)
+for wt_path in worktree_paths:
+    if wt_path.exists():
+        wt_path_resolved = wt_path.resolve()
+        if current_dir.is_relative_to(wt_path_resolved):
+            current_worktree = wt_path_resolved
+            break
+```
+
+### Why This Matters
+
+1. **`.resolve()` can raise `OSError`** for invalid paths, permission issues, symlink loops
+2. **`.is_relative_to()` can raise `ValueError`** in edge cases
+3. **Using exceptions for flow control violates LBYL principle**
+4. **`.exists()` makes intent explicit** - you're checking for valid paths
+5. **Avoids exception overhead** for normal operation
+
+**Rule**: Always check `.exists()` before calling `.resolve()` or path comparison methods.
 
 ---
 

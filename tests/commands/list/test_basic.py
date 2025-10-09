@@ -63,13 +63,13 @@ def test_list_outputs_names_not_paths() -> None:
         output = strip_ansi(result.output)
         lines = output.strip().splitlines()
 
-        # First line should be root with branch
+        # First line should be root with path
         assert lines[0].startswith("root")
-        assert "[main]" in lines[0]
+        assert str(cwd) in lines[0]
 
-        # Remaining lines should be worktrees with branches, sorted
+        # Remaining lines should be worktrees with paths, sorted
         worktree_lines = sorted(lines[1:])
         assert worktree_lines == [
-            "bar [feature/bar]",
-            "foo [foo]",
+            f"bar [{work_dir / 'bar'}]",
+            f"foo [{work_dir / 'foo'}]",
         ]
