@@ -388,8 +388,25 @@ Comprehensive, agent-optimized documentation is available in the `.agent/` direc
 - **[Module Map](.agent/docs/MODULE_MAP.md)** - Module structure and exports
 - **[Coding Patterns](.agent/docs/PATTERNS.md)** - Detailed implementation patterns with examples
 - **[Exception Handling](.agent/docs/EXCEPTION_HANDLING.md)** - Complete exception handling guide
+- **[workstack-dev CLI](.agent/WORKSTACK_DEV.md)** - Development CLI architecture and design
 
 See [`.agent/README.md`](.agent/README.md) for more details.
+
+### workstack-dev CLI
+
+For developers working on workstack itself, the `workstack-dev` CLI provides development tools:
+
+```bash
+workstack-dev clean-cache       # Clean development cache directories
+workstack-dev publish-to-pypi   # Automated PyPI publishing workflow
+```
+
+**Documentation:**
+
+- **[Developer Guide](src/workstack/dev_cli/README.md)** - How to add new dev commands
+- **[Architecture](.agent/WORKSTACK_DEV.md)** - Detailed technical documentation
+
+The `workstack-dev` CLI uses a plugin-style architecture where commands are automatically discovered. Each command is a self-contained PEP 723 inline script with its own dependencies, keeping the main project dependencies minimal.
 
 ## Links
 
