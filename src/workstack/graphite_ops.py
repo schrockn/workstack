@@ -9,6 +9,7 @@ Architecture:
 """
 
 import subprocess
+import sys
 from abc import ABC, abstractmethod
 from pathlib import Path
 
@@ -69,6 +70,10 @@ class RealGraphiteOps(GraphiteOps):
     def sync(self, repo_root: Path, *, force: bool) -> None:
         """Run gt sync to synchronize with remote.
 
+        Output goes directly to sys.stdout/sys.stderr to avoid capture by
+        CliRunner when running in shell integration mode. This ensures gt sync
+        output doesn't leak into the shell script that gets eval'd.
+
         Note: Uses try/except as an acceptable error boundary for handling gt CLI
         availability. We cannot reliably check gt installation status a priori.
         """
@@ -80,6 +85,8 @@ class RealGraphiteOps(GraphiteOps):
             cmd,
             cwd=repo_root,
             check=True,
+            stdout=sys.stdout,
+            stderr=sys.stderr,
         )
 
 
