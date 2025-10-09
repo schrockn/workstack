@@ -361,14 +361,15 @@ def render_tree(roots: list[TreeNode]) -> str:
         # Render children
         if node.children:
             # Determine prefix for children
-            # For root nodes, children still need connectors but with empty prefix
-            # For non-root nodes, add vertical bar or spaces based on siblings
+            # Build prefix based on whether this node is the last child of its parent
             if prefix:
+                # Non-root node: extend existing prefix
                 # Add vertical bar if more siblings below, space otherwise
                 child_prefix = prefix + ("   " if is_last else "│  ")
             else:
-                # Root level children still need connectors, just no initial prefix
-                child_prefix = ""
+                # Root node's children: start with appropriate spacing
+                # Use spaces if this is last root, vertical bar otherwise
+                child_prefix = "   " if is_last else "│  "
 
             for i, child in enumerate(node.children):
                 is_last_child = i == len(node.children) - 1
