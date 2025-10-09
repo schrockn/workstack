@@ -1038,4 +1038,4 @@ Benefits:
 - [ARCHITECTURE.md](../ARCHITECTURE.md) - High-level system design
 - [GLOSSARY.md](../GLOSSARY.md) - Terminology reference
 - [FEATURE_INDEX.md](../FEATURE_INDEX.md) - Feature → file mapping
-- [CLAUDE.md](../CLAUDE.md) - Coding standards
+- [CLAUDE.md](../../CLAUDE.md) - Coding standards

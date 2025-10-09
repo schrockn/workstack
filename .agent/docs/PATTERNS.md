@@ -215,7 +215,7 @@ class FakeMyOps(MyOps):
 
 See also:
 
-- [../CLAUDE.md](../CLAUDE.md) - Core rules for dependency injection
+- [../../CLAUDE.md](../../CLAUDE.md) - Core rules for dependency injection
 
 ---
 
@@ -674,7 +674,7 @@ def switch(ctx: WorkstackContext, name: str) -> None:
 
 See also:
 
-- [../CLAUDE.md](../CLAUDE.md) - CLI development rules
+- [../../CLAUDE.md](../../CLAUDE.md) - CLI development rules
 
 ---
 
@@ -874,7 +874,7 @@ with database_connection("postgresql://...") as conn:
 
 ## Related Documentation
 
-- [CLAUDE.md](../CLAUDE.md) - Core coding standards
+- [CLAUDE.md](../../CLAUDE.md) - Core coding standards
 - [EXCEPTION_HANDLING.md](EXCEPTION_HANDLING.md) - Complete exception handling guide
 - [README.md](README.md) - Documentation index
-- [../tests/CLAUDE.md](../tests/CLAUDE.md) - Testing patterns and practices
+- [../../tests/CLAUDE.md](../../tests/CLAUDE.md) - Testing patterns and practices

@@ -10,11 +10,11 @@ Choose your starting point based on your task:
 
 | Your Task                           | Start Here                                                                |
 | ----------------------------------- | ------------------------------------------------------------------------- |
-| **First time working on workstack** | [../CLAUDE.md](../CLAUDE.md) - Core coding standards                      |
+| **First time working on workstack** | [../../CLAUDE.md](../../CLAUDE.md) - Core coding standards                |
 | **Need code examples**              | [PATTERNS.md](PATTERNS.md) - Code patterns and examples                   |
 | **Working with exceptions**         | [EXCEPTION_HANDLING.md](EXCEPTION_HANDLING.md) - Exception handling guide |
-| **Writing tests**                   | [../tests/CLAUDE.md](../tests/CLAUDE.md) - Testing patterns               |
-| **Project overview**                | [../README.md](../README.md) - Getting started                            |
+| **Writing tests**                   | [../../tests/CLAUDE.md](../../tests/CLAUDE.md) - Testing patterns         |
+| **Project overview**                | [../../README.md](../../README.md) - Getting started                      |
 
 ---
 
@@ -22,7 +22,7 @@ Choose your starting point based on your task:
 
 ### 📋 Core Standards (Start here)
 
-**[../CLAUDE.md](../CLAUDE.md)** - Coding standards and rules
+**[../../CLAUDE.md](../../CLAUDE.md)** - Coding standards and rules
 
 - Core rules (type annotations, imports, exception handling, etc.)
 - Quick reference table to all other docs
@@ -49,7 +49,7 @@ Choose your starting point based on your task:
 
 ### 🧪 Testing
 
-**[../tests/CLAUDE.md](../tests/CLAUDE.md)** - Testing patterns and practices
+**[../../tests/CLAUDE.md](../../tests/CLAUDE.md)** - Testing patterns and practices
 
 - Unit tests with fakes
 - Integration tests with real implementations
@@ -108,22 +108,22 @@ CLAUDE.md (read rule)
 
 ### Most Referenced Documents
 
-1. [../CLAUDE.md](../CLAUDE.md) - Core standards (read first!)
+1. [../../CLAUDE.md](../../CLAUDE.md) - Core standards (read first!)
 2. [PATTERNS.md](PATTERNS.md) - Code examples
 3. [EXCEPTION_HANDLING.md](EXCEPTION_HANDLING.md) - Exception guide
-4. [../tests/CLAUDE.md](../tests/CLAUDE.md) - Testing guide
+4. [../../tests/CLAUDE.md](../../tests/CLAUDE.md) - Testing guide
 
 ### By Topic
 
 **Writing code:**
 
-- [../CLAUDE.md](../CLAUDE.md) - Coding standards
+- [../../CLAUDE.md](../../CLAUDE.md) - Coding standards
 - [PATTERNS.md](PATTERNS.md) - Examples
 - [EXCEPTION_HANDLING.md](EXCEPTION_HANDLING.md) - Exception rules
 
 **Testing:**
 
-- [../tests/CLAUDE.md](../tests/CLAUDE.md) - Testing patterns
+- [../../tests/CLAUDE.md](../../tests/CLAUDE.md) - Testing patterns
 
 ---
 
@@ -168,8 +168,8 @@ If you can't find what you need:
 
 1. Check [PATTERNS.md](PATTERNS.md) for code examples
 2. Check [EXCEPTION_HANDLING.md](EXCEPTION_HANDLING.md) for exception handling details
-3. Check [../tests/CLAUDE.md](../tests/CLAUDE.md) for testing guidance
-4. Read [../CLAUDE.md](../CLAUDE.md) for core rules
+3. Check [../../tests/CLAUDE.md](../../tests/CLAUDE.md) for testing guidance
+4. Read [../../CLAUDE.md](../../CLAUDE.md) for core rules
 
 Still stuck? The documentation may need improvement - consider opening an issue or PR.
 
