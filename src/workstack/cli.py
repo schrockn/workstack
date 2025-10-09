@@ -6,6 +6,7 @@ from workstack.commands.create import create
 from workstack.commands.gc import gc_cmd
 from workstack.commands.init import init_cmd
 from workstack.commands.list import list_cmd, ls_cmd
+from workstack.commands.move import move_cmd
 from workstack.commands.remove import remove_cmd, rm_cmd
 from workstack.commands.rename import rename_cmd
 from workstack.commands.shell_integration import hidden_shell_cmd
@@ -34,6 +35,7 @@ cli.add_command(switch_cmd)
 cli.add_command(list_cmd)
 cli.add_command(ls_cmd)
 cli.add_command(init_cmd)
+cli.add_command(move_cmd)
 cli.add_command(remove_cmd)
 cli.add_command(rm_cmd)
 cli.add_command(rename_cmd)
