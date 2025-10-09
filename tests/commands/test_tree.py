@@ -753,3 +753,108 @@ def test_render_tree_with_very_deep_nesting() -> None:
     # Should have proper tree structure
     lines = output.split("\n")
     assert len(lines) == 6  # 6 levels deep
+
+
+def test_tree_command_shows_three_level_hierarchy_with_correct_indentation() -> None:
+    """Test tree command displays 3-level stack with proper indentation.
+
+    Reproduces bug where workstack-dev-cli-implementation and
+    create-agents-symlinks-implementation-plan appear at same level
+    instead of nested hierarchy.
+    """
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        cwd = Path.cwd()
+        repo_root = cwd / "repo"
+        repo_root.mkdir()
+
+        git_dir = repo_root / ".git"
+        git_dir.mkdir()
+
+        # Setup 3-level stack matching the real bug scenario
+        cache_data = {
+            "branches": [
+                [
+                    "main",
+                    {
+                        "validationResult": "TRUNK",
+                        "children": ["workstack-dev-cli-implementation"],
+                    },
+                ],
+                [
+                    "workstack-dev-cli-implementation",
+                    {
+                        "parentBranchName": "main",
+                        "children": ["create-agents-symlinks-implementation-plan"],
+                        "validationResult": "VALID",
+                    },
+                ],
+                [
+                    "create-agents-symlinks-implementation-plan",
+                    {
+                        "parentBranchName": "workstack-dev-cli-implementation",
+                        "children": [],
+                        "validationResult": "VALID",
+                    },
+                ],
+            ]
+        }
+        cache_file = git_dir / ".graphite_cache_persist"
+        cache_file.write_text(json.dumps(cache_data), encoding="utf-8")
+
+        # All 3 branches have active worktrees
+        git_ops = FakeGitOps(
+            worktrees={
+                repo_root: [
+                    WorktreeInfo(path=repo_root, branch="main"),
+                    WorktreeInfo(
+                        path=repo_root / "work" / "workstack-dev-cli-implementation",
+                        branch="workstack-dev-cli-implementation",
+                    ),
+                    WorktreeInfo(
+                        path=repo_root / "work" / "create-agents-symlinks-implementation-plan",
+                        branch="create-agents-symlinks-implementation-plan",
+                    ),
+                ]
+            },
+            git_common_dirs={repo_root: git_dir},
+            current_branches={repo_root: "main"},
+        )
+
+        global_config_ops = FakeGlobalConfigOps(
+            workstacks_root=cwd / "workstacks", use_graphite=True
+        )
+
+        ctx = create_test_context(git_ops=git_ops, global_config_ops=global_config_ops)
+
+        # Change to repo directory so discover_repo_context can find .git
+        os.chdir(repo_root)
+
+        result = runner.invoke(cli, ["tree"], obj=ctx)
+
+        assert result.exit_code == 0
+
+        # Verify the exact structure with proper indentation
+        # Expected:
+        # main [@root]
+        # └─ workstack-dev-cli-implementation [@workstack-dev-cli-implementation]
+        #    └─ create-agents-symlinks-implementation-plan
+        #       [@create-agents-symlinks-implementation-plan]
+
+        lines = result.output.strip().split("\n")
+        assert len(lines) == 3
+
+        # Line 0: main (no indentation, no connector)
+        assert lines[0].startswith("main")
+        assert "[@root]" in lines[0]
+
+        # Line 1: workstack-dev-cli-implementation (has connector, no leading spaces)
+        assert "└─ workstack-dev-cli-implementation" in lines[1]
+        assert "[@workstack-dev-cli-implementation]" in lines[1]
+
+        # Line 2: create-agents-symlinks-implementation-plan (has connector
+        # AND leading spaces for nesting). This is the critical check - it
+        # should have "   └─" (3 spaces + connector), NOT just "└─" at the
+        # beginning
+        assert "   └─ create-agents-symlinks-implementation-plan" in lines[2]
+        assert "[@create-agents-symlinks-implementation-plan]" in lines[2]
