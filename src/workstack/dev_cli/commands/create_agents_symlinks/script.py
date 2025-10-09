@@ -75,7 +75,8 @@ def create_agents_symlinks(
     claude_md_files = list(repo_root.rglob("CLAUDE.md"))
 
     if verbose:
-        click.echo(f"Found {len(claude_md_files)} CLAUDE.md file{'s' if len(claude_md_files) != 1 else ''}")
+        plural = "s" if len(claude_md_files) != 1 else ""
+        click.echo(f"Found {len(claude_md_files)} CLAUDE.md file{plural}")
 
     for claude_md_path in claude_md_files:
         status = create_symlink_for_claude_md(claude_md_path, dry_run)
@@ -84,7 +85,8 @@ def create_agents_symlinks(
             created_count += 1
             if verbose:
                 rel_path = claude_md_path.relative_to(repo_root)
-                click.echo(f"  ✓ {'Would create' if dry_run else 'Created'}: {rel_path.parent}/AGENTS.md")
+                action = "Would create" if dry_run else "Created"
+                click.echo(f"  ✓ {action}: {rel_path.parent}/AGENTS.md")
         else:
             skipped_count += 1
             if verbose:
@@ -111,16 +113,14 @@ def main(dry_run: bool, verbose: bool) -> None:
     if not verbose and (created_count > 0 or skipped_count > 0):
         if dry_run:
             if created_count > 0:
-                click.echo(
-                    f"Would create {created_count} AGENTS.md symlink{'s' if created_count != 1 else ''}"
-                )
+                plural = "s" if created_count != 1 else ""
+                click.echo(f"Would create {created_count} AGENTS.md symlink{plural}")
             if skipped_count > 0:
                 click.echo(f"Would skip {skipped_count} (already exists)")
         else:
             if created_count > 0:
-                click.echo(
-                    f"✓ Created {created_count} AGENTS.md symlink{'s' if created_count != 1 else ''}"
-                )
+                plural = "s" if created_count != 1 else ""
+                click.echo(f"✓ Created {created_count} AGENTS.md symlink{plural}")
             if skipped_count > 0:
                 click.echo(f"⊘ Skipped {skipped_count} (already exists)")
     elif created_count == 0 and skipped_count == 0:

@@ -180,16 +180,12 @@ def test_create_agents_symlinks_idempotent() -> None:
         (repo_root / "CLAUDE.md").write_text("# Root", encoding="utf-8")
 
         # First run
-        created1, skipped1 = script.create_agents_symlinks(
-            repo_root, dry_run=False, verbose=False
-        )
+        created1, skipped1 = script.create_agents_symlinks(repo_root, dry_run=False, verbose=False)
         assert created1 == 1
         assert skipped1 == 0
 
         # Second run
-        created2, skipped2 = script.create_agents_symlinks(
-            repo_root, dry_run=False, verbose=False
-        )
+        created2, skipped2 = script.create_agents_symlinks(repo_root, dry_run=False, verbose=False)
         assert created2 == 0
         assert skipped2 == 1
 
