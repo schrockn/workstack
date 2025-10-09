@@ -8,6 +8,8 @@
 # ///
 """Clean cache implementation."""
 
+# pyright: reportMissingImports=false
+
 import shutil
 from pathlib import Path
 
