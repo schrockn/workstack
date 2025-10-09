@@ -6,6 +6,8 @@ in its constructor. Construct instances directly with keyword arguments.
 
 from pathlib import Path
 
+from workstack.github_ops import PullRequestInfo
+from workstack.gitops import GitOps
 from workstack.graphite_ops import GraphiteOps
 
 
@@ -20,14 +22,17 @@ class FakeGraphiteOps(GraphiteOps):
         self,
         *,
         sync_raises: Exception | None = None,
+        pr_info: dict[str, PullRequestInfo] | None = None,
     ) -> None:
         """Create FakeGraphiteOps with pre-configured state.
 
         Args:
             sync_raises: Exception to raise when sync() is called (for testing error cases)
+            pr_info: Mapping of branch name -> PullRequestInfo for get_prs_from_graphite()
         """
         self._sync_raises = sync_raises
         self._sync_calls: list[tuple[Path, bool]] = []
+        self._pr_info = pr_info if pr_info is not None else {}
 
     def get_graphite_url(self, owner: str, repo: str, pr_number: int) -> str:
         """Get Graphite PR URL (constructs URL directly)."""
@@ -42,6 +47,10 @@ class FakeGraphiteOps(GraphiteOps):
 
         if self._sync_raises is not None:
             raise self._sync_raises
+
+    def get_prs_from_graphite(self, git_ops: GitOps, repo_root: Path) -> dict[str, PullRequestInfo]:
+        """Return pre-configured PR info for tests."""
+        return self._pr_info.copy()
 
     @property
     def sync_calls(self) -> list[tuple[Path, bool]]:

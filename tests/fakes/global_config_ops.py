@@ -23,6 +23,7 @@ class FakeGlobalConfigOps(GlobalConfigOps):
         use_graphite: bool = False,
         shell_setup_complete: bool = False,
         show_pr_info: bool = True,
+        show_pr_checks: bool = False,
         exists: bool = True,
         config_path: Path | None = None,
     ) -> None:
@@ -34,6 +35,7 @@ class FakeGlobalConfigOps(GlobalConfigOps):
             use_graphite: Initial graphite preference (default: False)
             shell_setup_complete: Initial shell setup status (default: False)
             show_pr_info: Initial PR info display preference (default: True)
+            show_pr_checks: Initial CI check display preference (default: False)
             exists: Whether config "exists". If False, getters raise FileNotFoundError.
             config_path: Path to report in error messages and get_path().
                         Defaults to /fake/config.toml for testing.
@@ -55,6 +57,7 @@ class FakeGlobalConfigOps(GlobalConfigOps):
         self._use_graphite = use_graphite
         self._shell_setup_complete = shell_setup_complete
         self._show_pr_info = show_pr_info
+        self._show_pr_checks = show_pr_checks
         self._exists = exists
         self._path = config_path if config_path is not None else Path("/fake/config.toml")
 
@@ -80,6 +83,11 @@ class FakeGlobalConfigOps(GlobalConfigOps):
             raise FileNotFoundError(f"Global config not found at {self._path}")
         return self._show_pr_info
 
+    def get_show_pr_checks(self) -> bool:
+        if not self._exists:
+            raise FileNotFoundError(f"Global config not found at {self._path}")
+        return self._show_pr_checks
+
     def set(
         self,
         *,
@@ -87,6 +95,7 @@ class FakeGlobalConfigOps(GlobalConfigOps):
         use_graphite: bool | _UnchangedType = _UNCHANGED,
         shell_setup_complete: bool | _UnchangedType = _UNCHANGED,
         show_pr_info: bool | _UnchangedType = _UNCHANGED,
+        show_pr_checks: bool | _UnchangedType = _UNCHANGED,
     ) -> None:
         """Update config fields in memory (not filesystem).
 
@@ -98,6 +107,7 @@ class FakeGlobalConfigOps(GlobalConfigOps):
             and isinstance(use_graphite, _UnchangedType)
             and isinstance(shell_setup_complete, _UnchangedType)
             and isinstance(show_pr_info, _UnchangedType)
+            and isinstance(show_pr_checks, _UnchangedType)
         ):
             raise ValueError("At least one field must be provided")
 
@@ -111,6 +121,9 @@ class FakeGlobalConfigOps(GlobalConfigOps):
                 False if isinstance(shell_setup_complete, _UnchangedType) else shell_setup_complete
             )
             self._show_pr_info = True if isinstance(show_pr_info, _UnchangedType) else show_pr_info
+            self._show_pr_checks = (
+                False if isinstance(show_pr_checks, _UnchangedType) else show_pr_checks
+            )
             self._exists = True
             return
 
@@ -126,6 +139,9 @@ class FakeGlobalConfigOps(GlobalConfigOps):
 
         if not isinstance(show_pr_info, _UnchangedType):
             self._show_pr_info = show_pr_info
+
+        if not isinstance(show_pr_checks, _UnchangedType):
+            self._show_pr_checks = show_pr_checks
 
     def exists(self) -> bool:
         return self._exists

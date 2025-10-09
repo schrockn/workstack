@@ -72,6 +72,21 @@ class GlobalConfigOps(ABC):
         ...
 
     @abstractmethod
+    def get_show_pr_checks(self) -> bool:
+        """Get whether to show CI check status in PR info.
+
+        When True, fetches CI status from GitHub API (slower).
+        When False, only shows basic PR info from Graphite cache (faster).
+
+        Returns:
+            True if CI check status should be shown, False otherwise
+
+        Raises:
+            FileNotFoundError: If config file doesn't exist
+        """
+        ...
+
+    @abstractmethod
     def set(
         self,
         *,
@@ -79,6 +94,7 @@ class GlobalConfigOps(ABC):
         use_graphite: bool | _UnchangedType = _UNCHANGED,
         shell_setup_complete: bool | _UnchangedType = _UNCHANGED,
         show_pr_info: bool | _UnchangedType = _UNCHANGED,
+        show_pr_checks: bool | _UnchangedType = _UNCHANGED,
     ) -> None:
         """Update config fields. Only provided fields are changed.
 
@@ -90,6 +106,7 @@ class GlobalConfigOps(ABC):
             use_graphite: New graphite preference, or _UNCHANGED to keep current
             shell_setup_complete: New shell setup status, or _UNCHANGED to keep current
             show_pr_info: New PR info display preference, or _UNCHANGED to keep current
+            show_pr_checks: New CI check display preference, or _UNCHANGED to keep current
 
         Raises:
             ValueError: If all fields are _UNCHANGED (nothing to update)
@@ -142,6 +159,7 @@ class RealGlobalConfigOps(GlobalConfigOps):
             "use_graphite": bool(data.get("use_graphite", False)),
             "shell_setup_complete": bool(data.get("shell_setup_complete", False)),
             "show_pr_info": bool(data.get("show_pr_info", True)),
+            "show_pr_checks": bool(data.get("show_pr_checks", False)),
         }
 
     def _ensure_cache(self) -> dict[str, Path | bool]:
@@ -182,6 +200,13 @@ class RealGlobalConfigOps(GlobalConfigOps):
             raise TypeError(f"Expected bool, got {type(result)}")
         return result
 
+    def get_show_pr_checks(self) -> bool:
+        cache = self._ensure_cache()
+        result = cache["show_pr_checks"]
+        if not isinstance(result, bool):
+            raise TypeError(f"Expected bool, got {type(result)}")
+        return result
+
     def set(
         self,
         *,
@@ -189,6 +214,7 @@ class RealGlobalConfigOps(GlobalConfigOps):
         use_graphite: bool | _UnchangedType = _UNCHANGED,
         shell_setup_complete: bool | _UnchangedType = _UNCHANGED,
         show_pr_info: bool | _UnchangedType = _UNCHANGED,
+        show_pr_checks: bool | _UnchangedType = _UNCHANGED,
     ) -> None:
         # Check if at least one field is being updated
         if (
@@ -196,6 +222,7 @@ class RealGlobalConfigOps(GlobalConfigOps):
             and isinstance(use_graphite, _UnchangedType)
             and isinstance(shell_setup_complete, _UnchangedType)
             and isinstance(show_pr_info, _UnchangedType)
+            and isinstance(show_pr_checks, _UnchangedType)
         ):
             raise ValueError("At least one field must be provided")
 
@@ -205,6 +232,7 @@ class RealGlobalConfigOps(GlobalConfigOps):
             current_graphite = self.get_use_graphite()
             current_shell = self.get_shell_setup_complete()
             current_pr_info = self.get_show_pr_info()
+            current_pr_checks = self.get_show_pr_checks()
         else:
             # For new config, all fields must be provided (no defaults)
             if isinstance(workstacks_root, _UnchangedType):
@@ -213,6 +241,7 @@ class RealGlobalConfigOps(GlobalConfigOps):
             current_graphite = False
             current_shell = False
             current_pr_info = True
+            current_pr_checks = False
 
         # Apply updates
         final_root = (
@@ -229,6 +258,9 @@ class RealGlobalConfigOps(GlobalConfigOps):
         final_pr_info = (
             current_pr_info if isinstance(show_pr_info, _UnchangedType) else show_pr_info
         )
+        final_pr_checks = (
+            current_pr_checks if isinstance(show_pr_checks, _UnchangedType) else show_pr_checks
+        )
 
         # Write to disk
         self._path.parent.mkdir(parents=True, exist_ok=True)
@@ -237,6 +269,7 @@ workstacks_root = "{final_root}"
 use_graphite = {str(final_graphite).lower()}
 shell_setup_complete = {str(final_shell).lower()}
 show_pr_info = {str(final_pr_info).lower()}
+show_pr_checks = {str(final_pr_checks).lower()}
 """
         self._path.write_text(content, encoding="utf-8")
         self._invalidate_cache()

@@ -65,10 +65,12 @@ def config_list(ctx: WorkstackContext) -> None:
         workstacks_root = ctx.global_config_ops.get_workstacks_root()
         use_graphite = ctx.global_config_ops.get_use_graphite()
         show_pr_info = ctx.global_config_ops.get_show_pr_info()
+        show_pr_checks = ctx.global_config_ops.get_show_pr_checks()
         click.echo(click.style("Global configuration:", bold=True))
         click.echo(f"  workstacks_root={workstacks_root}")
         click.echo(f"  use_graphite={str(use_graphite).lower()}")
         click.echo(f"  show_pr_info={str(show_pr_info).lower()}")
+        click.echo(f"  show_pr_checks={str(show_pr_checks).lower()}")
     except FileNotFoundError:
         click.echo(click.style("Global configuration:", bold=True))
         click.echo("  (not configured - run 'workstack init' to create)")
@@ -103,7 +105,7 @@ def config_get(ctx: WorkstackContext, key: str) -> None:
     parts = key.split(".")
 
     # Handle global config keys
-    if parts[0] in ("workstacks_root", "use_graphite", "show_pr_info"):
+    if parts[0] in ("workstacks_root", "use_graphite", "show_pr_info", "show_pr_checks"):
         try:
             if parts[0] == "workstacks_root":
                 click.echo(str(ctx.global_config_ops.get_workstacks_root()))
@@ -111,6 +113,8 @@ def config_get(ctx: WorkstackContext, key: str) -> None:
                 click.echo(str(ctx.global_config_ops.get_use_graphite()).lower())
             elif parts[0] == "show_pr_info":
                 click.echo(str(ctx.global_config_ops.get_show_pr_info()).lower())
+            elif parts[0] == "show_pr_checks":
+                click.echo(str(ctx.global_config_ops.get_show_pr_checks()).lower())
         except FileNotFoundError as e:
             click.echo(f"Global config not found at {ctx.global_config_ops.get_path()}", err=True)
             raise SystemExit(1) from e
@@ -151,7 +155,7 @@ def config_set(ctx: WorkstackContext, key: str, value: str) -> None:
     parts = key.split(".")
 
     # Handle global config keys
-    if parts[0] in ("workstacks_root", "use_graphite", "show_pr_info"):
+    if parts[0] in ("workstacks_root", "use_graphite", "show_pr_info", "show_pr_checks"):
         if not ctx.global_config_ops.exists():
             click.echo(f"Global config not found at {ctx.global_config_ops.get_path()}", err=True)
             click.echo("Run 'workstack init' to create it.", err=True)
@@ -170,6 +174,11 @@ def config_set(ctx: WorkstackContext, key: str, value: str) -> None:
                 click.echo(f"Invalid boolean value: {value}", err=True)
                 raise SystemExit(1)
             ctx.global_config_ops.set(show_pr_info=value.lower() == "true")
+        elif parts[0] == "show_pr_checks":
+            if value.lower() not in ("true", "false"):
+                click.echo(f"Invalid boolean value: {value}", err=True)
+                raise SystemExit(1)
+            ctx.global_config_ops.set(show_pr_checks=value.lower() == "true")
 
         click.echo(f"Set {key}={value}")
         return
