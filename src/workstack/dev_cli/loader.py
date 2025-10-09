@@ -36,7 +36,13 @@ def load_commands() -> dict[str, click.Command]:
 
         if spec and spec.loader:
             module = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(module)
+
+            # Error boundary: catch broken command modules
+            try:
+                spec.loader.exec_module(module)
+            except (ImportError, SyntaxError) as e:
+                click.echo(f"Warning: Failed to load command '{cmd_dir.name}': {e}", err=True)
+                continue
 
             # Look for click.Command objects
             for _name, obj in inspect.getmembers(module):

@@ -218,6 +218,33 @@ def get_git_status(repo_root: Path) -> str:
     )
 
 
+def filter_git_status(status: str, excluded_files: set[str]) -> list[str]:
+    """Filter git status output to exclude specific files.
+
+    Args:
+        status: Git status output in porcelain format
+        excluded_files: Set of filenames to exclude
+
+    Returns:
+        List of status lines that don't match excluded files
+
+    Git porcelain format: "XY filename" where:
+    - X and Y are single-character status codes
+    - Space separator at position 2
+    - Filename starts at position 3
+
+    This correctly handles filenames with spaces.
+    """
+    lines = []
+    for line in status.splitlines():
+        # Parse by position: chars 0-1 are status, char 2 is space, 3+ is filename
+        if len(line) >= 4:  # Minimum: "XY f"
+            filename = line[3:]  # Skip status codes and space
+            if filename not in excluded_files:
+                lines.append(line)
+    return lines
+
+
 @click.command()
 @click.option("--dry-run", is_flag=True, help="Show what would be done without making changes")
 def main(dry_run: bool) -> None:
@@ -238,14 +265,8 @@ def main(dry_run: bool) -> None:
     status = get_git_status(repo_root)
     if status:
         # Filter out pyproject.toml and uv.lock changes
-        # Git porcelain format: "XY filename" where X and Y are status codes
         excluded_files = {"pyproject.toml", "uv.lock"}
-        lines = []
-        for line in status.splitlines():
-            # Split on whitespace and get the filename part (last element)
-            parts = line.split()
-            if parts and parts[-1] not in excluded_files:
-                lines.append(line)
+        lines = filter_git_status(status, excluded_files)
 
         if lines:
             click.echo("✗ Working directory has uncommitted changes:", err=True)
