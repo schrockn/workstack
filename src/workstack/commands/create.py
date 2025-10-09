@@ -94,7 +94,13 @@ def add_worktree(
             original_branch = ctx.git_ops.get_current_branch(cwd)
             if original_branch is None:
                 raise ValueError("Cannot create graphite branch from detached HEAD")
-            subprocess.run(["gt", "create", branch], cwd=cwd, check=True)
+            subprocess.run(
+                ["gt", "create", "--no-interactive", branch],
+                cwd=cwd,
+                check=True,
+                capture_output=True,
+                text=True,
+            )
             ctx.git_ops.checkout_branch(cwd, original_branch)
             ctx.git_ops.add_worktree(repo_root, path, branch=branch, ref=None, create_branch=False)
         else:
@@ -341,7 +347,8 @@ def create(
     if plan_file:
         plan_dest = wt_path / ".PLAN.md"
         shutil.move(str(plan_file), str(plan_dest))
-        click.echo(f"Moved plan to {plan_dest}")
+        if not script:
+            click.echo(f"Moved plan to {plan_dest}")
 
     # Post-create commands
     if not no_post and cfg.post_create_commands:
