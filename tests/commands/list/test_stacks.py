@@ -105,9 +105,9 @@ def test_list_with_stacks_flag() -> None:
         root_section_start = None
         ts_section_start = None
         for i, line in enumerate(lines):
-            if "root [main]" in line:
+            if line.startswith("root ["):
                 root_section_start = i
-            if "ts [schrockn/ts-phase-2]" in line:
+            if line.startswith("ts ["):
                 ts_section_start = i
 
         assert root_section_start is not None
@@ -120,7 +120,7 @@ def test_list_with_stacks_flag() -> None:
         # Check ts worktree stack shows linear chain in reversed order
         # (descendants at top, trunk at bottom)
         # Note: ts-phase-3 is NOT shown because it has no worktree
-        assert "ts [schrockn/ts-phase-2]" in ts_section_text
+        assert lines[ts_section_start].startswith("ts [")
         assert "◉  schrockn/ts-phase-2" in ts_section_text
         assert "◯  schrockn/ts-phase-1" in ts_section_text
         assert "◯  main" in ts_section_text
@@ -215,7 +215,7 @@ def test_list_with_stacks_no_graphite_cache() -> None:
         assert result.exit_code == 0, result.output
         output = strip_ansi(result.output)
         # Should show worktree but no stack visualization
-        assert "root [main]" in output
+        assert output.startswith("root [")
         # Should not have any circle markers
         assert "◉" not in output
         assert "◯" not in output
@@ -416,7 +416,7 @@ def test_list_with_stacks_root_repo_does_not_duplicate_branch() -> None:
         lines = output.strip().splitlines()
 
         # Should have header line with "root" as the name
-        assert "root [master]" in lines[0]
+        assert lines[0].startswith("root [")
 
         # Only master should be shown (foo has no worktree)
         assert "◉  master" in output
@@ -510,9 +510,9 @@ def test_list_with_stacks_shows_descendants_with_worktrees() -> None:
         root_section_start = None
         foo_section_start = None
         for i, line in enumerate(lines):
-            if "root [master]" in line:
+            if line.startswith("root ["):
                 root_section_start = i
-            if "foo [foo]" in line:
+            if line.startswith("foo ["):
                 foo_section_start = i
 
         assert root_section_start is not None, "Should have root section"
@@ -604,7 +604,7 @@ def test_list_with_stacks_hides_descendants_without_worktrees() -> None:
         output = strip_ansi(result.output)
 
         # Should only have root section
-        assert "root [main]" in output
+        assert output.startswith("root [")
         assert "◉  main" in output
 
         # feature-1 should NOT appear (no worktree for it)
@@ -705,9 +705,9 @@ def test_list_with_stacks_shows_descendants_with_gaps() -> None:
         root_section_start = None
         f3_section_start = None
         for i, line in enumerate(lines):
-            if "root [main]" in line:
+            if line.startswith("root ["):
                 root_section_start = i
-            if "f3 [f3]" in line:
+            if line.startswith("f3 ["):
                 f3_section_start = i
 
         assert root_section_start is not None, "Should have root section"

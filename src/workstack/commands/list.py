@@ -8,7 +8,9 @@ from workstack.github_ops import PullRequestInfo
 from workstack.graphite import _load_graphite_cache, get_branch_stack
 
 
-def _format_worktree_line(name: str, branch: str | None, path: str | None, is_root: bool) -> str:
+def _format_worktree_line(
+    name: str, branch: str | None, path: str | None, is_root: bool, is_current: bool
+) -> str:
     """Format a single worktree line with colorization.
 
     Args:
@@ -16,6 +18,7 @@ def _format_worktree_line(name: str, branch: str | None, path: str | None, is_ro
         branch: Branch name (if any)
         path: Filesystem path to display (if provided, shows path instead of branch)
         is_root: True if this is the root repository worktree
+        is_current: True if this is the worktree the user is currently in
 
     Returns:
         Formatted line with appropriate colorization
@@ -32,8 +35,16 @@ def _format_worktree_line(name: str, branch: str | None, path: str | None, is_ro
     else:
         location_part = ""
 
+    # Build the main line
     parts = [name_part, location_part]
-    return " ".join(p for p in parts if p)
+    line = " ".join(p for p in parts if p)
+
+    # Add indicator on the right for current worktree
+    if is_current:
+        indicator = click.style(" ← (cwd)", fg="bright_blue")
+        line += indicator
+
+    return line
 
 
 def _filter_stack_for_worktree(
@@ -201,10 +212,12 @@ def _format_pr_info(
     # Get Graphite URL (always available since we have owner/repo from GitHub)
     url = ctx.graphite_ops.get_graphite_url(pr.owner, pr.repo, pr.number)
 
-    # Format as clickable link using OSC 8 terminal escape sequence
+    # Format as clickable link using OSC 8 terminal escape sequence with cyan color
     # Format: \033]8;;URL\033\\TEXT\033]8;;\033\\
     pr_text = f"#{pr.number}"
-    clickable_link = f"\033]8;;{url}\033\\{pr_text}\033]8;;\033\\"
+    # Wrap the link text in cyan color to distinguish from non-clickable bright_blue indicators
+    colored_pr_text = click.style(pr_text, fg="cyan")
+    clickable_link = f"\033]8;;{url}\033\\{colored_pr_text}\033]8;;\033\\"
 
     return f"{emoji} {clickable_link}"
 
@@ -277,10 +290,20 @@ def _display_branch_stack(
 def _list_worktrees(ctx: WorkstackContext, show_stacks: bool, show_checks: bool) -> None:
     """Internal function to list worktrees."""
     repo = discover_repo_context(ctx, Path.cwd())
+    current_dir = Path.cwd().resolve()
 
     # Get branch info for all worktrees
     worktrees = ctx.git_ops.list_worktrees(repo.root)
     branches = {wt.path: wt.branch for wt in worktrees}
+
+    # Determine which worktree the user is currently in
+    current_worktree_path = None
+    for wt_path in branches.keys():
+        if wt_path.exists():
+            wt_path_resolved = wt_path.resolve()
+            if current_dir == wt_path_resolved or current_dir.is_relative_to(wt_path_resolved):
+                current_worktree_path = wt_path_resolved
+                break
 
     # Load graphite cache once if showing stacks
     cache_data = None
@@ -319,7 +342,12 @@ def _list_worktrees(ctx: WorkstackContext, show_stacks: bool, show_checks: bool)
 
     # Show root repo first (display as "root" to distinguish from worktrees)
     root_branch = branches.get(repo.root)
-    click.echo(_format_worktree_line("root", root_branch, path=None, is_root=True))
+    is_current_root = repo.root.resolve() == current_worktree_path
+    click.echo(
+        _format_worktree_line(
+            "root", root_branch, path=str(repo.root), is_root=True, is_current=is_current_root
+        )
+    )
 
     if show_stacks and root_branch:
         _display_branch_stack(
@@ -347,7 +375,12 @@ def _list_worktrees(ctx: WorkstackContext, show_stacks: bool, show_checks: bool)
         if show_stacks and (root_branch or entries.index(p) > 0):
             click.echo()
 
-        click.echo(_format_worktree_line(name, wt_branch, path=None, is_root=False))
+        is_current_wt = bool(wt_path and wt_path.resolve() == current_worktree_path)
+        click.echo(
+            _format_worktree_line(
+                name, wt_branch, path=str(p), is_root=False, is_current=is_current_wt
+            )
+        )
 
         if show_stacks and wt_branch and wt_path:
             _display_branch_stack(

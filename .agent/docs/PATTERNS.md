@@ -17,6 +17,7 @@
 - [Type Annotations](#type-annotations)
 - [Dependency Injection](#dependency-injection)
 - [Import Organization](#import-organization)
+- [Exception Handling](#exception-handling)
 - [Code Style](#code-style)
 - [File Operations](#file-operations)
 - [CLI Development](#cli-development)
@@ -338,6 +339,106 @@ from workstack.gitops import RealGitOps as GitOps
 ```
 
 Exception: Aliasing is acceptable to resolve naming collisions with third-party packages.
+
+---
+
+## Exception Handling
+
+### LBYL vs EAFP
+
+**This codebase uses LBYL (Look Before You Leap), NOT EAFP (Easier to Ask Forgiveness than Permission).**
+
+Always check conditions before performing operations rather than catching exceptions:
+
+```python
+# ✅ CORRECT: Check before acting (LBYL)
+if condition_is_valid(obj):
+    result = perform_operation(obj)
+else:
+    result = handle_invalid_case()
+
+# ❌ WRONG: Try and catch (EAFP)
+try:
+    result = perform_operation(obj)
+except SomeError:
+    result = handle_invalid_case()
+```
+
+### Dictionary Access
+
+**ALWAYS check `in` before accessing dictionary keys:**
+
+```python
+# ✅ CORRECT: Check membership first
+if key in mapping:
+    value = mapping[key]
+    process(value)
+else:
+    handle_missing_key()
+
+# ❌ WRONG: Using KeyError as control flow
+try:
+    value = mapping[key]
+    process(value)
+except KeyError:
+    handle_missing_key()
+
+# ✅ ALSO CORRECT: Use .get() with default for simple cases
+value = mapping.get(key, default_value)
+process(value)
+```
+
+### Path Operations
+
+**ALWAYS check `.exists()` before `.resolve()` or `.is_relative_to()`:**
+
+```python
+# ✅ CORRECT: Check exists first
+for wt_path in worktree_paths:
+    if wt_path.exists():
+        wt_path_resolved = wt_path.resolve()
+        if current_dir.is_relative_to(wt_path_resolved):
+            current_worktree = wt_path_resolved
+            break
+
+# ❌ WRONG: Using exceptions for path validation
+for wt_path in worktree_paths:
+    try:
+        wt_path_resolved = wt_path.resolve()
+        if current_dir.is_relative_to(wt_path_resolved):
+            current_worktree = wt_path_resolved
+            break
+    except (OSError, ValueError):
+        continue
+```
+
+**Why**: `.resolve()` can raise `OSError` for invalid paths, permission issues, or symlink loops. `.is_relative_to()` can raise `ValueError` in edge cases. Checking `.exists()` makes your intent explicit and avoids exception overhead.
+
+### When Exceptions Are Acceptable
+
+**Only handle exceptions at error boundaries:**
+
+```python
+# ✅ ACCEPTABLE: Error boundary at CLI level
+@click.command("process")
+@click.argument("config_file")
+def process_cmd(config_file: str) -> None:
+    """Process data according to config file."""
+    try:
+        config = load_config(config_file)
+        process_data(config)
+    except FileNotFoundError:
+        click.echo(f"Error: Config file not found: {config_file}", err=True)
+        raise SystemExit(1)
+    except yaml.YAMLError as e:
+        click.echo(f"Error: Invalid YAML in {config_file}: {e}", err=True)
+        raise SystemExit(1)
+```
+
+**See also**:
+
+- [EXCEPTION_HANDLING.md](EXCEPTION_HANDLING.md) - Complete exception handling guide
+- [CLAUDE.md](../../CLAUDE.md#exception-handling--critical) - Core exception handling rules
 
 ---
 
