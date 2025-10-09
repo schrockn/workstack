@@ -519,10 +519,10 @@ Before writing `try/except`, ask yourself:
 
 ## Related Documentation
 
-- [CLAUDE.md](../CLAUDE.md) - Core coding standards
+- [CLAUDE.md](../../CLAUDE.md) - Core coding standards
 - [PATTERNS.md](PATTERNS.md) - Code examples and patterns
 - [README.md](README.md) - Documentation index
-- [../tests/CLAUDE.md](../tests/CLAUDE.md) - Testing patterns
+- [../../tests/CLAUDE.md](../../tests/CLAUDE.md) - Testing patterns
 
 ---
 
