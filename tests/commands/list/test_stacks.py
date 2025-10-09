@@ -524,7 +524,7 @@ def test_list_with_stacks_shows_descendants_with_worktrees() -> None:
         # Root section should show ONLY master (root shows no descendants)
         root_section_text = "\n".join(root_section)
         assert "◉  master" in root_section_text, "Root should show master"
-        assert "foo" not in root_section_text, (
+        assert "◉  foo" not in root_section_text and "◯  foo" not in root_section_text, (
             f"Root section should NOT show foo (descendant). Root section:\n{root_section_text}"
         )
 
@@ -719,13 +719,13 @@ def test_list_with_stacks_shows_descendants_with_gaps() -> None:
 
         # Root section should show ONLY main (no descendants)
         assert "◉  main" in root_section_text, "Root should show main"
-        assert "f3" not in root_section_text, (
+        assert "◉  f3" not in root_section_text and "◯  f3" not in root_section_text, (
             f"Root should NOT show f3 (descendant). Root section:\n{root_section_text}"
         )
-        assert "f1" not in root_section_text, (
+        assert "◉  f1" not in root_section_text and "◯  f1" not in root_section_text, (
             f"Root should NOT show f1 (descendant). Root section:\n{root_section_text}"
         )
-        assert "f2" not in root_section_text, (
+        assert "◉  f2" not in root_section_text and "◯  f2" not in root_section_text, (
             f"Root should NOT show f2 (descendant). Root section:\n{root_section_text}"
         )
 
