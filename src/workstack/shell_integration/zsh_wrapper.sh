@@ -3,29 +3,18 @@
 
 workstack() {
   # Don't intercept if we're doing shell completion
-  if [ -n "$_WORKSTACK_COMPLETE" ]; then
-    command workstack "$@"
-    return $?
-  fi
+  [ -n "$_WORKSTACK_COMPLETE" ] && { command workstack "$@"; return; }
 
-  local output
+  local output status
   output=$(command workstack __shell "$@")
-  local status=$?
+  status=$?
 
-  if [ "$output" = "__WORKSTACK_PASSTHROUGH__" ]; then
-    command workstack "$@"
-    return $?
-  fi
+  # Passthrough mode: run the original command directly
+  [ "$output" = "__WORKSTACK_PASSTHROUGH__" ] && { command workstack "$@"; return; }
 
-  # If __shell returned non-zero, error messages are already sent to stderr.
-  # Return the error code to propagate failure to the shell.
-  if [ $status -ne 0 ]; then
-    return $status
-  fi
+  # If __shell returned non-zero, error messages are already sent to stderr
+  [ $status -ne 0 ] && return $status
 
-  if [ -n "$output" ]; then
-    eval "$output"
-  fi
-
-  return 0
+  # Execute the shell script output (eval handles empty strings safely)
+  eval "$output"
 }
