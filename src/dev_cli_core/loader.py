@@ -2,6 +2,7 @@
 
 import importlib.util
 import inspect
+import types
 from pathlib import Path
 
 import click
@@ -60,7 +61,7 @@ def load_commands(
         # Error boundary: catch module loading errors
         try:
             module = _load_module(command_file, cmd_dir.name)
-            cmd = _extract_command(module, cmd_dir.name)
+            cmd = _extract_command(module)
 
             if cmd:
                 # Prefer directory name over command.name
@@ -74,7 +75,7 @@ def load_commands(
                 if verbose:
                     click.echo(f"Warning: No command in {cmd_dir.name}", err=True)
 
-        except Exception as e:
+        except (ImportError, AttributeError, CommandLoadError) as e:
             if strict:
                 raise CommandLoadError(f"Failed to load {cmd_dir.name}: {e}") from e
             click.echo(f"Warning: Failed to load '{cmd_dir.name}': {e}", err=True)
@@ -82,7 +83,7 @@ def load_commands(
     return commands
 
 
-def _load_module(command_file: Path, module_name: str):
+def _load_module(command_file: Path, module_name: str) -> types.ModuleType:
     """Dynamically import a command module."""
     spec = importlib.util.spec_from_file_location(
         f"_dev_cli_commands.{module_name}",
@@ -97,7 +98,7 @@ def _load_module(command_file: Path, module_name: str):
     return module
 
 
-def _extract_command(module, module_name: str) -> click.Command | None:
+def _extract_command(module: types.ModuleType) -> click.Command | None:
     """Extract Click command from module.
 
     Looks for:

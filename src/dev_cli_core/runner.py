@@ -1,5 +1,6 @@
 """Execute PEP 723 inline scripts with uv."""
 
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -37,11 +38,20 @@ def run_pep723_script(
     if not script_path.exists():
         raise FileNotFoundError(f"Script not found: {script_path}")
 
+    # Check if uv is installed before attempting to run
+    if not shutil.which("uv"):
+        click.echo(
+            "Error: 'uv' is not installed. Install it with:",
+            err=True,
+        )
+        click.echo("  curl -LsSf https://astral.sh/uv/install.sh | sh", err=True)
+        raise SystemExit(1)
+
     cmd = ["uv", "run", str(script_path)]
     if args:
         cmd.extend(args)
 
-    # Error boundary: Handle uv not being installed
+    # Error boundary: Handle script execution failures
     try:
         result = subprocess.run(
             cmd,
@@ -50,16 +60,6 @@ def run_pep723_script(
             env=env,
         )
         return result
-
-    except FileNotFoundError as e:
-        if "uv" in str(e):
-            click.echo(
-                "Error: 'uv' is not installed. Install it with:",
-                err=True,
-            )
-            click.echo("  curl -LsSf https://astral.sh/uv/install.sh | sh", err=True)
-            raise SystemExit(1) from e
-        raise
 
     except subprocess.CalledProcessError as e:
         if check:
