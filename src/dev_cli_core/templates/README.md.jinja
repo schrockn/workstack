@@ -1,0 +1,143 @@
+# Development CLI
+
+This project uses a custom development CLI for common tasks.
+
+## Installation
+
+The dev CLI is automatically available after installing the project:
+
+```bash
+# Install project in development mode
+pip install -e .
+
+# Or with uv
+uv pip install -e .
+```
+
+## Usage
+
+```bash
+# List all available commands
+{{ cli_name }} --help
+
+# Run specific command
+{{ cli_name }} <command> [OPTIONS]
+```
+
+## Shell Completion
+
+Enable tab completion for your shell:
+
+```bash
+# Bash
+echo 'source <({{ cli_name }} completion bash)' >> ~/.bashrc
+
+# Zsh
+echo 'source <({{ cli_name }} completion zsh)' >> ~/.zshrc
+
+# Fish
+{{ cli_name }} completion fish > ~/.config/fish/completions/{{ cli_name }}.fish
+```
+
+## Available Commands
+
+Run `{{ cli_name }} --help` for a list of all available commands.
+
+Run `{{ cli_name }} <command> --help` for detailed usage of each command.
+
+## Adding New Commands
+
+Commands are located in `{{ package_dir }}/commands/`. Each command consists of:
+
+```
+commands/
+└── my-command/
+    ├── command.py    # Click command definition
+    └── script.py     # Implementation with PEP 723 dependencies
+```
+
+### Example Command
+
+1. Create command directory:
+
+```bash
+mkdir -p {{ package_dir }}/commands/my-command
+```
+
+2. Create `command.py`:
+
+```python
+"""My command."""
+from pathlib import Path
+import click
+from dev_cli_core.runner import run_pep723_script
+
+@click.command(name="my-command")
+@click.option("--verbose", is_flag=True, help="Verbose output")
+def command(verbose: bool) -> None:
+    """Brief description of what this command does."""
+    script_path = Path(__file__).parent / "script.py"
+    args = ["--verbose"] if verbose else []
+    run_pep723_script(script_path, args)
+```
+
+3. Create `script.py`:
+
+```python
+#!/usr/bin/env python3
+# /// script
+# dependencies = [
+#   "click>=8.1.7",
+#   "rich>=13.0.0",
+# ]
+# requires-python = ">={{ python_version }}"
+# ///
+"""My command implementation."""
+
+# pyright: reportMissingImports=false
+
+import click
+from rich.console import Console
+
+console = Console()
+
+@click.command()
+@click.option("--verbose", is_flag=True)
+def main(verbose: bool) -> None:
+    """Execute the command."""
+    console.print("[bold green]Command executed successfully![/bold green]")
+    if verbose:
+        console.print("Verbose mode enabled")
+
+if __name__ == "__main__":
+    main()
+```
+
+The command will be automatically discovered and registered on next CLI invocation.
+
+## Architecture
+
+This dev CLI uses the [dev-cli-core](https://github.com/yourusername/dev-cli-core) framework which provides:
+
+- **Automatic Command Discovery**: Just add files to `commands/`, no manual registration
+- **Isolated Dependencies**: Each command declares its own dependencies via PEP 723
+- **Shell Completion**: Tab completion for all commands and options
+- **Standalone Scripts**: Commands can run independently with `uv run script.py`
+
+## Troubleshooting
+
+### Command not found
+
+After adding new commands, the CLI automatically discovers them. If a command isn't showing up:
+
+1. Verify directory structure: `commands/<command-name>/command.py`
+2. Ensure `command.py` exports a Click command object
+3. Check for syntax errors: `python -m py_compile {{ package_dir }}/commands/<command-name>/command.py`
+
+### Script execution fails
+
+If a script fails to execute:
+
+1. Verify PEP 723 metadata is correct
+2. Test standalone: `uv run {{ package_dir }}/commands/<command-name>/script.py`
+3. Check `uv` is installed: `uv --version`

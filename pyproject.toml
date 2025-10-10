@@ -42,7 +42,7 @@ select = [
 ]
 
 [tool.ruff.lint.isort]
-known-first-party = ["workstack"]
+known-first-party = ["workstack", "dev_cli_core"]
 
 [tool.pyright]
 pythonVersion = "3.13"
