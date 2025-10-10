@@ -44,11 +44,18 @@ def load_commands() -> dict[str, click.Command]:
                 click.echo(f"Warning: Failed to load command '{cmd_dir.name}': {e}", err=True)
                 continue
 
-            # Look for click.Command objects
-            for _name, obj in inspect.getmembers(module):
-                if isinstance(obj, click.Command):
-                    cmd_name = obj.name or cmd_dir.name.replace("_", "-")
-                    discovered_commands[cmd_name] = obj
-                    break  # Only take first command from each module
+            # Look for click.Command object named 'command'
+            # Check for 'command' attribute first to handle both individual commands and groups
+            if hasattr(module, "command") and isinstance(module.command, click.Command):
+                cmd = module.command
+                cmd_name = cmd.name or cmd_dir.name.replace("_", "-")
+                discovered_commands[cmd_name] = cmd
+            else:
+                # Fallback: look for any click.Command object
+                for _name, obj in inspect.getmembers(module):
+                    if isinstance(obj, click.Command):
+                        cmd_name = obj.name or cmd_dir.name.replace("_", "-")
+                        discovered_commands[cmd_name] = obj
+                        break  # Only take first command from each module
 
     return discovered_commands
