@@ -17,6 +17,7 @@
 - [Type Annotations](#type-annotations)
 - [Dependency Injection](#dependency-injection)
 - [Import Organization](#import-organization)
+- [Module Structure](#module-structure)
 - [Exception Handling](#exception-handling)
 - [Code Style](#code-style)
 - [File Operations](#file-operations)
@@ -339,6 +340,90 @@ from workstack.gitops import RealGitOps as GitOps
 ```
 
 Exception: Aliasing is acceptable to resolve naming collisions with third-party packages.
+
+---
+
+## Module Structure
+
+### Keep **init**.py Files Empty
+
+**STRONGLY PREFER: Empty or docstring-only `__init__.py` files:**
+
+```python
+# ✅ GOOD: Empty __init__.py
+# (file is completely empty)
+
+# ✅ ACCEPTABLE: Docstring-only __init__.py
+"""Module for configuration management."""
+
+# ❌ BAD: Code in __init__.py
+"""Configuration module."""
+
+from workstack.config.loader import load_config
+from workstack.config.writer import write_config
+
+__all__ = ["load_config", "write_config"]
+```
+
+**Why keep `__init__.py` empty:**
+
+- **Avoids circular imports** - Empty files can't create import cycles
+- **Faster imports** - No code execution when package is imported
+- **Clear dependencies** - Explicit imports show exactly where code comes from
+- **Easier refactoring** - Moving modules doesn't require updating `__init__.py`
+- **Better IDE support** - Direct imports work better with autocomplete and navigation
+
+**Use absolute imports instead:**
+
+```python
+# ✅ GOOD: Direct, explicit imports
+from workstack.config import load_config
+from workstack.core import discover_repo_context
+
+# ❌ BAD: Relying on __init__.py re-exports
+from workstack import load_config, discover_repo_context
+```
+
+### Exception: Package Entry Points
+
+Entry point modules may contain minimal initialization code:
+
+```python
+# ✅ ACCEPTABLE: src/workstack/__init__.py (package entry point)
+"""workstack CLI entry point.
+
+This package provides a Click-based CLI for managing git worktrees.
+"""
+
+from workstack.cli import cli
+
+
+def main() -> None:
+    """CLI entry point used by the `workstack` console script."""
+    cli()
+```
+
+**When entry point code is acceptable:**
+
+- Main package `__init__.py` that defines `main()` for console scripts
+- Must be documented why the code is necessary
+- Keep to absolute minimum (typically just entry point function)
+
+**Examples in this codebase:**
+
+- `src/workstack/__init__.py` - Defines `main()` entry point ✅
+- `src/workstack/commands/__init__.py` - Empty ✅
+- `tests/__init__.py` - Docstring only ✅
+
+### Rationale
+
+Empty `__init__.py` files follow the principle of **explicit over implicit**. When imports are explicit (e.g., `from workstack.config import load_config`), it's immediately clear where the code comes from. Re-exporting through `__init__.py` creates indirection and hides the true source.
+
+This pattern also prevents common issues:
+
+1. **Circular imports** - Empty files can't participate in import cycles
+2. **Import-time side effects** - No unexpected code execution when importing
+3. **Namespace pollution** - Each module's exports are contained to that module
 
 ---
 

@@ -20,6 +20,7 @@
 | `print(...)` in CLI code                    | → Use `click.echo()`                                                         |
 | `subprocess.run(...)`                       | → Add `check=True`                                                           |
 | 4+ levels of indentation                    | → Extract helper functions                                                   |
+| Code in `__init__.py`                       | → Keep empty or docstring-only (except package entry points)                 |
 
 ## 📚 Quick Reference
 

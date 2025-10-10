@@ -24,6 +24,7 @@ def bar(x: str | None) -> None                 # ✅ NOT Optional[str]
 from workstack.config import load_config       # ✅ NOT from .config import
 import click                                   # ✅ NOT import click as c
 # Standard library → Third-party → Local      # ✅ Three groups, alphabetical
+# Empty __init__.py files                     # ✅ NOT code in __init__.py
 ```
 
 ## Dependency Injection
