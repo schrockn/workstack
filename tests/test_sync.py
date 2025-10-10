@@ -731,13 +731,29 @@ def test_sync_script_mode_when_worktree_deleted() -> None:
             os.chdir(cwd)
 
         assert result.exit_code == 0
+
+        # Output should contain a temp file path
+        # Extract just the file path (last line of stdout)
+        output_lines = [line for line in result.output.split("\n") if line.strip()]
+        script_path_str = output_lines[-1] if output_lines else ""
+        script_path = Path(script_path_str)
+
+        assert script_path.exists()
+        assert script_path.name.startswith("workstack-sync-")
+        assert script_path.name.endswith(".sh")
+
+        # Verify script content
+        script_content = script_path.read_text()
         expected_script = render_cd_script(
             repo_root,
-            comment="workstack sync - return to root",
+            comment="return to root",
             success_message="✓ Switched to root worktree.",
         ).strip()
-        assert expected_script in result.output
+        assert expected_script in script_content
         assert not wt1.exists()
+
+        # Cleanup
+        script_path.unlink(missing_ok=True)
 
 
 def test_sync_script_mode_when_worktree_exists() -> None:

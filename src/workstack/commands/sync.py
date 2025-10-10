@@ -7,7 +7,7 @@ import click
 from workstack.commands.remove import _remove_worktree
 from workstack.context import WorkstackContext
 from workstack.core import discover_repo_context, ensure_work_dir, worktree_path_for
-from workstack.shell_utils import render_cd_script
+from workstack.shell_utils import render_cd_script, write_script_to_temp
 
 
 def _emit(message: str, *, script_mode: bool, error: bool = False) -> None:
@@ -212,30 +212,46 @@ def sync_cmd(ctx: WorkstackContext, force: bool, dry_run: bool, script: bool) ->
         _emit("\nNext step: Run 'gt sync -f' to delete the merged branches.", script_mode=script)
 
     # Step 7: Return to original worktree
-    script_output: str | None = None
+    script_output_path: Path | None = None
+
     if current_worktree_name:
         wt_path = worktree_path_for(work_dir, current_worktree_name)
 
         # Check if worktree still exists
         if wt_path.exists():
             _emit(f"\nReturning to: {current_worktree_name}", script_mode=script)
-            # Only chdir in non-script mode; script output handles cd in script mode
             if not script:
                 os.chdir(wt_path)
+            else:
+                # Generate cd script for shell wrapper
+                script_content = render_cd_script(
+                    wt_path,
+                    comment=f"return to {current_worktree_name}",
+                    success_message=f"✓ Returned to {current_worktree_name}.",
+                )
+                script_output_path = write_script_to_temp(
+                    script_content,
+                    command_name="sync",
+                    comment=f"return to {current_worktree_name}",
+                )
         else:
             _emit(
                 f"\n✓ Staying in root worktree (original worktree was deleted).\n"
                 f"💡 If you're still in the deleted directory, run: cd {repo.root}",
                 script_mode=script,
             )
-            if not dry_run:
-                script_output = render_cd_script(
+            if script:
+                script_content = render_cd_script(
                     repo.root,
-                    comment="workstack sync - return to root",
+                    comment="return to root",
                     success_message="✓ Switched to root worktree.",
                 )
-    else:
-        script_output = None
+                script_output_path = write_script_to_temp(
+                    script_content,
+                    command_name="sync",
+                    comment="return to root",
+                )
 
-    if script and not dry_run and script_output:
-        click.echo(script_output, nl=False)
+    # Output temp file path for shell wrapper
+    if script and script_output_path:
+        click.echo(str(script_output_path), nl=False)

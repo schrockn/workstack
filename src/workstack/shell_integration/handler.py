@@ -7,6 +7,7 @@ from workstack.commands.create import create
 from workstack.commands.switch import switch_cmd
 from workstack.commands.sync import sync_cmd
 from workstack.context import create_context
+from workstack.shell_utils import cleanup_stale_scripts
 
 PASSTHROUGH_MARKER: Final[str] = "__WORKSTACK_PASSTHROUGH__"
 
@@ -44,6 +45,9 @@ def _invoke_hidden_command(command_name: str, args: tuple[str, ...]) -> ShellInt
     # Add --script flag to get activation script
     script_args = list(args) + ["--script"]
 
+    # Clean up stale scripts before running (opportunistic cleanup)
+    cleanup_stale_scripts(max_age_seconds=3600)
+
     runner = CliRunner()
     result = runner.invoke(
         command,
@@ -58,8 +62,9 @@ def _invoke_hidden_command(command_name: str, args: tuple[str, ...]) -> ShellInt
     if exit_code != 0:
         return ShellIntegrationResult(passthrough=True, script=None, exit_code=exit_code)
 
-    script = result.output if result.output else None
-    return ShellIntegrationResult(passthrough=False, script=script, exit_code=exit_code)
+    # Output is now a file path, not script content
+    script_path = result.output.strip() if result.output else None
+    return ShellIntegrationResult(passthrough=False, script=script_path, exit_code=exit_code)
 
 
 def handle_shell_request(args: tuple[str, ...]) -> ShellIntegrationResult:
