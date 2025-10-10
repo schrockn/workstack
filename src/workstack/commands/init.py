@@ -8,6 +8,7 @@ import click
 
 from workstack.context import WorkstackContext
 from workstack.core import discover_repo_context, ensure_work_dir
+from workstack.file_utils import atomic_write
 from workstack.global_config_ops import GlobalConfigOps
 
 
@@ -167,6 +168,10 @@ def perform_shell_setup() -> bool:
 
     shell, rc_file = shell_info
 
+    # Resolve symlinks to real file before any operations
+    if rc_file.exists():
+        rc_file = rc_file.resolve()
+
     click.echo(f"\nDetected shell: {shell}")
     click.echo("Shell integration provides:")
     click.echo("  - Tab completion for workstack commands")
@@ -176,50 +181,52 @@ def perform_shell_setup() -> bool:
         click.echo("Skipping shell integration. You can run 'workstack init --shell' later.")
         return False
 
-    # Step 1: Completion setup
+    # Read existing content once
+    rc_content = ""
+    if rc_file.exists():
+        rc_content = rc_file.read_text(encoding="utf-8")
+
+    modifications: list[str] = []  # Track what we're adding
+
+    # Step 1: Check completion
     click.echo(f"\n1. Setting up tab completion for {shell}...")
     completion_line = f"source <(workstack completion {shell})"
 
-    if rc_file.exists():
-        rc_content = rc_file.read_text(encoding="utf-8")
-        if completion_line in rc_content:
-            click.echo(f"   ✓ Completion already configured in {rc_file}")
-        else:
-            if click.confirm(f"   Add completion to {rc_file}?", default=True):
-                rc_file.write_text(
-                    rc_content + f"\n# Workstack completion\n{completion_line}\n", encoding="utf-8"
-                )
-                click.echo(f"   ✓ Added completion to {rc_file}")
-            else:
-                click.echo(f"   To set up manually, add to {rc_file}:")
-                click.echo(f"   {completion_line}")
+    if completion_line in rc_content:
+        click.echo("   ✓ Completion already configured")
     else:
-        click.echo(f"   {rc_file} not found. To set up manually, add:")
-        click.echo(f"   {completion_line}")
+        if click.confirm(f"   Add completion to {rc_file}?", default=True):
+            modifications.append(f"# Workstack completion\n{completion_line}")
+            click.echo("   ✓ Will add completion")
+        else:
+            click.echo("   To set up manually, add:")
+            click.echo(f"   {completion_line}")
 
-    # Step 2: Shell wrapper function
+    # Step 2: Check wrapper
     click.echo(f"\n2. Setting up auto-activation wrapper for {shell}...")
     wrapper_content = get_shell_wrapper_content(shell)
 
-    if rc_file.exists():
-        rc_content = rc_file.read_text(encoding="utf-8")
-        if "workstack shell integration" in rc_content.lower():
-            click.echo(f"   ✓ Wrapper already configured in {rc_file}")
-        else:
-            if click.confirm(f"   Add wrapper function to {rc_file}?", default=True):
-                rc_file.write_text(rc_content + f"\n{wrapper_content}\n", encoding="utf-8")
-                click.echo(f"   ✓ Added wrapper to {rc_file}")
-            else:
-                click.echo(f"   To set up manually, add to {rc_file}:")
-                click.echo(f"\n{wrapper_content}")
+    if "workstack shell integration" in rc_content.lower():
+        click.echo("   ✓ Wrapper already configured")
     else:
-        rc_file.parent.mkdir(parents=True, exist_ok=True)
-        if click.confirm(f"   Create {rc_file} with wrapper function?", default=True):
-            rc_file.write_text(f"{wrapper_content}\n", encoding="utf-8")
-            click.echo(f"   ✓ Created {rc_file} with wrapper")
+        if click.confirm(f"   Add wrapper function to {rc_file}?", default=True):
+            modifications.append(wrapper_content)
+            click.echo("   ✓ Will add wrapper")
         else:
-            click.echo(f"   To set up manually, create {rc_file} with:")
+            click.echo("   To set up manually, add:")
             click.echo(f"\n{wrapper_content}")
+
+    # Write all modifications at once using atomic write
+    if modifications:
+        # Ensure trailing newline before adding modifications
+        if rc_content and not rc_content.endswith("\n"):
+            rc_content += "\n"
+
+        rc_content += "\n\n" + "\n\n".join(modifications) + "\n"
+
+        # Use atomic write context manager for clean, safe file update
+        with atomic_write(rc_file) as f:
+            f.write(rc_content)
 
     click.echo("\n✓ Shell integration setup complete!")
     click.echo(f"Run 'source {rc_file}' or start a new shell to activate.")

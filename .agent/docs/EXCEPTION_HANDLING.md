@@ -19,6 +19,9 @@
 - [Critical Enforcement](#critical-enforcement)
 - [Acceptable Uses](#acceptable-uses)
 - [Implementation Patterns](#implementation-patterns)
+  - [Encapsulation Pattern](#encapsulation-pattern)
+  - [Proactive Checking](#proactive-checking)
+  - [Context Manager Pattern for Error Boundaries](#context-manager-pattern-for-error-boundaries)
 - [Dictionary Access](#dictionary-access)
 - [Validation and Input Checking](#validation-and-input-checking)
 - [File Processing](#file-processing)
@@ -210,6 +213,57 @@ try:
 except Exception:
     return get_view_sample(table_name)
 ```
+
+### Context Manager Pattern for Error Boundaries
+
+When you need exception handling for resource management or cleanup at error boundaries, **encapsulate it in a context manager**. This keeps business logic clean while properly handling necessary exceptions:
+
+```python
+# ✅ GOOD: Exception handling encapsulated in context manager
+from contextlib import contextmanager
+import os
+import tempfile
+from pathlib import Path
+
+@contextmanager
+def atomic_write(target_path: Path):
+    """Atomically write to a file with automatic cleanup on error."""
+    target_path = Path(target_path)
+    temp_fd, temp_path = tempfile.mkstemp(dir=target_path.parent)
+
+    try:
+        with os.fdopen(temp_fd, "w", encoding="utf-8") as f:
+            yield f
+        os.rename(temp_path, target_path)
+    except (OSError, IOError):
+        # Cleanup is an acceptable use of exception handling at error boundaries
+        try:
+            os.unlink(temp_path)
+        except FileNotFoundError:
+            pass  # File never created if mkstemp failed
+        raise
+
+# ✅ Business logic remains clean and exception-free
+def update_config(config_path: Path, new_content: str) -> None:
+    """Update configuration file atomically."""
+    with atomic_write(config_path) as f:
+        f.write(new_content)
+    click.echo(f"Updated {config_path}")
+```
+
+**Benefits:**
+
+- **Business logic stays clean** - No try/except blocks cluttering the main code
+- **Exception handling is encapsulated and reusable** - Write once, use everywhere
+- **Clear separation of concerns** - Error handling logic separated from business logic
+- **Follows LBYL principle in business logic** - Only use exceptions at proper boundaries
+- **Easy to test** - Both the context manager and business logic can be tested independently
+
+**When to use this pattern:**
+
+- Resource cleanup (files, connections, locks)
+- Atomic operations that need rollback on error
+- Any error boundary that requires exception handling
 
 ---
 

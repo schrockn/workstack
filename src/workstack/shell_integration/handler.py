@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Final
 
 from click.testing import CliRunner
@@ -7,6 +8,7 @@ from workstack.commands.create import create
 from workstack.commands.switch import switch_cmd
 from workstack.commands.sync import sync_cmd
 from workstack.context import create_context
+from workstack.debug import debug_log
 from workstack.shell_utils import cleanup_stale_scripts
 
 PASSTHROUGH_MARKER: Final[str] = "__WORKSTACK_PASSTHROUGH__"
@@ -45,6 +47,8 @@ def _invoke_hidden_command(command_name: str, args: tuple[str, ...]) -> ShellInt
     # Add --script flag to get activation script
     script_args = list(args) + ["--script"]
 
+    debug_log(f"Handler: Invoking {command_name} with args: {script_args}")
+
     # Clean up stale scripts before running (opportunistic cleanup)
     cleanup_stale_scripts(max_age_seconds=3600)
 
@@ -64,6 +68,12 @@ def _invoke_hidden_command(command_name: str, args: tuple[str, ...]) -> ShellInt
 
     # Output is now a file path, not script content
     script_path = result.output.strip() if result.output else None
+
+    debug_log(f"Handler: Got script_path={script_path}, exit_code={exit_code}")
+    if script_path:
+        script_exists = Path(script_path).exists()
+        debug_log(f"Handler: Script exists? {script_exists}")
+
     return ShellIntegrationResult(passthrough=False, script=script_path, exit_code=exit_code)
 
 

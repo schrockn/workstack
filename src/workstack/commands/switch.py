@@ -4,6 +4,7 @@ import click
 
 from workstack.context import WorkstackContext, create_context
 from workstack.core import discover_repo_context, ensure_work_dir, worktree_path_for
+from workstack.debug import debug_log
 from workstack.shell_utils import write_script_to_temp
 
 
@@ -173,6 +174,11 @@ def switch_cmd(ctx: WorkstackContext, name: str, script: bool) -> None:
             command_name="switch",
             comment=f"activate {name}",
         )
+
+        debug_log(f"Switch: Generated script at {script_path}")
+        debug_log(f"Switch: Script content:\n{activation_script}")
+        debug_log(f"Switch: File exists? {script_path.exists()}")
+
         click.echo(str(script_path), nl=False)
     else:
         click.echo(
