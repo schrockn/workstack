@@ -4,7 +4,7 @@ from pathlib import Path
 
 import click
 
-from workstack.dev_cli.utils import run_pep723_script
+from dev_cli_core import run_pep723_script
 
 
 @click.command(name="create-agents-symlinks")

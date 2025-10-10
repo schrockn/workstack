@@ -4,7 +4,7 @@ from pathlib import Path
 
 import click
 
-from workstack.dev_cli.utils import run_pep723_script_with_output
+from dev_cli_core import run_pep723_script
 
 
 @click.group(name="completion")
@@ -18,10 +18,9 @@ def command() -> None:
 
 @command.command(name="bash")
 def bash() -> None:
-    """Generate bash completion script.
+    r"""Generate bash completion script.
 
-    Usage:
-
+    \b
     Temporary (current session only):
         source <(workstack-dev completion bash)
 
@@ -37,15 +36,15 @@ def bash() -> None:
     if not script_path.exists():
         click.echo(f"Error: Script not found at {script_path}", err=True)
         raise SystemExit(1)
-    run_pep723_script_with_output(script_path, ["bash"])
+    result = run_pep723_script(script_path, ["bash"], capture_output=True)
+    click.echo(result.stdout, nl=False)
 
 
 @command.command(name="zsh")
 def zsh() -> None:
-    """Generate zsh completion script.
+    r"""Generate zsh completion script.
 
-    Usage:
-
+    \b
     Temporary (current session only):
         source <(workstack-dev completion zsh)
 
@@ -63,17 +62,16 @@ def zsh() -> None:
     if not script_path.exists():
         click.echo(f"Error: Script not found at {script_path}", err=True)
         raise SystemExit(1)
-    run_pep723_script_with_output(script_path, ["zsh"])
+    result = run_pep723_script(script_path, ["zsh"], capture_output=True)
+    click.echo(result.stdout, nl=False)
 
 
 @command.command(name="fish")
 def fish() -> None:
-    """Generate fish completion script.
+    r"""Generate fish completion script.
 
-    Usage:
-
-    Temporary (current session only):
-        workstack-dev completion fish | source
+    \b
+    Usage: workstack-dev completion fish | source
 
     Permanent installation:
         mkdir -p ~/.config/fish/completions
@@ -84,4 +82,5 @@ def fish() -> None:
     if not script_path.exists():
         click.echo(f"Error: Script not found at {script_path}", err=True)
         raise SystemExit(1)
-    run_pep723_script_with_output(script_path, ["fish"])
+    result = run_pep723_script(script_path, ["fish"], capture_output=True)
+    click.echo(result.stdout, nl=False)

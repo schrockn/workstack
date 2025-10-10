@@ -24,7 +24,7 @@ The `workstack-dev` CLI serves as a centralized home for development-time tools 
 
 ### Entry Point
 
-Defined in `pyproject.toml:16`:
+Defined in `pyproject.toml`:
 
 ```toml
 [project.scripts]
@@ -35,9 +35,7 @@ workstack-dev = "workstack.dev_cli.__main__:cli"
 
 ```
 src/workstack/dev_cli/
-├── __main__.py          # Entry point - creates Click group and auto-registers commands
-├── loader.py            # Command discovery and dynamic loading
-├── utils.py             # Shared utilities (PEP 723 script runner)
+├── __main__.py          # Entry point - uses dev_cli_core framework
 └── commands/
     ├── clean_cache/
     │   ├── command.py   # Click command definition
@@ -45,13 +43,48 @@ src/workstack/dev_cli/
     └── publish_to_pypi/
         ├── command.py   # Click command definition
         └── script.py    # PEP 723 implementation
+
+src/dev_cli_core/        # CLI framework (provides discovery & execution)
+├── __init__.py          # Public API exports
+├── cli_factory.py       # create_cli() factory function
+├── loader.py            # Command discovery and dynamic loading
+├── runner.py            # PEP 723 script execution
+├── completion.py        # Shell completion support
+├── exceptions.py        # Framework exceptions
+└── utils.py             # Shared utilities
 ```
+
+### CLI Initialization
+
+The `__main__.py` uses the `dev_cli_core.create_cli()` factory to construct the CLI:
+
+```python
+from pathlib import Path
+from dev_cli_core import create_cli
+
+cli = create_cli(
+    name="workstack-dev",
+    description="Development tools for workstack.",
+    commands_dir=Path(__file__).parent / "commands",
+    add_completion=True,
+)
+
+if __name__ == "__main__":
+    cli()
+```
+
+The `create_cli()` factory automatically:
+
+- Creates a Click group with the specified name and description
+- Discovers and registers all commands from the `commands_dir`
+- Adds shell completion support (bash/zsh/fish)
+- Returns a ready-to-use Click group
 
 ### Command Discovery System
 
-**File: `src/workstack/dev_cli/loader.py`**
+**Provided by: `dev_cli_core` framework**
 
-The `load_commands()` function implements automatic command discovery:
+The `dev_cli_core.loader.load_commands()` function implements automatic command discovery:
 
 1. **Scan** `commands/` directory for subdirectories
 2. **Find** `command.py` files in each subdirectory
@@ -60,24 +93,21 @@ The `load_commands()` function implements automatic command discovery:
 5. **Register** commands with kebab-case names derived from directory names
 
 ```python
-def load_commands() -> dict[str, click.Command]:
-    """Discover and load all commands from the commands directory."""
-    discovered_commands: dict[str, click.Command] = {}
-    commands_dir = Path(__file__).parent / "commands"
-
-    for cmd_dir in commands_dir.iterdir():
-        if not cmd_dir.is_dir() or cmd_dir.name.startswith("_"):
-            continue
-
-        command_file = cmd_dir / "command.py"
-        if not command_file.exists():
-            continue
-
-        # Dynamic import and inspection...
-        # (see src/workstack/dev_cli/loader.py:32-52 for full implementation)
+def load_commands(
+    commands_dir: Path,
+    *,
+    verbose: bool = False,
+    strict: bool = False,
+) -> dict[str, click.Command]:
+    """Discover and load all commands from a directory."""
+    # Scans for subdirectories containing command.py files
+    # Dynamically imports and extracts Click commands
+    # Returns mapping of command name to Click command object
 ```
 
-**Error handling:** Broken command modules are caught and logged without breaking the entire CLI (`loader.py:41-45`).
+**Error handling:** Broken command modules are caught and logged without breaking the entire CLI (when `strict=False`).
+
+See `src/dev_cli_core/README.md` for full framework documentation.
 
 ### Command Structure Pattern
 
@@ -91,7 +121,7 @@ Defines the CLI interface using Click decorators:
 # commands/my_command/command.py
 import click
 from pathlib import Path
-from workstack.dev_cli.utils import run_pep723_script
+from dev_cli_core import run_pep723_script
 
 @click.command(name="my-command")
 @click.option("--dry-run", is_flag=True, help="Show what would be done")
@@ -110,7 +140,7 @@ def command(dry_run: bool) -> None:
 
 - Define Click command name and options
 - Parse CLI flags/arguments
-- Forward arguments to script.py
+- Forward arguments to script.py via `dev_cli_core.run_pep723_script()`
 
 #### 2. `script.py` - PEP 723 Implementation
 
@@ -152,7 +182,7 @@ if __name__ == "__main__":
 
 **PEP 723** (Inline script metadata) allows scripts to declare their dependencies directly in the file using a special comment block.
 
-**Required structure** (`src/workstack/dev_cli/CLAUDE.md:8-18`):
+**Required structure** (see `src/workstack/dev_cli/CLAUDE.md` for full details):
 
 ```python
 #!/usr/bin/env python3
@@ -176,22 +206,23 @@ This suppresses false positive import warnings because pyright performs static a
 
 ### Script Execution Utility
 
-**File: `src/workstack/dev_cli/utils.py:9-27`**
+**Provided by: `dev_cli_core.runner`**
 
 The `run_pep723_script()` function provides a standardized way to execute PEP 723 scripts:
 
 ```python
-def run_pep723_script(script_path: Path, args: list[str] | None = None) -> None:
+def run_pep723_script(
+    script_path: Path | str,
+    args: list[str] | None = None,
+    *,
+    check: bool = True,
+    capture_output: bool = False,
+    env: dict[str, str] | None = None,
+) -> subprocess.CompletedProcess:
     """Run a PEP 723 inline script using uv run."""
-    cmd = ["uv", "run", str(script_path)]
-    if args:
-        cmd.extend(args)
-
-    try:
-        subprocess.run(cmd, check=True)
-    except subprocess.CalledProcessError as e:
-        click.echo(f"Command failed with exit code {e.returncode}", err=True)
-        raise SystemExit(1) from e
+    # Builds command: ["uv", "run", script_path, *args]
+    # Executes with subprocess.run()
+    # Provides helpful error message if uv not installed
 ```
 
 **Why `uv run`?**
@@ -251,7 +282,7 @@ To add a new command:
    ```python
    import click
    from pathlib import Path
-   from workstack.dev_cli.utils import run_pep723_script
+   from dev_cli_core import run_pep723_script
 
    @click.command(name="my-feature")
    def command() -> None:
@@ -294,21 +325,23 @@ The `workstack-dev` CLI is **completely separate** from the main `workstack` CLI
 - **workstack** (`src/workstack/__main__.py`) - User-facing worktree management
 - **workstack-dev** (`src/workstack/dev_cli/__main__.py`) - Development tools
 
-Both are defined in `pyproject.toml:14-16` as separate entry points.
+Both are defined in `pyproject.toml` as separate entry points.
 
 ## Dependencies
 
-**Main project dependencies** (`pyproject.toml:10-12`):
+**Framework dependencies:**
 
-```toml
-dependencies = ["click>=8.1.7"]
-```
+- `dev_cli_core` - Internal CLI framework package (in `src/dev_cli_core/`)
+- `click>=8.1.7` - CLI framework used by both workstack-dev and dev_cli_core
 
 **Command-specific dependencies:**
 
 - Declared inline via PEP 723 in each `script.py`
 - Examples: `rich`, `build`, `twine`, etc.
 - Only loaded when running that specific command
+- Isolated from main project dependencies
+
+**Architecture note:** The `dev_cli_core` framework is an internal package that provides the command discovery and execution infrastructure. Commands in `workstack.dev_cli.commands` use the framework's facilities but remain organizationally separate.
 
 ## Testing
 
@@ -332,3 +365,14 @@ The plugin architecture enables easy addition of:
 - Custom linters/analyzers
 
 All without modifying the core CLI framework.
+
+## Framework Reusability
+
+The `dev_cli_core` framework is designed to be reusable for other projects. It provides:
+
+- **Zero-config command discovery** - Just drop commands in a directory
+- **PEP 723 script execution** - Commands manage their own dependencies
+- **Shell completion** - Built-in bash/zsh/fish support
+- **Factory function** - Simple `create_cli()` API
+
+See `src/dev_cli_core/README.md` and `src/dev_cli_core/examples/` for documentation and examples on using the framework in other projects.

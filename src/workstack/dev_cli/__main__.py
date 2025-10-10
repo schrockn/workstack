@@ -1,20 +1,15 @@
 """Development CLI entry point."""
 
-import click
+from pathlib import Path
 
-from workstack.dev_cli.loader import load_commands
+from dev_cli_core import create_cli
 
-
-@click.group()
-def cli() -> None:
-    """Development tools for workstack."""
-    pass
-
-
-# Auto-register all discovered commands
-for _cmd_name, cmd in load_commands().items():
-    cli.add_command(cmd)
-
+cli = create_cli(
+    name="workstack-dev",
+    description="Development tools for workstack.",
+    commands_dir=Path(__file__).parent / "commands",
+    add_completion=False,
+)
 
 if __name__ == "__main__":
     cli()

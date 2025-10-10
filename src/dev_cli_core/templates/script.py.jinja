@@ -1,0 +1,27 @@
+#!/usr/bin/env python3
+# /// script
+# dependencies = [
+#   "click>=8.1.7",
+{% if dependencies %}{% for dep in dependencies %}#   "{{ dep }}",
+{% endfor %}{% endif %}# ]
+# requires-python = ">={{ python_version }}"
+# ///
+"""{{ description }}"""
+
+# pyright: reportMissingImports=false
+
+import click
+
+
+@click.command()
+{% if options %}{% for option in options %}{{ option }}
+{% endfor %}{% endif %}def main({% if params %}{{ params }}{% endif %}) -> None:
+    """{{ description }}"""
+    click.echo("{{ command_name }} executed successfully!")
+    {% if example_code %}
+    {{ example_code }}
+    {% endif %}
+
+
+if __name__ == "__main__":
+    main()
