@@ -7,6 +7,8 @@ import uuid
 from datetime import datetime
 from pathlib import Path
 
+from workstack.debug import debug_log
+
 
 def render_cd_script(path: Path, *, comment: str, success_message: str) -> str:
     """Generate shell script to change directory with feedback.
@@ -71,6 +73,9 @@ def write_script_to_temp(
 
     # Make executable for good measure
     temp_file.chmod(0o755)
+
+    debug_log(f"write_script_to_temp: Created {temp_file}")
+    debug_log(f"write_script_to_temp: Content:\n{full_content}")
 
     return temp_file
 
