@@ -8,7 +8,7 @@ cli = create_cli(
     name="workstack-dev",
     description="Development tools for workstack.",
     commands_dir=Path(__file__).parent / "commands",
-    add_completion=True,
+    add_completion=False,
 )
 
 if __name__ == "__main__":
