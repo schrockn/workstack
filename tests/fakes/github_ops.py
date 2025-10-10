@@ -6,7 +6,7 @@ in its constructor. Construct instances directly with keyword arguments.
 
 from pathlib import Path
 
-from workstack.github_ops import GitHubOps, PullRequestInfo
+from workstack.core.github_ops import GitHubOps, PullRequestInfo
 
 
 class FakeGitHubOps(GitHubOps):

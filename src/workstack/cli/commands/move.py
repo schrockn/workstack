@@ -5,9 +5,9 @@ from pathlib import Path
 
 import click
 
-from workstack.commands.switch import complete_worktree_names
-from workstack.context import WorkstackContext
-from workstack.core import discover_repo_context, ensure_work_dir, worktree_path_for
+from workstack.cli.commands.switch import complete_worktree_names
+from workstack.core.context import WorkstackContext
+from workstack.cli.core import discover_repo_context, ensure_work_dir, worktree_path_for
 
 
 def _get_worktree_branch(ctx: WorkstackContext, repo_root: Path, wt_path: Path) -> str | None:

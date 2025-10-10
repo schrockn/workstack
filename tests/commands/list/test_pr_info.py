@@ -10,10 +10,10 @@ from tests.fakes.github_ops import FakeGitHubOps
 from tests.fakes.gitops import FakeGitOps
 from tests.fakes.global_config_ops import FakeGlobalConfigOps
 from tests.fakes.graphite_ops import FakeGraphiteOps
-from workstack.cli import cli
-from workstack.context import WorkstackContext
-from workstack.github_ops import PullRequestInfo
-from workstack.gitops import WorktreeInfo
+from workstack.cli.cli import cli
+from workstack.core.context import WorkstackContext
+from workstack.core.github_ops import PullRequestInfo
+from workstack.core.gitops import WorktreeInfo
 
 
 def _setup_test_with_pr(

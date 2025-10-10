@@ -9,8 +9,8 @@ from tests.fakes.github_ops import FakeGitHubOps
 from tests.fakes.gitops import FakeGitOps
 from tests.fakes.global_config_ops import FakeGlobalConfigOps
 from tests.fakes.graphite_ops import FakeGraphiteOps
-from workstack.cli import cli
-from workstack.context import WorkstackContext
+from workstack.cli.cli import cli
+from workstack.core.context import WorkstackContext
 
 
 def test_create_basic_worktree() -> None:
@@ -439,7 +439,7 @@ def test_create_uses_graphite_when_enabled() -> None:
         )
 
         # Mock subprocess to simulate gt create
-        with mock.patch("workstack.commands.create.subprocess.run") as mock_run:
+        with mock.patch("workstack.cli.commands.create.subprocess.run") as mock_run:
             result = runner.invoke(cli, ["create", "test-feature"], obj=test_ctx)
 
         assert result.exit_code == 0, result.output

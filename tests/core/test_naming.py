@@ -1,4 +1,4 @@
-from workstack.commands.create import (
+from workstack.cli.commands.create import (
     default_branch_for_worktree,
     sanitize_branch_component,
     sanitize_worktree_name,

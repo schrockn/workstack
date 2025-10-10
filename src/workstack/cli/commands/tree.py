@@ -4,9 +4,9 @@ from pathlib import Path
 
 import click
 
-from workstack.context import WorkstackContext
-from workstack.core import discover_repo_context
-from workstack.tree import build_workstack_tree, render_tree
+from workstack.core.context import WorkstackContext
+from workstack.cli.core import discover_repo_context
+from workstack.cli.tree import build_workstack_tree, render_tree
 
 
 @click.command("tree")

@@ -14,8 +14,8 @@ import sys
 from abc import ABC, abstractmethod
 from pathlib import Path
 
-from workstack.github_ops import PullRequestInfo, _parse_github_pr_url
-from workstack.gitops import GitOps
+from workstack.core.github_ops import PullRequestInfo, _parse_github_pr_url
+from workstack.core.gitops import GitOps
 
 
 class GraphiteOps(ABC):

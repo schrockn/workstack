@@ -2,10 +2,10 @@ from pathlib import Path
 
 import click
 
-from workstack.context import WorkstackContext, create_context
-from workstack.core import discover_repo_context, ensure_work_dir, worktree_path_for
-from workstack.debug import debug_log
-from workstack.shell_utils import write_script_to_temp
+from workstack.core.context import WorkstackContext, create_context
+from workstack.cli.core import discover_repo_context, ensure_work_dir, worktree_path_for
+from workstack.cli.debug import debug_log
+from workstack.cli.shell_utils import write_script_to_temp
 
 
 def render_activation_script(*, worktree_path: Path) -> str:

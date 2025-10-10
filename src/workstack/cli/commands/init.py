@@ -6,10 +6,10 @@ from pathlib import Path
 
 import click
 
-from workstack.context import WorkstackContext
-from workstack.core import discover_repo_context, ensure_work_dir
-from workstack.file_utils import atomic_write
-from workstack.global_config_ops import GlobalConfigOps
+from workstack.core.context import WorkstackContext
+from workstack.cli.core import discover_repo_context, ensure_work_dir
+from workstack.core.file_utils import atomic_write
+from workstack.core.global_config_ops import GlobalConfigOps
 
 
 def detect_root_project_name(repo_root: Path) -> str | None:

@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from workstack.gitops import RealGitOps
+from workstack.core.gitops import RealGitOps
 
 
 def init_git_repo(repo_path: Path, default_branch: str = "main") -> None:

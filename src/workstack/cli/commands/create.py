@@ -7,10 +7,10 @@ from pathlib import Path
 
 import click
 
-from workstack.config import LoadedConfig, load_config
-from workstack.context import WorkstackContext
-from workstack.core import discover_repo_context, ensure_work_dir, worktree_path_for
-from workstack.shell_utils import render_cd_script, write_script_to_temp
+from workstack.cli.config import LoadedConfig, load_config
+from workstack.core.context import WorkstackContext
+from workstack.cli.core import discover_repo_context, ensure_work_dir, worktree_path_for
+from workstack.cli.shell_utils import render_cd_script, write_script_to_temp
 
 _SAFE_COMPONENT_RE = re.compile(r"[^A-Za-z0-9._/-]+")
 

@@ -4,12 +4,12 @@ from typing import Final
 
 from click.testing import CliRunner
 
-from workstack.commands.create import create
-from workstack.commands.switch import switch_cmd
-from workstack.commands.sync import sync_cmd
-from workstack.context import create_context
-from workstack.debug import debug_log
-from workstack.shell_utils import cleanup_stale_scripts
+from workstack.cli.commands.create import create
+from workstack.cli.commands.switch import switch_cmd
+from workstack.cli.commands.sync import sync_cmd
+from workstack.core.context import create_context
+from workstack.cli.debug import debug_log
+from workstack.cli.shell_utils import cleanup_stale_scripts
 
 PASSTHROUGH_MARKER: Final[str] = "__WORKSTACK_PASSTHROUGH__"
 
