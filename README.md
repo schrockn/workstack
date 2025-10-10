@@ -77,6 +77,38 @@ workstack sync                   # Sync with Graphite, show cleanup candidates
 workstack sync -f                # Sync and auto-remove merged workstacks
 ```
 
+### Moving Branches
+
+Move or swap branches between worktrees:
+
+```bash
+# Move from current worktree to new worktree
+workstack move target-wt
+
+# Move from current worktree (explicit)
+workstack move --current target-wt
+
+# Auto-detect source from branch name
+workstack move --branch feature-x new-wt
+
+# Move from specific source to target
+workstack move --worktree old-wt new-wt
+
+# Swap branches between current and another worktree
+workstack move --current existing-wt
+
+# Force operation without prompts
+workstack move --current target-wt --force
+
+# Specify custom fallback branch
+workstack move --current new-wt --ref develop
+```
+
+**Operation Detection:**
+
+- **Move**: Target doesn't exist or is in detached HEAD → creates/updates target, switches source to fallback
+- **Swap**: Both worktrees exist with branches → swaps branches between them
+
 Example output:
 
 ```bash
@@ -281,6 +313,16 @@ Requires Graphite CLI (`gt`) and GitHub CLI (`gh`) installed.
 | -------------- | ---------------------------------- |
 | `-s, --stacks` | Show graphite stacks and PR status |
 
+### `move` Options
+
+| Option            | Description                                 |
+| ----------------- | ------------------------------------------- |
+| `--current`       | Use current worktree as source              |
+| `--branch BRANCH` | Auto-detect worktree containing this branch |
+| `--worktree NAME` | Use specific worktree as source             |
+| `--ref REF`       | Fallback branch for source (default: main)  |
+| `-f, --force`     | Skip confirmation prompts                   |
+
 ### `remove` / `rm` Options
 
 | Option               | Description                               |
@@ -391,22 +433,6 @@ Comprehensive, agent-optimized documentation is available in the `.agent/` direc
 - **[workstack-dev CLI](.agent/WORKSTACK_DEV.md)** - Development CLI architecture and design
 
 See [`.agent/README.md`](.agent/README.md) for more details.
-
-### workstack-dev CLI
-
-For developers working on workstack itself, the `workstack-dev` CLI provides development tools:
-
-```bash
-workstack-dev clean-cache       # Clean development cache directories
-workstack-dev publish-to-pypi   # Automated PyPI publishing workflow
-```
-
-**Documentation:**
-
-- **[Developer Guide](src/workstack/dev_cli/README.md)** - How to add new dev commands
-- **[Architecture](.agent/WORKSTACK_DEV.md)** - Detailed technical documentation
-
-The `workstack-dev` CLI uses a plugin-style architecture where commands are automatically discovered. Each command is a self-contained PEP 723 inline script with its own dependencies, keeping the main project dependencies minimal.
 
 ## Links
 
