@@ -5,9 +5,9 @@ from pathlib import Path
 import click
 
 from workstack.cli.commands.remove import _remove_worktree
-from workstack.core.context import WorkstackContext
 from workstack.cli.core import discover_repo_context, ensure_work_dir, worktree_path_for
 from workstack.cli.shell_utils import render_cd_script, write_script_to_temp
+from workstack.core.context import WorkstackContext
 
 
 def _emit(message: str, *, script_mode: bool, error: bool = False) -> None:

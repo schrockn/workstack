@@ -5,8 +5,8 @@ from pathlib import Path
 import click
 import pytest
 
-from dev_cli_core.exceptions import CommandLoadError
-from dev_cli_core.loader import load_commands
+from devclikit.exceptions import CommandLoadError
+from devclikit.loader import load_commands
 
 
 def test_load_commands_empty_directory(tmp_path: Path) -> None:

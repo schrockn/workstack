@@ -7,9 +7,9 @@ from click.testing import CliRunner
 from workstack.cli.commands.create import create
 from workstack.cli.commands.switch import switch_cmd
 from workstack.cli.commands.sync import sync_cmd
-from workstack.core.context import create_context
 from workstack.cli.debug import debug_log
 from workstack.cli.shell_utils import cleanup_stale_scripts
+from workstack.core.context import create_context
 
 PASSTHROUGH_MARKER: Final[str] = "__WORKSTACK_PASSTHROUGH__"
 

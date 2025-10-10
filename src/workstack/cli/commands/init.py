@@ -6,8 +6,8 @@ from pathlib import Path
 
 import click
 
-from workstack.core.context import WorkstackContext
 from workstack.cli.core import discover_repo_context, ensure_work_dir
+from workstack.core.context import WorkstackContext
 from workstack.core.file_utils import atomic_write
 from workstack.core.global_config_ops import GlobalConfigOps
 

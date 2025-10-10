@@ -5,8 +5,8 @@ import click
 from workstack.cli.commands.create import make_env_content, sanitize_worktree_name
 from workstack.cli.commands.switch import complete_worktree_names
 from workstack.cli.config import load_config
-from workstack.core.context import WorkstackContext, create_context
 from workstack.cli.core import discover_repo_context, ensure_work_dir, worktree_path_for
+from workstack.core.context import WorkstackContext, create_context
 
 
 @click.command("rename")

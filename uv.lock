@@ -2,6 +2,12 @@ version = 1
 revision = 2
 requires-python = ">=3.13"
 
+[manifest]
+members = [
+    "devclikit",
+    "workstack",
+]
+
 [[package]]
 name = "click"
 version = "8.2.1"
@@ -75,6 +81,17 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/f4/51/e48e550f6279349895b0ffcd6d2a690e3131ba3a7f4eafccc141966d4dea/coverage-7.10.6-cp314-cp314t-win_arm64.whl", hash = "sha256:137921f2bac5559334ba66122b753db6dc5d1cf01eb7b64eb412bb0d064ef35b", size = 219969, upload-time = "2025-08-29T15:34:55.83Z" },
     { url = "https://files.pythonhosted.org/packages/44/0c/50db5379b615854b5cf89146f8f5bd1d5a9693d7f3a987e269693521c404/coverage-7.10.6-py3-none-any.whl", hash = "sha256:92c4ecf6bf11b2e85fd4d8204814dc26e6a19f0c9d938c207c5cb0eadfcabbe3", size = 208986, upload-time = "2025-08-29T15:35:14.506Z" },
 ]
+
+[[package]]
+name = "devclikit"
+version = "0.1.10"
+source = { editable = "packages/devclikit" }
+dependencies = [
+    { name = "click" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "click", specifier = ">=8.1.7" }]
 
 [[package]]
 name = "iniconfig"
@@ -205,6 +222,7 @@ version = "0.1.10"
 source = { editable = "." }
 dependencies = [
     { name = "click" },
+    { name = "devclikit" },
 ]
 
 [package.dev-dependencies]
@@ -216,7 +234,10 @@ dev = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "click", specifier = ">=8.1.7" }]
+requires-dist = [
+    { name = "click", specifier = ">=8.1.7" },
+    { name = "devclikit", editable = "packages/devclikit" },
+]
 
 [package.metadata.requires-dev]
 dev = [

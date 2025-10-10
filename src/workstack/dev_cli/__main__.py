@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from dev_cli_core import create_cli
+from devclikit import create_cli
 
 cli = create_cli(
     name="workstack-dev",

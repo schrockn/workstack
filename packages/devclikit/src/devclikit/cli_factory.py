@@ -5,8 +5,8 @@ from typing import Any
 
 import click
 
-from dev_cli_core.completion import add_completion_commands
-from dev_cli_core.loader import load_commands
+from devclikit.completion import add_completion_commands
+from devclikit.loader import load_commands
 
 
 def create_cli(

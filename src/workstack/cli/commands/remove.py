@@ -5,15 +5,15 @@ from pathlib import Path
 import click
 
 from workstack.cli.commands.switch import complete_worktree_names
-from workstack.core.context import WorkstackContext, create_context
 from workstack.cli.core import (
     discover_repo_context,
     ensure_work_dir,
     validate_worktree_name_for_removal,
     worktree_path_for,
 )
-from workstack.core.gitops import GitOps
 from workstack.cli.graphite import get_branch_stack
+from workstack.core.context import WorkstackContext, create_context
+from workstack.core.gitops import GitOps
 
 
 def _try_git_worktree_remove(git_ops: GitOps, repo_root: Path, wt_path: Path) -> bool:

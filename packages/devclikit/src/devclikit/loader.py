@@ -7,7 +7,7 @@ from pathlib import Path
 
 import click
 
-from dev_cli_core.exceptions import CommandLoadError
+from devclikit.exceptions import CommandLoadError
 
 
 def load_commands(

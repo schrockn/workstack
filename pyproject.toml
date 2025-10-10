@@ -1,3 +1,9 @@
+[tool.uv.workspace]
+members = ["packages/*"]
+
+[tool.uv.sources]
+devclikit = { workspace = true }
+
 [project]
 name = "workstack"
 version = "0.1.10"
@@ -9,6 +15,7 @@ authors = [
 requires-python = ">=3.13"
 dependencies = [
     "click>=8.1.7",
+    "devclikit",
 ]
 
 [project.scripts]
@@ -42,7 +49,7 @@ select = [
 ]
 
 [tool.ruff.lint.isort]
-known-first-party = ["workstack", "dev_cli_core"]
+known-first-party = ["workstack", "devclikit"]
 
 [tool.pyright]
 pythonVersion = "3.13"
