@@ -434,23 +434,6 @@ Comprehensive, agent-optimized documentation is available in the `.agent/` direc
 
 See [`.agent/README.md`](.agent/README.md) for more details.
 
-### workstack-dev CLI
-
-For developers working on workstack itself, the `workstack-dev` CLI provides development tools:
-
-```bash
-workstack-dev clean-cache             # Clean development cache directories
-workstack-dev create-agents-symlinks  # Create AGENTS.md symlinks for CLAUDE.md files
-workstack-dev publish-to-pypi         # Automated PyPI publishing workflow
-```
-
-**Documentation:**
-
-- **[Developer Guide](src/workstack/dev_cli/README.md)** - How to add new dev commands
-- **[Architecture](.agent/WORKSTACK_DEV.md)** - Detailed technical documentation
-
-The `workstack-dev` CLI uses a plugin-style architecture where commands are automatically discovered. Each command is a self-contained PEP 723 inline script with its own dependencies, keeping the main project dependencies minimal.
-
 ## Links
 
 - **GitHub:** https://github.com/schrockn/workstack
