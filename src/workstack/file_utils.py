@@ -8,6 +8,31 @@ from contextlib import contextmanager
 from pathlib import Path
 
 
+def _is_critical_system_file(path: Path) -> bool:
+    """Check if path is a critical system file that should not be modified by tests.
+
+    Returns True for shell rc files in the user's real home directory.
+    This is a safety check to prevent tests from accidentally modifying real system files.
+    """
+    if not path.exists():
+        return False
+
+    real_home = Path.home()
+    critical_files = {
+        real_home / ".bashrc",
+        real_home / ".zshrc",
+        real_home / ".bash_profile",
+        real_home / ".profile",
+        real_home / ".config" / "fish" / "config.fish",
+    }
+
+    try:
+        resolved_path = path.resolve()
+        return resolved_path in critical_files
+    except (OSError, RuntimeError):
+        return False
+
+
 @contextmanager
 def atomic_write(target_path: Path, *, mode: str = "w", encoding: str = "utf-8") -> Iterator:
     """Write to a file atomically using a temporary file and rename.
@@ -30,8 +55,20 @@ def atomic_write(target_path: Path, *, mode: str = "w", encoding: str = "utf-8")
 
     Note: Exception handling for cleanup is acceptable here per EXCEPTION_HANDLING.md
     as this is encapsulating necessary exception handling at an error boundary.
+
+    Raises:
+        RuntimeError: If attempting to write to a critical system file (safety check)
     """
     target_path = Path(target_path)
+
+    # Safety check: prevent accidental writes to critical system files
+    if _is_critical_system_file(target_path):
+        raise RuntimeError(
+            f"Refusing to write to critical system file: {target_path}. "
+            "This is a safety check to prevent accidental modification of shell rc files. "
+            "If you're writing a test, use a temporary directory instead of Path.home()."
+        )
+
     target_path.parent.mkdir(parents=True, exist_ok=True)
 
     # Create temp file in same directory to ensure same filesystem
