@@ -1,5 +1,6 @@
 """Tests for the init command."""
 
+import tempfile
 from pathlib import Path
 from unittest import mock
 
@@ -11,6 +12,32 @@ from tests.fakes.global_config_ops import FakeGlobalConfigOps
 from tests.fakes.graphite_ops import FakeGraphiteOps
 from workstack.cli import cli
 from workstack.context import WorkstackContext
+
+
+def create_isolated_shell_rc(shell: str, initial_content: str = "") -> Path:
+    """Create an isolated shell rc file in a temporary directory.
+
+    Args:
+        shell: Shell type ('bash', 'zsh', or 'fish')
+        initial_content: Initial content to write to the file
+
+    Returns:
+        Path to the created rc file in an isolated temp directory
+    """
+    temp_dir = Path(tempfile.mkdtemp(prefix=f"test_shell_{shell}_"))
+
+    if shell == "bash":
+        rc_file = temp_dir / ".bashrc"
+    elif shell == "zsh":
+        rc_file = temp_dir / ".zshrc"
+    elif shell == "fish":
+        rc_file = temp_dir / ".config" / "fish" / "config.fish"
+        rc_file.parent.mkdir(parents=True, exist_ok=True)
+    else:
+        raise ValueError(f"Unsupported shell: {shell}")
+
+    rc_file.write_text(initial_content, encoding="utf-8")
+    return rc_file
 
 
 def test_init_creates_global_config_first_time() -> None:
@@ -682,10 +709,8 @@ def test_init_first_time_offers_shell_setup() -> None:
             dry_run=False,
         )
 
-        # Mock detect_shell to return bash
-        bashrc = Path.home() / ".bashrc"
-        bashrc.parent.mkdir(parents=True, exist_ok=True)
-        bashrc.write_text("", encoding="utf-8")
+        # Create isolated bashrc in temporary directory
+        bashrc = create_isolated_shell_rc("bash")
 
         with mock.patch(
             "workstack.commands.init.detect_shell",
@@ -720,9 +745,8 @@ def test_init_shell_flag_only_setup() -> None:
             dry_run=False,
         )
 
-        bashrc = Path.home() / ".bashrc"
-        bashrc.parent.mkdir(parents=True, exist_ok=True)
-        bashrc.write_text("", encoding="utf-8")
+        # Create isolated bashrc in temporary directory
+        bashrc = create_isolated_shell_rc("bash")
 
         with mock.patch(
             "workstack.commands.init.detect_shell",
@@ -759,9 +783,8 @@ def test_init_detects_bash_shell() -> None:
             dry_run=False,
         )
 
-        bashrc = Path.home() / ".bashrc"
-        bashrc.parent.mkdir(parents=True, exist_ok=True)
-        bashrc.write_text("", encoding="utf-8")
+        # Create isolated bashrc in temporary directory
+        bashrc = create_isolated_shell_rc("bash")
 
         with mock.patch(
             "workstack.commands.init.detect_shell",
@@ -799,9 +822,8 @@ def test_init_detects_zsh_shell() -> None:
             dry_run=False,
         )
 
-        zshrc = Path.home() / ".zshrc"
-        zshrc.parent.mkdir(parents=True, exist_ok=True)
-        zshrc.write_text("", encoding="utf-8")
+        # Create isolated zshrc in temporary directory
+        zshrc = create_isolated_shell_rc("zsh")
 
         with mock.patch(
             "workstack.commands.init.detect_shell",
@@ -839,9 +861,8 @@ def test_init_detects_fish_shell() -> None:
             dry_run=False,
         )
 
-        fish_config = Path.home() / ".config" / "fish" / "config.fish"
-        fish_config.parent.mkdir(parents=True, exist_ok=True)
-        fish_config.write_text("", encoding="utf-8")
+        # Create isolated fish config in temporary directory
+        fish_config = create_isolated_shell_rc("fish")
 
         with mock.patch(
             "workstack.commands.init.detect_shell",
@@ -907,9 +928,8 @@ def test_init_adds_completion_to_rc_file() -> None:
             dry_run=False,
         )
 
-        bashrc = Path.home() / ".bashrc"
-        bashrc.parent.mkdir(parents=True, exist_ok=True)
-        bashrc.write_text("# Existing content\n", encoding="utf-8")
+        # Create isolated bashrc in temporary directory
+        bashrc = create_isolated_shell_rc("bash", "# Existing content\n")
 
         with mock.patch(
             "workstack.commands.init.detect_shell",
@@ -949,9 +969,8 @@ def test_init_adds_wrapper_to_rc_file() -> None:
             dry_run=False,
         )
 
-        bashrc = Path.home() / ".bashrc"
-        bashrc.parent.mkdir(parents=True, exist_ok=True)
-        bashrc.write_text("# Existing content\n", encoding="utf-8")
+        # Create isolated bashrc in temporary directory
+        bashrc = create_isolated_shell_rc("bash", "# Existing content\n")
 
         with mock.patch(
             "workstack.commands.init.detect_shell",
@@ -991,10 +1010,9 @@ def test_init_skips_shell_if_declined() -> None:
             dry_run=False,
         )
 
-        bashrc = Path.home() / ".bashrc"
-        bashrc.parent.mkdir(parents=True, exist_ok=True)
+        # Create isolated bashrc in temporary directory
         original_content = "# Existing content\n"
-        bashrc.write_text(original_content, encoding="utf-8")
+        bashrc = create_isolated_shell_rc("bash", original_content)
 
         with mock.patch(
             "workstack.commands.init.detect_shell",
