@@ -209,17 +209,20 @@ def _remove_worktree(
 
     # Step 2: Display all planned operations
     if branches_to_delete or True:
-        click.echo("Planning to perform the following operations:")
-        click.echo(f"  1. Remove worktree: {wt_path}")
+        click.echo(click.style("📋 Planning to perform the following operations:", bold=True))
+        worktree_text = click.style(str(wt_path), fg="cyan")
+        click.echo(f"  1. 🗑️  Remove worktree: {worktree_text}")
         if branches_to_delete:
-            click.echo("  2. Delete branches in stack:")
+            click.echo("  2. 🌳 Delete branches in stack:")
             for branch in branches_to_delete:
-                click.echo(f"     - {branch}")
+                branch_text = click.style(branch, fg="yellow")
+                click.echo(f"     - {branch_text}")
 
     # Step 3: Single confirmation prompt (unless --force or --dry-run)
     if not force and not dry_run:
-        if not click.confirm("\nProceed with these operations?", default=False):
-            click.echo("Aborted.")
+        prompt_text = click.style("Proceed with these operations?", fg="yellow", bold=True)
+        if not click.confirm(f"\n{prompt_text}", default=False):
+            click.echo(click.style("⭕ Aborted.", fg="red", bold=True))
             return
 
     # Step 4: Execute operations
@@ -246,10 +249,12 @@ def _remove_worktree(
         for branch in branches_to_delete:
             ctx.git_ops.delete_branch_with_graphite(repo.root, branch, force=force)
             if not dry_run:
-                click.echo(f"Deleted branch: {branch}")
+                branch_text = click.style(branch, fg="green")
+                click.echo(f"✅ Deleted branch: {branch_text}")
 
     if not dry_run:
-        click.echo(str(wt_path))
+        path_text = click.style(str(wt_path), fg="green")
+        click.echo(f"✅ {path_text}")
 
 
 @click.command("remove")
