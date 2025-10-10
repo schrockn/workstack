@@ -58,12 +58,17 @@ jobs:
             2. If comment ID found, update it:
                - Use `gh api --method PATCH /repos/${{ github.repository }}/issues/comments/COMMENT_ID -f body="YOUR_REVIEW_TEXT"`
                - Include the marker `<!-- claude-code-review -->` at the top of your review text
+               - Add a visible timestamp at the very top showing when the review was updated (e.g., "_Last updated: 2025-01-15 14:30:00 UTC_")
+               - Format: `_Last updated: $(date -u '+%Y-%m-%d %H:%M:%S UTC')_\n\n<!-- claude-code-review -->\n\n[rest of review]`
 
             3. If no comment found, create new one:
                - Use `gh pr comment ${{ github.event.pull_request.number }} --body "YOUR_REVIEW_TEXT"`
                - Include the marker `<!-- claude-code-review -->` at the top
+               - Add a visible timestamp at the very top showing when the review was created (e.g., "_Review created: 2025-01-15 14:30:00 UTC_")
+               - Format: `_Review created: $(date -u '+%Y-%m-%d %H:%M:%S UTC')_\n\n<!-- claude-code-review -->\n\n[rest of review]`
 
             The marker MUST be included in all review comments so they can be found and updated on subsequent runs.
+            The timestamp MUST be at the very top of the comment body (before the HTML marker) and be visible to users.
 
           # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
           # or https://docs.claude.com/en/docs/claude-code/cli-reference for available options
