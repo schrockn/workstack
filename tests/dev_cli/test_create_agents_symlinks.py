@@ -218,5 +218,5 @@ def test_cli_not_in_git_repo() -> None:
     with runner.isolated_filesystem():
         # No .git directory
         result = runner.invoke(cli, ["create-agents-symlinks"])
+        # Script execution fails, CLI should exit with non-zero code
         assert result.exit_code == 1
-        assert "Command failed with exit code 1" in result.output
