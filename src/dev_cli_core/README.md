@@ -12,6 +12,12 @@ A lightweight, opinionated framework for creating Click-based development CLIs t
 - **Zero configuration** - Sensible defaults with optional customization
 - **Type-safe** - Full type annotations for Python 3.13+
 
+## Examples
+
+See [examples/](examples/) for complete working examples:
+
+- **[hello_world](examples/hello_world/)** - Simple CLI demonstrating core concepts
+
 ## Quick Start
 
 ### Creating a CLI
@@ -351,6 +357,7 @@ These are used by scaffolding tools to generate new commands and CLIs.
 
 ## Related Documentation
 
+- **Examples**: [examples/](examples/) - Complete working examples
 - Main project: `../../README.md`
 - Development CLI: `.agent/WORKSTACK_DEV.md`
 - Coding standards: `../../CLAUDE.md`
