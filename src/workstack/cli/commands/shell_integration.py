@@ -1,6 +1,6 @@
 import click
 
-from workstack.shell_integration.handler import (
+from workstack.cli.shell_integration.handler import (
     PASSTHROUGH_MARKER,
     ShellIntegrationResult,
     handle_shell_request,

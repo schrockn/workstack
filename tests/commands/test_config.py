@@ -8,8 +8,8 @@ from tests.fakes.github_ops import FakeGitHubOps
 from tests.fakes.gitops import FakeGitOps
 from tests.fakes.global_config_ops import FakeGlobalConfigOps
 from tests.fakes.graphite_ops import FakeGraphiteOps
-from workstack.cli import cli
-from workstack.context import WorkstackContext
+from workstack.cli.cli import cli
+from workstack.core.context import WorkstackContext
 
 
 def test_config_list_displays_global_config() -> None:

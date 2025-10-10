@@ -6,9 +6,9 @@ in its constructor. Construct instances directly with keyword arguments.
 
 from pathlib import Path
 
-from workstack.github_ops import PullRequestInfo
-from workstack.gitops import GitOps
-from workstack.graphite_ops import GraphiteOps
+from workstack.core.github_ops import PullRequestInfo
+from workstack.core.gitops import GitOps
+from workstack.core.graphite_ops import GraphiteOps
 
 
 class FakeGraphiteOps(GraphiteOps):

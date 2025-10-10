@@ -12,7 +12,7 @@ dependencies = [
 ]
 
 [project.scripts]
-workstack = "workstack:main"
+workstack = "workstack.cli.cli:main"
 workstack-dev = "workstack.dev_cli.__main__:cli"
 
 [dependency-groups]

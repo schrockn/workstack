@@ -4,9 +4,9 @@ from unittest import mock
 import pytest
 
 from tests.fakes.global_config_ops import FakeGlobalConfigOps
-from workstack.commands.create import make_env_content
-from workstack.commands.init import create_global_config, discover_presets
-from workstack.config import load_config
+from workstack.cli.commands.create import make_env_content
+from workstack.cli.commands.init import create_global_config, discover_presets
+from workstack.cli.config import load_config
 
 
 def test_load_config_defaults(tmp_path: Path) -> None:
@@ -67,7 +67,7 @@ def test_load_global_config_missing_workstacks_root(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     # Test Real implementation's validation
-    from workstack.global_config_ops import RealGlobalConfigOps
+    from workstack.core.global_config_ops import RealGlobalConfigOps
 
     config_file = tmp_path / "config.toml"
     config_file.write_text("use_graphite = true\n", encoding="utf-8")
@@ -93,11 +93,10 @@ def test_load_global_config_use_graphite_defaults_false(tmp_path: Path) -> None:
     assert global_config_ops.get_use_graphite() is False
 
 
-def test_create_global_config_creates_file(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_create_global_config_creates_file(tmp_path: Path) -> None:
     global_config_ops = FakeGlobalConfigOps(exists=False)
 
-    with monkeypatch.context() as m:
-        m.setattr("workstack.commands.init.detect_graphite", lambda: False)
+    with mock.patch("workstack.cli.commands.init.detect_graphite", return_value=False):
         create_global_config(global_config_ops, Path("/tmp/workstacks"), shell_setup_complete=False)
 
     # Verify config was saved
@@ -105,11 +104,9 @@ def test_create_global_config_creates_file(tmp_path: Path, monkeypatch: pytest.M
     assert global_config_ops.get_use_graphite() is False
 
 
-def test_create_global_config_creates_parent_directory(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_create_global_config_creates_parent_directory(tmp_path: Path) -> None:
     # Test Real implementation's filesystem behavior
-    from workstack.global_config_ops import RealGlobalConfigOps
+    from workstack.core.global_config_ops import RealGlobalConfigOps
 
     config_file = tmp_path / ".workstack" / "config.toml"
     assert not config_file.parent.exists()
@@ -117,21 +114,17 @@ def test_create_global_config_creates_parent_directory(
     real_ops = RealGlobalConfigOps()
     real_ops._path = config_file
 
-    with monkeypatch.context() as m:
-        m.setattr("workstack.commands.init.detect_graphite", lambda: False)
+    with mock.patch("workstack.cli.commands.init.detect_graphite", return_value=False):
         create_global_config(real_ops, Path("/tmp/workstacks"), shell_setup_complete=False)
 
     assert config_file.parent.exists()
     assert config_file.exists()
 
 
-def test_create_global_config_detects_graphite(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_create_global_config_detects_graphite(tmp_path: Path) -> None:
     global_config_ops = FakeGlobalConfigOps(exists=False)
 
-    with monkeypatch.context() as m:
-        m.setattr("workstack.commands.init.detect_graphite", lambda: True)
+    with mock.patch("workstack.cli.commands.init.detect_graphite", return_value=True):
         create_global_config(global_config_ops, Path("/tmp/workstacks"), shell_setup_complete=False)
 
     assert global_config_ops.get_use_graphite() is True
@@ -149,7 +142,7 @@ def test_discover_presets(tmp_path: Path) -> None:
     (presets_dir / "README.md").write_text("# readme\n", encoding="utf-8")
     (presets_dir / "subdir").mkdir()
 
-    with mock.patch("workstack.commands.init.__file__", str(commands_dir / "init.py")):
+    with mock.patch("workstack.cli.commands.init.__file__", str(commands_dir / "init.py")):
         presets = discover_presets()
 
     assert presets == ["custom", "dagster", "generic"]
@@ -160,7 +153,7 @@ def test_discover_presets_missing_directory(tmp_path: Path) -> None:
     commands_dir = tmp_path / "commands"
     commands_dir.mkdir()
 
-    with mock.patch("workstack.commands.init.__file__", str(commands_dir / "init.py")):
+    with mock.patch("workstack.cli.commands.init.__file__", str(commands_dir / "init.py")):
         presets = discover_presets()
 
     assert presets == []

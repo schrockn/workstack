@@ -79,7 +79,7 @@ import json
 from pathlib import Path
 from typing import Any, TypedDict
 
-from workstack.context import WorkstackContext
+from workstack.core.context import WorkstackContext
 
 
 class BranchInfo(TypedDict):

@@ -1,19 +1,19 @@
 import click
 
-from workstack.commands.completion import completion_group
-from workstack.commands.config import config_group
-from workstack.commands.create import create
-from workstack.commands.gc import gc_cmd
-from workstack.commands.init import init_cmd
-from workstack.commands.list import list_cmd, ls_cmd
-from workstack.commands.move import move_cmd
-from workstack.commands.remove import remove_cmd, rm_cmd
-from workstack.commands.rename import rename_cmd
-from workstack.commands.shell_integration import hidden_shell_cmd
-from workstack.commands.switch import switch_cmd
-from workstack.commands.sync import sync_cmd
-from workstack.commands.tree import tree_cmd
-from workstack.context import create_context
+from workstack.cli.commands.completion import completion_group
+from workstack.cli.commands.config import config_group
+from workstack.cli.commands.create import create
+from workstack.cli.commands.gc import gc_cmd
+from workstack.cli.commands.init import init_cmd
+from workstack.cli.commands.list import list_cmd, ls_cmd
+from workstack.cli.commands.move import move_cmd
+from workstack.cli.commands.remove import remove_cmd, rm_cmd
+from workstack.cli.commands.rename import rename_cmd
+from workstack.cli.commands.shell_integration import hidden_shell_cmd
+from workstack.cli.commands.switch import switch_cmd
+from workstack.cli.commands.sync import sync_cmd
+from workstack.cli.commands.tree import tree_cmd
+from workstack.core.context import create_context
 
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])  # terse help flags
 
@@ -44,3 +44,8 @@ cli.add_command(gc_cmd)
 cli.add_command(sync_cmd)
 cli.add_command(tree_cmd)
 cli.add_command(hidden_shell_cmd)
+
+
+def main() -> None:
+    """CLI entry point used by the `workstack` console script."""
+    cli()

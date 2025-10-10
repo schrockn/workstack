@@ -3,7 +3,7 @@
 from pathlib import Path
 
 from tests.fakes.gitops import FakeGitOps
-from workstack.gitops import WorktreeInfo
+from workstack.core.gitops import WorktreeInfo
 
 
 def test_fake_gitops_list_worktrees() -> None:

@@ -2,9 +2,9 @@ from pathlib import Path
 
 import click
 
-from workstack.config import LoadedConfig, load_config
-from workstack.context import WorkstackContext
-from workstack.core import discover_repo_context, ensure_work_dir
+from workstack.cli.config import LoadedConfig, load_config
+from workstack.core.context import WorkstackContext
+from workstack.cli.core import discover_repo_context, ensure_work_dir
 
 
 def _get_env_value(cfg: LoadedConfig, parts: list[str], key: str) -> None:

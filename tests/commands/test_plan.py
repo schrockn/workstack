@@ -4,8 +4,8 @@ from pathlib import Path
 
 from click.testing import CliRunner
 
-from workstack.commands.shell_integration import hidden_shell_cmd
-from workstack.shell_utils import render_cd_script
+from workstack.cli.commands.shell_integration import hidden_shell_cmd
+from workstack.cli.shell_utils import render_cd_script
 
 
 def test_create_with_plan_file(tmp_path: Path) -> None:

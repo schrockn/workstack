@@ -7,7 +7,7 @@ import uuid
 from datetime import datetime
 from pathlib import Path
 
-from workstack.debug import debug_log
+from workstack.cli.debug import debug_log
 
 
 def render_cd_script(path: Path, *, comment: str, success_message: str) -> str:

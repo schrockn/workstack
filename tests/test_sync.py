@@ -10,12 +10,12 @@ from tests.fakes.github_ops import FakeGitHubOps
 from tests.fakes.gitops import FakeGitOps
 from tests.fakes.global_config_ops import FakeGlobalConfigOps
 from tests.fakes.graphite_ops import FakeGraphiteOps
-from workstack.cli import cli
-from workstack.commands.shell_integration import hidden_shell_cmd
-from workstack.commands.sync import sync_cmd
-from workstack.context import WorkstackContext
-from workstack.gitops import WorktreeInfo
-from workstack.shell_utils import render_cd_script
+from workstack.cli.cli import cli
+from workstack.cli.commands.shell_integration import hidden_shell_cmd
+from workstack.cli.commands.sync import sync_cmd
+from workstack.core.context import WorkstackContext
+from workstack.core.gitops import WorktreeInfo
+from workstack.cli.shell_utils import render_cd_script
 
 
 def test_sync_requires_graphite() -> None:

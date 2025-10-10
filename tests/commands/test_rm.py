@@ -6,8 +6,8 @@ from tests.fakes.github_ops import FakeGitHubOps
 from tests.fakes.gitops import FakeGitOps
 from tests.fakes.global_config_ops import FakeGlobalConfigOps
 from tests.fakes.graphite_ops import FakeGraphiteOps
-from workstack.cli import cli
-from workstack.context import WorkstackContext
+from workstack.cli.cli import cli
+from workstack.core.context import WorkstackContext
 
 
 def test_rm_force_removes_directory() -> None:
@@ -112,7 +112,7 @@ def test_rm_dry_run_does_not_delete() -> None:
         (wt / "file.txt").write_text("test content", encoding="utf-8")
 
         # Build fake git ops (will be wrapped with DryRunGitOps)
-        from workstack.gitops import DryRunGitOps
+        from workstack.core.gitops import DryRunGitOps
 
         git_ops = DryRunGitOps(FakeGitOps(git_common_dirs={cwd: git_dir}))
 
@@ -176,7 +176,7 @@ def test_rm_dry_run_with_delete_stack() -> None:
         wt.mkdir(parents=True)
 
         # Build fake git ops with worktree info
-        from workstack.gitops import DryRunGitOps, WorktreeInfo
+        from workstack.core.gitops import DryRunGitOps, WorktreeInfo
 
         fake_git_ops = FakeGitOps(
             worktrees={cwd: [WorktreeInfo(path=wt, branch="feature-2")]},

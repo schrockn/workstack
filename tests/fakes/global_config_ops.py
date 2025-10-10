@@ -6,7 +6,7 @@ in its constructor. All state is held in memory - no filesystem access.
 
 from pathlib import Path
 
-from workstack.global_config_ops import _UNCHANGED, GlobalConfigOps, _UnchangedType
+from workstack.core.global_config_ops import _UNCHANGED, GlobalConfigOps, _UnchangedType
 
 
 class FakeGlobalConfigOps(GlobalConfigOps):

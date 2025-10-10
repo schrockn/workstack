@@ -11,7 +11,7 @@ from pathlib import Path
 
 import click
 
-from workstack.context import WorkstackContext
+from workstack.core.context import WorkstackContext
 
 
 @dataclass(frozen=True)

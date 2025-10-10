@@ -1,4 +1,4 @@
-from workstack.commands.init import render_config_template
+from workstack.cli.commands.init import render_config_template
 
 
 def test_render_config_template_default() -> None:

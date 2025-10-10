@@ -6,7 +6,7 @@ from tests.fakes.github_ops import FakeGitHubOps
 from tests.fakes.gitops import FakeGitOps
 from tests.fakes.global_config_ops import FakeGlobalConfigOps
 from tests.fakes.graphite_ops import FakeGraphiteOps
-from workstack.context import WorkstackContext
+from workstack.core.context import WorkstackContext
 
 
 def test_context_initialization() -> None:

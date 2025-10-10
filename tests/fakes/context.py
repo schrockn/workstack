@@ -4,7 +4,7 @@ from tests.fakes.github_ops import FakeGitHubOps
 from tests.fakes.gitops import FakeGitOps
 from tests.fakes.global_config_ops import FakeGlobalConfigOps
 from tests.fakes.graphite_ops import FakeGraphiteOps
-from workstack.context import WorkstackContext
+from workstack.core.context import WorkstackContext
 
 
 def create_test_context(
@@ -36,7 +36,7 @@ def create_test_context(
         >>> ctx = create_test_context(git_ops=git_ops)
 
         # With pre-configured global config
-        >>> from workstack.config import GlobalConfig
+        >>> from workstack.cli.config import GlobalConfig
         >>> config_ops = FakeGlobalConfigOps(
         ...     config=GlobalConfig(
         ...         workstacks_root=Path("/tmp/workstacks"),

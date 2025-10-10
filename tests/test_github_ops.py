@@ -1,6 +1,6 @@
 """Tests for GitHub operations."""
 
-from workstack.github_ops import _parse_github_pr_url
+from workstack.core.github_ops import _parse_github_pr_url
 
 
 def test_parse_github_pr_url_valid_urls() -> None:

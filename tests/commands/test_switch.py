@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 from click.testing import CliRunner
 
-from workstack.commands.shell_integration import hidden_shell_cmd
+from workstack.cli.commands.shell_integration import hidden_shell_cmd
 
 
 def strip_ansi(text: str) -> str:
@@ -237,13 +237,13 @@ def test_complete_worktree_names_without_context(
     """
     import click
 
-    from workstack.cli import cli
-    from workstack.commands.switch import complete_worktree_names
-    from workstack.context import WorkstackContext
-    from workstack.github_ops import RealGitHubOps
-    from workstack.gitops import RealGitOps
-    from workstack.global_config_ops import RealGlobalConfigOps
-    from workstack.graphite_ops import RealGraphiteOps
+    from workstack.cli.cli import cli
+    from workstack.cli.commands.switch import complete_worktree_names
+    from workstack.core.context import WorkstackContext
+    from workstack.core.github_ops import RealGitHubOps
+    from workstack.core.gitops import RealGitOps
+    from workstack.core.global_config_ops import RealGlobalConfigOps
+    from workstack.core.graphite_ops import RealGraphiteOps
 
     # Set up isolated global config
     global_config_dir = tmp_path / ".workstack"

@@ -31,9 +31,9 @@ from tests.fakes.github_ops import FakeGitHubOps
 from tests.fakes.gitops import FakeGitOps
 from tests.fakes.global_config_ops import FakeGlobalConfigOps
 from tests.fakes.graphite_ops import FakeGraphiteOps
-from workstack.cli import cli
-from workstack.context import WorkstackContext
-from workstack.gitops import WorktreeInfo
+from workstack.cli.cli import cli
+from workstack.core.context import WorkstackContext
+from workstack.core.gitops import WorktreeInfo
 
 
 def test_root_on_trunk_shows_only_trunk() -> None:

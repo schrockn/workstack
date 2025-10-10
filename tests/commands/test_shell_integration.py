@@ -2,7 +2,7 @@
 
 from click.testing import CliRunner
 
-from workstack.cli import cli
+from workstack.cli.cli import cli
 
 
 def test_shell_integration_with_switch() -> None:

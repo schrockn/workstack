@@ -8,7 +8,7 @@ from pathlib import Path
 
 import click
 
-from workstack.gitops import GitOps, WorktreeInfo
+from workstack.core.gitops import GitOps, WorktreeInfo
 
 
 class FakeGitOps(GitOps):

@@ -10,8 +10,8 @@ from tests.fakes.github_ops import FakeGitHubOps
 from tests.fakes.gitops import FakeGitOps
 from tests.fakes.global_config_ops import FakeGlobalConfigOps
 from tests.fakes.graphite_ops import FakeGraphiteOps
-from workstack.cli import cli
-from workstack.context import WorkstackContext
+from workstack.cli.cli import cli
+from workstack.core.context import WorkstackContext
 
 
 def create_isolated_shell_rc(shell: str, initial_content: str = "") -> Path:
@@ -119,7 +119,7 @@ def test_init_detects_graphite_installed() -> None:
         )
 
         # Mock shutil.which to simulate gt being installed
-        with mock.patch("workstack.commands.init.shutil.which", return_value="/usr/local/bin/gt"):
+        with mock.patch("workstack.cli.commands.init.shutil.which", return_value="/usr/local/bin/gt"):
             result = runner.invoke(cli, ["init"], obj=test_ctx, input=f"{workstacks_root}\nn\n")
 
         assert result.exit_code == 0, result.output
@@ -149,7 +149,7 @@ def test_init_detects_graphite_not_installed() -> None:
         )
 
         # Mock shutil.which to simulate gt NOT being installed
-        with mock.patch("workstack.commands.init.shutil.which", return_value=None):
+        with mock.patch("workstack.cli.commands.init.shutil.which", return_value=None):
             result = runner.invoke(cli, ["init"], obj=test_ctx, input=f"{workstacks_root}\nn\n")
 
         assert result.exit_code == 0, result.output
@@ -713,7 +713,7 @@ def test_init_first_time_offers_shell_setup() -> None:
         bashrc = create_isolated_shell_rc("bash")
 
         with mock.patch(
-            "workstack.commands.init.detect_shell",
+            "workstack.cli.commands.init.detect_shell",
             return_value=("bash", bashrc),
         ):
             # Provide input: workstacks_root, decline shell setup
@@ -749,7 +749,7 @@ def test_init_shell_flag_only_setup() -> None:
         bashrc = create_isolated_shell_rc("bash")
 
         with mock.patch(
-            "workstack.commands.init.detect_shell",
+            "workstack.cli.commands.init.detect_shell",
             return_value=("bash", bashrc),
         ):
             # Decline shell setup
@@ -787,7 +787,7 @@ def test_init_detects_bash_shell() -> None:
         bashrc = create_isolated_shell_rc("bash")
 
         with mock.patch(
-            "workstack.commands.init.detect_shell",
+            "workstack.cli.commands.init.detect_shell",
             return_value=("bash", bashrc),
         ):
             result = runner.invoke(
@@ -826,7 +826,7 @@ def test_init_detects_zsh_shell() -> None:
         zshrc = create_isolated_shell_rc("zsh")
 
         with mock.patch(
-            "workstack.commands.init.detect_shell",
+            "workstack.cli.commands.init.detect_shell",
             return_value=("zsh", zshrc),
         ):
             result = runner.invoke(
@@ -865,7 +865,7 @@ def test_init_detects_fish_shell() -> None:
         fish_config = create_isolated_shell_rc("fish")
 
         with mock.patch(
-            "workstack.commands.init.detect_shell",
+            "workstack.cli.commands.init.detect_shell",
             return_value=("fish", fish_config),
         ):
             result = runner.invoke(
@@ -900,7 +900,7 @@ def test_init_skips_unknown_shell() -> None:
             dry_run=False,
         )
 
-        with mock.patch("workstack.commands.init.detect_shell", return_value=None):
+        with mock.patch("workstack.cli.commands.init.detect_shell", return_value=None):
             result = runner.invoke(cli, ["init"], obj=test_ctx, input=f"{workstacks_root}\n")
 
         assert result.exit_code == 0, result.output
@@ -932,7 +932,7 @@ def test_init_adds_completion_to_rc_file() -> None:
         bashrc = create_isolated_shell_rc("bash", "# Existing content\n")
 
         with mock.patch(
-            "workstack.commands.init.detect_shell",
+            "workstack.cli.commands.init.detect_shell",
             return_value=("bash", bashrc),
         ):
             # Accept shell setup and both prompts (completion and wrapper)
@@ -973,7 +973,7 @@ def test_init_adds_wrapper_to_rc_file() -> None:
         bashrc = create_isolated_shell_rc("bash", "# Existing content\n")
 
         with mock.patch(
-            "workstack.commands.init.detect_shell",
+            "workstack.cli.commands.init.detect_shell",
             return_value=("bash", bashrc),
         ):
             # Accept shell setup and both prompts
@@ -1015,7 +1015,7 @@ def test_init_skips_shell_if_declined() -> None:
         bashrc = create_isolated_shell_rc("bash", original_content)
 
         with mock.patch(
-            "workstack.commands.init.detect_shell",
+            "workstack.cli.commands.init.detect_shell",
             return_value=("bash", bashrc),
         ):
             # Decline shell setup
