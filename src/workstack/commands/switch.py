@@ -4,6 +4,7 @@ import click
 
 from workstack.context import WorkstackContext, create_context
 from workstack.core import discover_repo_context, ensure_work_dir, worktree_path_for
+from workstack.shell_utils import write_script_to_temp
 
 
 def render_activation_script(*, worktree_path: Path) -> str:
@@ -143,7 +144,13 @@ def switch_cmd(ctx: WorkstackContext, name: str, script: bool) -> None:
                 "set +a",
                 'echo "Switched to root repo: $(pwd)"',
             ]
-            click.echo("\n".join(lines) + "\n", nl=True)
+            script_content = "\n".join(lines) + "\n"
+            script_path = write_script_to_temp(
+                script_content,
+                command_name="switch",
+                comment="activate root",
+            )
+            click.echo(str(script_path), nl=False)
         else:
             click.echo(
                 "Shell integration not detected. "
@@ -161,7 +168,12 @@ def switch_cmd(ctx: WorkstackContext, name: str, script: bool) -> None:
 
     if script:
         activation_script = render_activation_script(worktree_path=wt_path)
-        click.echo(activation_script, nl=True)
+        script_path = write_script_to_temp(
+            activation_script,
+            command_name="switch",
+            comment=f"activate {name}",
+        )
+        click.echo(str(script_path), nl=False)
     else:
         click.echo(
             "Shell integration not detected. "

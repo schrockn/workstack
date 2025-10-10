@@ -58,11 +58,21 @@ def test_switch_command(tmp_path: Path) -> None:
     )
 
     assert result.returncode == 0
-    # Should output shell code with cd command
-    assert "cd" in result.stdout
-    assert str(workstacks_root / "repo" / "myfeature") in result.stdout
+    # Output should be a temp file path
+    script_path = Path(result.stdout.strip())
+    assert script_path.exists()
+    assert script_path.name.startswith("workstack-switch-")
+    assert script_path.name.endswith(".sh")
+
+    # Verify script content
+    script_content = script_path.read_text()
+    assert "cd" in script_content
+    assert str(workstacks_root / "repo" / "myfeature") in script_content
     # Should source activate if venv exists
-    assert "activate" in result.stdout
+    assert "activate" in script_content
+
+    # Cleanup
+    script_path.unlink(missing_ok=True)
 
 
 def test_switch_nonexistent_worktree(tmp_path: Path) -> None:
@@ -139,10 +149,20 @@ def test_switch_to_root(tmp_path: Path) -> None:
     )
 
     assert result.returncode == 0
-    # Should output shell code with cd to root
-    assert "cd" in result.stdout
-    assert str(repo) in result.stdout
-    assert "root" in result.stdout.lower()
+    # Output should be a temp file path
+    script_path = Path(result.stdout.strip())
+    assert script_path.exists()
+    assert script_path.name.startswith("workstack-switch-")
+    assert script_path.name.endswith(".sh")
+
+    # Verify script content
+    script_content = script_path.read_text()
+    assert "cd" in script_content
+    assert str(repo) in script_content
+    assert "root" in script_content.lower()
+
+    # Cleanup
+    script_path.unlink(missing_ok=True)
 
 
 def test_hidden_shell_cmd_switch_passthrough_on_help() -> None:

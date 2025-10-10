@@ -371,13 +371,23 @@ def test_create_with_script_flag(tmp_path: Path) -> None:
     worktree_path = workstacks_root / "repo" / "test-worktree"
     assert worktree_path.exists()
 
-    # Verify script output contains the cd command
+    # Output should be a temp file path
+    script_path = Path(result.stdout.strip())
+    assert script_path.exists()
+    assert script_path.name.startswith("workstack-create-")
+    assert script_path.name.endswith(".sh")
+
+    # Verify script content contains the cd command
+    script_content = script_path.read_text()
     expected_script = render_cd_script(
         worktree_path,
-        comment="workstack create - cd to new worktree",
+        comment="cd to new worktree",
         success_message="✓ Switched to new worktree.",
     ).strip()
-    assert expected_script in result.stdout
+    assert expected_script in script_content
+
+    # Cleanup
+    script_path.unlink(missing_ok=True)
 
 
 def test_hidden_shell_cmd_create_passthrough_on_help() -> None:

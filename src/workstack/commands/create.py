@@ -10,7 +10,7 @@ import click
 from workstack.config import LoadedConfig, load_config
 from workstack.context import WorkstackContext
 from workstack.core import discover_repo_context, ensure_work_dir, worktree_path_for
-from workstack.shell_utils import render_cd_script
+from workstack.shell_utils import render_cd_script, write_script_to_temp
 
 _SAFE_COMPONENT_RE = re.compile(r"[^A-Za-z0-9._/-]+")
 
@@ -360,14 +360,17 @@ def create(
         )
 
     if script:
-        click.echo(
-            render_cd_script(
-                wt_path,
-                comment="workstack create - cd to new worktree",
-                success_message="✓ Switched to new worktree.",
-            ),
-            nl=False,
+        script_content = render_cd_script(
+            wt_path,
+            comment="cd to new worktree",
+            success_message="✓ Switched to new worktree.",
         )
+        script_path = write_script_to_temp(
+            script_content,
+            command_name="create",
+            comment=f"cd to {name}",
+        )
+        click.echo(str(script_path), nl=False)
     else:
         click.echo(f"Created workstack at {wt_path} checked out at branch '{branch}'")
         click.echo(f"\nworkstack switch {name}")
