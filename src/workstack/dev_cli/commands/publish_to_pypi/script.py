@@ -5,21 +5,57 @@
 # ]
 # requires-python = ">=3.13"
 # ///
-"""Publish workstack package to PyPI.
+"""Publish workstack and devclikit packages to PyPI.
 
-This script automates the full publishing workflow:
-1. Pull latest changes from remote
-2. Bump version in pyproject.toml
-3. Update lockfile with uv sync
-4. Build and publish to PyPI
-5. Commit and push changes
+This script automates the synchronized publishing workflow for both packages.
+
+RECOVERY FROM FAILURES:
+
+1. Pre-build failure (git, version parsing, etc):
+   - No changes made, safe to fix issue and retry
+
+2. Build failure:
+   - Version bumps made but not committed
+   - Run: git checkout -- pyproject.toml packages/devclikit/pyproject.toml uv.lock
+   - Fix build issue and retry
+
+3. devclikit publish failure:
+   - Version bumps made but not committed
+   - Run: git checkout -- pyproject.toml packages/devclikit/pyproject.toml uv.lock
+   - Investigate PyPI issue and retry
+
+4. workstack publish failure (devclikit already published):
+   - devclikit published to PyPI but workstack failed
+   - DO NOT revert version bumps
+   - Fix workstack issue and manually publish:
+     * cd dist
+     * uvx uv-publish workstack-<version>*
+   - Then commit and push
+
+5. Git commit/push failure (both packages published):
+   - Both packages published successfully
+   - Manually commit and push:
+     * git add pyproject.toml packages/devclikit/pyproject.toml uv.lock
+     * git commit -m "Published <version>"
+     * git push
 """
 
 import re
 import subprocess
+import time
+from dataclasses import dataclass
 from pathlib import Path
 
 import click
+
+
+@dataclass(frozen=True)
+class PackageInfo:
+    """Information about a publishable package."""
+
+    name: str
+    path: Path
+    pyproject_path: Path
 
 
 def run_command(cmd: list[str], cwd: Path | None = None, description: str = "") -> str:
@@ -60,6 +96,34 @@ def run_git_pull(repo_root: Path, dry_run: bool) -> None:
         return
     run_command(["git", "pull"], cwd=repo_root, description="git pull")
     click.echo("✓ Pulled latest changes")
+
+
+def discover_workspace_packages(repo_root: Path) -> list[PackageInfo]:
+    """Discover all publishable packages in workspace.
+
+    Returns:
+        List of packages in dependency order (dependencies first)
+    """
+    packages = [
+        PackageInfo(
+            name="devclikit",
+            path=repo_root / "packages" / "devclikit",
+            pyproject_path=repo_root / "packages" / "devclikit" / "pyproject.toml",
+        ),
+        PackageInfo(
+            name="workstack",
+            path=repo_root,
+            pyproject_path=repo_root / "pyproject.toml",
+        ),
+    ]
+
+    # Validate all packages exist
+    for pkg in packages:
+        if not pkg.pyproject_path.exists():
+            click.echo(f"✗ Package not found: {pkg.name} at {pkg.path}", err=True)
+            raise SystemExit(1)
+
+    return packages
 
 
 def get_current_version(pyproject_path: Path) -> str:
@@ -131,11 +195,55 @@ def update_version(pyproject_path: Path, old_version: str, new_version: str, dry
         raise SystemExit(1)
 
     if dry_run:
-        click.echo(f"[DRY RUN] Would update pyproject.toml: {old_line} -> {new_line}")
+        click.echo(f"[DRY RUN] Would update {pyproject_path.name}: {old_line} -> {new_line}")
         return
 
     updated_content = content.replace(old_line, new_line)
     pyproject_path.write_text(updated_content, encoding="utf-8")
+
+
+def validate_version_consistency(packages: list[PackageInfo]) -> str:
+    """Ensure all packages have the same version.
+
+    Returns:
+        The current version if consistent
+
+    Raises:
+        SystemExit: If versions are inconsistent
+    """
+    versions = {}
+    for pkg in packages:
+        version = get_current_version(pkg.pyproject_path)
+        versions[pkg.name] = version
+
+    unique_versions = set(versions.values())
+    if len(unique_versions) > 1:
+        click.echo("✗ Version mismatch across packages:", err=True)
+        for name, version in versions.items():
+            click.echo(f"  {name}: {version}", err=True)
+        raise SystemExit(1)
+
+    return list(unique_versions)[0]
+
+
+def synchronize_versions(
+    packages: list[PackageInfo],
+    old_version: str,
+    new_version: str,
+    dry_run: bool,
+) -> None:
+    """Update version in all package pyproject.toml files.
+
+    Args:
+        packages: List of packages to update
+        old_version: Current version to replace
+        new_version: New version to write
+        dry_run: If True, skip actual file writes
+    """
+    for pkg in packages:
+        update_version(pkg.pyproject_path, old_version, new_version, dry_run)
+        if not dry_run:
+            click.echo(f"  ✓ Updated {pkg.name}: {old_version} → {new_version}")
 
 
 def run_uv_sync(repo_root: Path, dry_run: bool) -> None:
@@ -147,39 +255,187 @@ def run_uv_sync(repo_root: Path, dry_run: bool) -> None:
     click.echo("✓ Dependencies synced")
 
 
-def run_make_publish(repo_root: Path, dry_run: bool) -> None:
-    """Build and publish to PyPI using make publish."""
+def build_package(package: PackageInfo, out_dir: Path, dry_run: bool) -> None:
+    """Build a specific package in the workspace.
+
+    Args:
+        package: Package to build
+        out_dir: Output directory for artifacts
+        dry_run: If True, skip actual build
+    """
     if dry_run:
-        click.echo("[DRY RUN] Would run: make publish")
+        click.echo(f"[DRY RUN] Would run: uv build --package {package.name} -o {out_dir}")
         return
-    run_command(["make", "publish"], cwd=repo_root, description="make publish")
+
+    # For devclikit, run from repo root; for workstack, also from repo root
+    run_command(
+        ["uv", "build", "--package", package.name, "-o", str(out_dir)],
+        cwd=package.path if package.name == "workstack" else package.path.parent.parent,
+        description=f"build {package.name}",
+    )
 
 
-def commit_changes(repo_root: Path, version: str, dry_run: bool) -> str:
-    """Commit version bump changes.
+def build_all_packages(
+    packages: list[PackageInfo],
+    repo_root: Path,
+    dry_run: bool,
+) -> Path:
+    """Build all packages to a staging directory.
+
+    Returns:
+        Path to staging directory containing all artifacts
+    """
+    # Create staging directory
+    staging_dir = repo_root / "dist"
+    if staging_dir.exists() and not dry_run:
+        # Clean existing artifacts
+        for artifact in staging_dir.glob("*"):
+            artifact.unlink()
+    elif not dry_run:
+        staging_dir.mkdir(parents=True, exist_ok=True)
+
+    click.echo("\nBuilding packages...")
+    for pkg in packages:
+        build_package(pkg, staging_dir, dry_run)
+        click.echo(f"  ✓ Built {pkg.name}")
+
+    return staging_dir
+
+
+def validate_build_artifacts(
+    packages: list[PackageInfo],
+    staging_dir: Path,
+    version: str,
+    dry_run: bool,
+) -> None:
+    """Verify all expected artifacts exist.
+
+    Args:
+        packages: List of packages that were built
+        staging_dir: Directory containing artifacts
+        version: Version number to check
+        dry_run: If True, skip validation
+    """
+    if dry_run:
+        click.echo("[DRY RUN] Would validate artifacts exist")
+        return
+
+    for pkg in packages:
+        wheel = staging_dir / f"{pkg.name}-{version}-py3-none-any.whl"
+        sdist = staging_dir / f"{pkg.name}-{version}.tar.gz"
+
+        if not wheel.exists():
+            click.echo(f"✗ Missing wheel: {wheel}", err=True)
+            raise SystemExit(1)
+        if not sdist.exists():
+            click.echo(f"✗ Missing sdist: {sdist}", err=True)
+            raise SystemExit(1)
+
+    click.echo("  ✓ All artifacts validated")
+
+
+def publish_package(package: PackageInfo, staging_dir: Path, version: str, dry_run: bool) -> None:
+    """Publish a single package to PyPI.
+
+    Args:
+        package: Package to publish
+        staging_dir: Directory containing built artifacts
+        version: Version being published
+        dry_run: If True, skip actual publish
+    """
+    if dry_run:
+        click.echo(f"[DRY RUN] Would publish {package.name} to PyPI")
+        return
+
+    # Filter to only this package's artifacts
+    artifacts = list(staging_dir.glob(f"{package.name}-{version}*"))
+
+    if not artifacts:
+        click.echo(f"✗ No artifacts found for {package.name} {version}", err=True)
+        raise SystemExit(1)
+
+    # Publish using uv-publish with specific files
+    run_command(
+        ["uvx", "uv-publish"] + [str(a) for a in artifacts],
+        cwd=staging_dir,
+        description=f"publish {package.name}",
+    )
+
+
+def wait_for_pypi_availability(package: PackageInfo, version: str, dry_run: bool) -> None:
+    """Wait for package to be available on PyPI.
+
+    Args:
+        package: Package to check
+        version: Version to wait for
+        dry_run: If True, skip wait
+    """
+    if dry_run:
+        click.echo(f"[DRY RUN] Would wait for {package.name} {version} on PyPI")
+        return
+
+    wait_seconds = 5
+    click.echo(f"  ⏳ Waiting {wait_seconds}s for PyPI propagation...")
+    time.sleep(wait_seconds)
+
+
+def publish_all_packages(
+    packages: list[PackageInfo],
+    staging_dir: Path,
+    version: str,
+    dry_run: bool,
+) -> None:
+    """Publish all packages in dependency order.
+
+    Packages are already sorted in dependency order (devclikit first).
+    """
+    click.echo("\nPublishing to PyPI...")
+
+    for i, pkg in enumerate(packages):
+        publish_package(pkg, staging_dir, version, dry_run)
+        click.echo(f"  ✓ Published {pkg.name} {version}")
+
+        # Wait after publishing dependencies (all but last)
+        if i < len(packages) - 1:
+            wait_for_pypi_availability(pkg, version, dry_run)
+
+
+def commit_changes(
+    repo_root: Path,
+    packages: list[PackageInfo],
+    version: str,
+    dry_run: bool,
+) -> str:
+    """Commit version bump changes for all packages.
 
     Args:
         repo_root: Repository root directory
+        packages: List of packages that were updated
         version: New version number
         dry_run: If True, print commands instead of executing
 
     Returns:
         Commit SHA (or fake SHA in dry-run mode)
     """
-    commit_message = f"""Published {version}
+    commit_message = f"""Published workstack and devclikit {version}
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 
 Co-Authored-By: Claude <noreply@anthropic.com>"""
 
     if dry_run:
-        click.echo("[DRY RUN] Would run: git add pyproject.toml uv.lock")
+        files_to_add = [str(pkg.pyproject_path.relative_to(repo_root)) for pkg in packages]
+        files_to_add.append("uv.lock")
+        click.echo(f"[DRY RUN] Would run: git add {' '.join(files_to_add)}")
         click.echo(f'[DRY RUN] Would run: git commit -m "Published {version}..."')
         return "abc123f"
 
-    # Add modified files
+    # Add all pyproject.toml files and lockfile
+    files_to_add = [str(pkg.pyproject_path.relative_to(repo_root)) for pkg in packages]
+    files_to_add.append("uv.lock")
+
     run_command(
-        ["git", "add", "pyproject.toml", "uv.lock"],
+        ["git", "add"] + files_to_add,
         cwd=repo_root,
         description="git add",
     )
@@ -248,24 +504,31 @@ def filter_git_status(status: str, excluded_files: set[str]) -> list[str]:
 @click.command()
 @click.option("--dry-run", is_flag=True, help="Show what would be done without making changes")
 def main(dry_run: bool) -> None:
-    """Execute the full publishing workflow."""
+    """Execute the synchronized multi-package publishing workflow."""
     if dry_run:
         click.echo("[DRY RUN MODE - No changes will be made]\n")
 
-    # Determine repository root (script should be run from repo root)
+    # Step 0: Setup
     repo_root = Path.cwd()
-    pyproject_path = repo_root / "pyproject.toml"
-
-    if not pyproject_path.exists():
+    if not (repo_root / "pyproject.toml").exists():
         click.echo("✗ Not in repository root (pyproject.toml not found)", err=True)
         click.echo("  Run this command from the repository root directory", err=True)
         raise SystemExit(1)
 
-    # Check git status is clean (except pyproject.toml and uv.lock)
+    # Step 1: Discover packages
+    click.echo("Discovering workspace packages...")
+    packages = discover_workspace_packages(repo_root)
+    click.echo(f"  ✓ Found {len(packages)} packages: {', '.join(p.name for p in packages)}")
+
+    # Step 2: Check git status
     status = get_git_status(repo_root)
     if status:
-        # Filter out pyproject.toml and uv.lock changes
-        excluded_files = {"pyproject.toml", "uv.lock"}
+        # Filter out version files that will be updated
+        excluded_files = {
+            "pyproject.toml",
+            "uv.lock",
+            "packages/devclikit/pyproject.toml",
+        }
         lines = filter_git_status(status, excluded_files)
 
         if lines:
@@ -274,33 +537,42 @@ def main(dry_run: bool) -> None:
                 click.echo(f"  {line}", err=True)
             raise SystemExit(1)
 
-    click.echo("Starting publish workflow...\n")
+    click.echo("\nStarting synchronized publish workflow...\n")
 
-    # Step 1: Pull latest changes
+    # Step 3: Pull latest changes
     run_git_pull(repo_root, dry_run)
 
-    # Step 2: Bump version
-    old_version = get_current_version(pyproject_path)
-    new_version = bump_patch_version(old_version)
-    update_version(pyproject_path, old_version, new_version, dry_run)
-    click.echo(f"✓ Version bumped: {old_version} → {new_version}")
+    # Step 4: Validate version consistency
+    old_version = validate_version_consistency(packages)
+    click.echo(f"  ✓ Current version: {old_version} (consistent)")
 
-    # Step 3: Update lockfile
+    # Step 5: Bump versions
+    new_version = bump_patch_version(old_version)
+    click.echo(f"\nBumping version: {old_version} → {new_version}")
+    synchronize_versions(packages, old_version, new_version, dry_run)
+
+    # Step 6: Update lockfile
     run_uv_sync(repo_root, dry_run)
 
-    # Step 4: Publish to PyPI
-    run_make_publish(repo_root, dry_run)
-    click.echo(f"✓ Published to PyPI: workstack-{new_version}")
+    # Step 7: Build all packages
+    staging_dir = build_all_packages(packages, repo_root, dry_run)
+    validate_build_artifacts(packages, staging_dir, new_version, dry_run)
 
-    # Step 5: Commit changes
-    sha = commit_changes(repo_root, new_version, dry_run)
-    click.echo(f'✓ Committed: {sha} "Published {new_version}"')
+    # Step 8: Publish all packages
+    publish_all_packages(packages, staging_dir, new_version, dry_run)
 
-    # Step 6: Push to remote
+    # Step 9: Commit changes
+    sha = commit_changes(repo_root, packages, new_version, dry_run)
+    click.echo(f'\n✓ Committed: {sha} "Published {new_version}"')
+
+    # Step 10: Push to remote
     push_to_remote(repo_root, dry_run)
-    click.echo("✓ Pushed to origin/main")
+    click.echo("✓ Pushed to origin")
 
-    click.echo(f"\n✅ Successfully published workstack {new_version}")
+    # Success summary
+    click.echo(f"\n✅ Successfully published:")
+    for pkg in packages:
+        click.echo(f"  • {pkg.name} {new_version}")
 
 
 if __name__ == "__main__":
