@@ -34,6 +34,9 @@ def bash() -> None:
         # Then restart your shell
     """
     script_path = Path(__file__).parent / "script.py"
+    if not script_path.exists():
+        click.echo(f"Error: Script not found at {script_path}", err=True)
+        raise SystemExit(1)
     run_pep723_script_with_output(script_path, ["bash"])
 
 
@@ -57,6 +60,9 @@ def zsh() -> None:
         # Then restart your shell
     """
     script_path = Path(__file__).parent / "script.py"
+    if not script_path.exists():
+        click.echo(f"Error: Script not found at {script_path}", err=True)
+        raise SystemExit(1)
     run_pep723_script_with_output(script_path, ["zsh"])
 
 
@@ -75,4 +81,7 @@ def fish() -> None:
         # Completions will be loaded automatically in new fish sessions
     """
     script_path = Path(__file__).parent / "script.py"
+    if not script_path.exists():
+        click.echo(f"Error: Script not found at {script_path}", err=True)
+        raise SystemExit(1)
     run_pep723_script_with_output(script_path, ["fish"])

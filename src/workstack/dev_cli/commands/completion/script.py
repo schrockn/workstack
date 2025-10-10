@@ -40,6 +40,7 @@ def main() -> None:
     env["_WORKSTACK_DEV_COMPLETE"] = f"{shell}_source"
 
     # Run workstack-dev with completion environment variable
+    # Use check=False to capture and forward exact exit code for shell completion
     result = subprocess.run(
         cmd,
         env=env,

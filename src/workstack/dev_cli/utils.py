@@ -51,6 +51,7 @@ def run_pep723_script_with_output(script_path: Path, args: list[str] | None = No
         # Echo stderr for warnings/errors
         if result.stderr:
             click.echo(result.stderr, err=True, nl=False)
+    # Error boundary: Convert subprocess errors to user-friendly CLI messages
     except subprocess.CalledProcessError as e:
         if e.stdout:
             click.echo(e.stdout, nl=False)
