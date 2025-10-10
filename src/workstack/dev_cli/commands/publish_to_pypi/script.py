@@ -570,7 +570,7 @@ def main(dry_run: bool) -> None:
     click.echo("✓ Pushed to origin")
 
     # Success summary
-    click.echo(f"\n✅ Successfully published:")
+    click.echo("\n✅ Successfully published:")
     for pkg in packages:
         click.echo(f"  • {pkg.name} {new_version}")
 

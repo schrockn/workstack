@@ -27,7 +27,16 @@ all-ci: lint format prettier-check pyright test
 clean:
 	rm -rf dist/*.whl dist/*.tar.gz
 
-# Publish to PyPI. Token is read from ~/.pypirc
-publish: clean
+# Build both devclikit and workstack packages
+build: clean
+	cd packages/devclikit && uv build
 	uv build
-	uvx uv-publish
+
+# Publish both packages to PyPI (devclikit first, then workstack)
+# Credentials are read from ~/.pypirc
+publish: build
+	@echo "Publishing devclikit..."
+	uvx uv-publish ./dist/devclikit-*.whl ./dist/devclikit-*.tar.gz
+	@echo "Publishing workstack..."
+	uvx uv-publish ./dist/workstack-*.whl ./dist/workstack-*.tar.gz
+	@echo "✓ Both packages published successfully"

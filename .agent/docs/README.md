@@ -14,6 +14,7 @@ Choose your starting point based on your task:
 | **Need code examples**              | [PATTERNS.md](PATTERNS.md) - Code patterns and examples                   |
 | **Working with exceptions**         | [EXCEPTION_HANDLING.md](EXCEPTION_HANDLING.md) - Exception handling guide |
 | **Writing tests**                   | [../../tests/CLAUDE.md](../../tests/CLAUDE.md) - Testing patterns         |
+| **Publishing to PyPI**              | [PUBLISHING.md](PUBLISHING.md) - Publishing guide                         |
 | **Project overview**                | [../../README.md](../../README.md) - Getting started                      |
 
 ---
@@ -46,6 +47,13 @@ Choose your starting point based on your task:
 - Acceptable uses of exception handling
 - Dictionary access, validation, file processing
 - Anti-patterns and examples
+
+**[PUBLISHING.md](PUBLISHING.md)** - PyPI publishing guide
+
+- Publishing both devclikit and workstack packages
+- Authentication setup and credentials
+- Version management and release process
+- Testing and troubleshooting
 
 ### 🧪 Testing
 
@@ -112,6 +120,7 @@ CLAUDE.md (read rule)
 2. [PATTERNS.md](PATTERNS.md) - Code examples
 3. [EXCEPTION_HANDLING.md](EXCEPTION_HANDLING.md) - Exception guide
 4. [../../tests/CLAUDE.md](../../tests/CLAUDE.md) - Testing guide
+5. [PUBLISHING.md](PUBLISHING.md) - Publishing to PyPI
 
 ### By Topic
 
@@ -124,6 +133,10 @@ CLAUDE.md (read rule)
 **Testing:**
 
 - [../../tests/CLAUDE.md](../../tests/CLAUDE.md) - Testing patterns
+
+**Publishing:**
+
+- [PUBLISHING.md](PUBLISHING.md) - Publishing to PyPI
 
 ---
 

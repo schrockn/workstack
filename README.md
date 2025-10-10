@@ -398,6 +398,7 @@ Core documentation for contributors:
 
 - **[CLAUDE.md](CLAUDE.md)** - Coding standards and conventions (required reading)
 - **[tests/CLAUDE.md](tests/CLAUDE.md)** - Testing patterns and practices
+- **[.agent/docs/PUBLISHING.md](.agent/docs/PUBLISHING.md)** - Publishing to PyPI guide
 
 #### Workspace Structure
 
