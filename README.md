@@ -77,6 +77,38 @@ workstack sync                   # Sync with Graphite, show cleanup candidates
 workstack sync -f                # Sync and auto-remove merged workstacks
 ```
 
+### Moving Branches
+
+Move or swap branches between worktrees:
+
+```bash
+# Move from current worktree to new worktree
+workstack move target-wt
+
+# Move from current worktree (explicit)
+workstack move --current target-wt
+
+# Auto-detect source from branch name
+workstack move --branch feature-x new-wt
+
+# Move from specific source to target
+workstack move --worktree old-wt new-wt
+
+# Swap branches between current and another worktree
+workstack move --current existing-wt
+
+# Force operation without prompts
+workstack move --current target-wt --force
+
+# Specify custom fallback branch
+workstack move --current new-wt --ref develop
+```
+
+**Operation Detection:**
+
+- **Move**: Target doesn't exist or is in detached HEAD → creates/updates target, switches source to fallback
+- **Swap**: Both worktrees exist with branches → swaps branches between them
+
 Example output:
 
 ```bash
@@ -281,6 +313,16 @@ Requires Graphite CLI (`gt`) and GitHub CLI (`gh`) installed.
 | -------------- | ---------------------------------- |
 | `-s, --stacks` | Show graphite stacks and PR status |
 
+### `move` Options
+
+| Option            | Description                                 |
+| ----------------- | ------------------------------------------- |
+| `--current`       | Use current worktree as source              |
+| `--branch BRANCH` | Auto-detect worktree containing this branch |
+| `--worktree NAME` | Use specific worktree as source             |
+| `--ref REF`       | Fallback branch for source (default: main)  |
+| `-f, --force`     | Skip confirmation prompts                   |
+
 ### `remove` / `rm` Options
 
 | Option               | Description                               |
@@ -397,8 +439,9 @@ See [`.agent/README.md`](.agent/README.md) for more details.
 For developers working on workstack itself, the `workstack-dev` CLI provides development tools:
 
 ```bash
-workstack-dev clean-cache       # Clean development cache directories
-workstack-dev publish-to-pypi   # Automated PyPI publishing workflow
+workstack-dev clean-cache             # Clean development cache directories
+workstack-dev create-agents-symlinks  # Create AGENTS.md symlinks for CLAUDE.md files
+workstack-dev publish-to-pypi         # Automated PyPI publishing workflow
 ```
 
 **Documentation:**
