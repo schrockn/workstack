@@ -82,32 +82,11 @@ workstack sync -f                # Sync and auto-remove merged workstacks
 Move or swap branches between worktrees:
 
 ```bash
-# Move from current worktree to new worktree
-workstack move target-wt
-
-# Move from current worktree (explicit)
-workstack move --current target-wt
-
-# Auto-detect source from branch name
-workstack move --branch feature-x new-wt
-
-# Move from specific source to target
-workstack move --worktree old-wt new-wt
-
-# Swap branches between current and another worktree
-workstack move --current existing-wt
-
-# Force operation without prompts
-workstack move --current target-wt --force
-
-# Specify custom fallback branch
-workstack move --current new-wt --ref develop
+workstack move target-wt                      # Move from current to new worktree
+workstack move --worktree old-wt new-wt       # Move from specific source to target
+workstack move --current existing-wt          # Swap branches between worktrees
+workstack move --branch feature-x new-wt      # Auto-detect source from branch name
 ```
-
-**Operation Detection:**
-
-- **Move**: Target doesn't exist or is in detached HEAD → creates/updates target, switches source to fallback
-- **Swap**: Both worktrees exist with branches → swaps branches between them
 
 Example output:
 
