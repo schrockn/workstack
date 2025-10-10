@@ -399,6 +399,22 @@ Core documentation for contributors:
 - **[CLAUDE.md](CLAUDE.md)** - Coding standards and conventions (required reading)
 - **[tests/CLAUDE.md](tests/CLAUDE.md)** - Testing patterns and practices
 
+#### Workspace Structure
+
+This project uses a uv workspace to organize the codebase:
+
+```
+workstack/                    # Root workspace
+├── src/workstack/            # Main workstack package
+├── packages/
+│   └── devclikit/            # Dev CLI framework (extracted from workstack)
+│       ├── src/devclikit/    # Framework source code
+│       └── pyproject.toml    # Package metadata
+└── pyproject.toml            # Workspace configuration
+```
+
+**devclikit** is an independent package that provides the framework for building development CLIs with PEP 723 script support. It was extracted from workstack's `dev_cli_core` module to enable independent versioning and potential future PyPI publication.
+
 ### For AI Assistants
 
 Comprehensive, agent-optimized documentation is available in the `.agent/` directory:

@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from dev_cli_core.utils import ensure_directory, is_valid_command_name
+from devclikit.utils import ensure_directory, is_valid_command_name
 
 
 def test_ensure_directory_creates_directory(tmp_path: Path) -> None:

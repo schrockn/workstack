@@ -119,7 +119,8 @@ def test_init_detects_graphite_installed() -> None:
         )
 
         # Mock shutil.which to simulate gt being installed
-        with mock.patch("workstack.cli.commands.init.shutil.which", return_value="/usr/local/bin/gt"):
+        gt_path = "/usr/local/bin/gt"
+        with mock.patch("workstack.cli.commands.init.shutil.which", return_value=gt_path):
             result = runner.invoke(cli, ["init"], obj=test_ctx, input=f"{workstacks_root}\nn\n")
 
         assert result.exit_code == 0, result.output

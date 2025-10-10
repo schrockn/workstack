@@ -1,8 +1,8 @@
-"""Hello World CLI - dev_cli_core example."""
+"""Hello World CLI - devclikit example."""
 
 from pathlib import Path
 
-from dev_cli_core import create_cli
+from devclikit import create_cli
 
 # Create CLI with automatic command discovery
 cli = create_cli(

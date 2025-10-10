@@ -5,7 +5,7 @@ from pathlib import Path
 import click
 from click.testing import CliRunner
 
-from dev_cli_core.cli_factory import create_cli
+from devclikit.cli_factory import create_cli
 
 
 def test_create_cli_basic(tmp_path: Path) -> None:

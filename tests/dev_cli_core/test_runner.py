@@ -4,8 +4,8 @@ from pathlib import Path
 
 import pytest
 
-from dev_cli_core.exceptions import ScriptExecutionError
-from dev_cli_core.runner import run_pep723_script, validate_pep723_script
+from devclikit.exceptions import ScriptExecutionError
+from devclikit.runner import run_pep723_script, validate_pep723_script
 
 
 def test_run_pep723_script_success(tmp_path: Path) -> None:

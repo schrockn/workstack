@@ -6,7 +6,7 @@ from pathlib import Path
 
 import click
 
-from dev_cli_core.exceptions import ScriptExecutionError
+from devclikit.exceptions import ScriptExecutionError
 
 
 def run_pep723_script(

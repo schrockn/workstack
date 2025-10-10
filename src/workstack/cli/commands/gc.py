@@ -2,8 +2,8 @@ from pathlib import Path
 
 import click
 
-from workstack.core.context import WorkstackContext
 from workstack.cli.core import discover_repo_context, ensure_work_dir
+from workstack.core.context import WorkstackContext
 
 
 @click.command("gc")
