@@ -35,5 +35,6 @@ def test_cli_help_shows_commands() -> None:
     result = runner.invoke(cli, ["--help"])
     assert result.exit_code == 0
     assert "clean-cache" in result.output
+    assert "completion" in result.output
     assert "publish-to-pypi" in result.output
     assert "create-agents-symlinks" in result.output
