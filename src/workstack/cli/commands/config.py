@@ -57,8 +57,12 @@ def config_group() -> None:
 
 
 @config_group.command("list")
+@click.option(
+    "--filter",
+    help="Filter config keys by prefix (e.g., 'rebase' for rebase.* keys)",
+)
 @click.pass_obj
-def config_list(ctx: WorkstackContext) -> None:
+def config_list(ctx: WorkstackContext, filter: str | None) -> None:
     """Print a list of configuration keys and values."""
     # Try to load global config
     try:
@@ -66,11 +70,38 @@ def config_list(ctx: WorkstackContext) -> None:
         use_graphite = ctx.global_config_ops.get_use_graphite()
         show_pr_info = ctx.global_config_ops.get_show_pr_info()
         show_pr_checks = ctx.global_config_ops.get_show_pr_checks()
+        rebase_use_stacks = ctx.global_config_ops.get_rebase_use_stacks()
+        rebase_auto_test = ctx.global_config_ops.get_rebase_auto_test()
+        rebase_preserve_stacks = ctx.global_config_ops.get_rebase_preserve_stacks()
+        rebase_conflict_tool = ctx.global_config_ops.get_rebase_conflict_tool()
+        rebase_stack_location = ctx.global_config_ops.get_rebase_stack_location()
+
         click.echo(click.style("Global configuration:", bold=True))
-        click.echo(f"  workstacks_root={workstacks_root}")
-        click.echo(f"  use_graphite={str(use_graphite).lower()}")
-        click.echo(f"  show_pr_info={str(show_pr_info).lower()}")
-        click.echo(f"  show_pr_checks={str(show_pr_checks).lower()}")
+
+        # Collect all config keys and values
+        config_items = [
+            ("workstacks_root", str(workstacks_root)),
+            ("use_graphite", str(use_graphite).lower()),
+            ("show_pr_info", str(show_pr_info).lower()),
+            ("show_pr_checks", str(show_pr_checks).lower()),
+            ("rebase.useStacks", str(rebase_use_stacks).lower()),
+            ("rebase.autoTest", str(rebase_auto_test).lower()),
+            ("rebase.preserveStacks", str(rebase_preserve_stacks).lower()),
+            ("rebase.conflictTool", rebase_conflict_tool),
+            ("rebase.stackLocation", rebase_stack_location),
+        ]
+
+        # Apply filter if provided
+        if filter:
+            config_items = [(k, v) for k, v in config_items if k.startswith(filter)]
+
+        # Display filtered items
+        for key, value in config_items:
+            click.echo(f"  {key}={value}")
+
+        if filter and not config_items:
+            click.echo(f"  (no config keys matching '{filter}')")
+
     except FileNotFoundError:
         click.echo(click.style("Global configuration:", bold=True))
         click.echo("  (not configured - run 'workstack init' to create)")
@@ -115,6 +146,35 @@ def config_get(ctx: WorkstackContext, key: str) -> None:
                 click.echo(str(ctx.global_config_ops.get_show_pr_info()).lower())
             elif parts[0] == "show_pr_checks":
                 click.echo(str(ctx.global_config_ops.get_show_pr_checks()).lower())
+        except FileNotFoundError as e:
+            click.echo(f"Global config not found at {ctx.global_config_ops.get_path()}", err=True)
+            raise SystemExit(1) from e
+        return
+
+    # Handle rebase.* config keys
+    if parts[0] == "rebase":
+        if len(parts) != 2:
+            click.echo(f"Invalid key: {key}", err=True)
+            raise SystemExit(1)
+
+        rebase_keys = {
+            "useStacks": lambda: str(ctx.global_config_ops.get_rebase_use_stacks()).lower(),
+            "autoTest": lambda: str(ctx.global_config_ops.get_rebase_auto_test()).lower(),
+            "preserveStacks": lambda: str(
+                ctx.global_config_ops.get_rebase_preserve_stacks()
+            ).lower(),
+            "conflictTool": lambda: ctx.global_config_ops.get_rebase_conflict_tool(),
+            "stackLocation": lambda: ctx.global_config_ops.get_rebase_stack_location(),
+        }
+
+        if parts[1] not in rebase_keys:
+            click.echo(f"Unknown rebase config key: {parts[1]}", err=True)
+            valid_keys = ", ".join(f"rebase.{k}" for k in rebase_keys.keys())
+            click.echo(f"Valid keys: {valid_keys}", err=True)
+            raise SystemExit(1)
+
+        try:
+            click.echo(rebase_keys[parts[1]]())
         except FileNotFoundError as e:
             click.echo(f"Global config not found at {ctx.global_config_ops.get_path()}", err=True)
             raise SystemExit(1) from e
@@ -179,6 +239,54 @@ def config_set(ctx: WorkstackContext, key: str, value: str) -> None:
                 click.echo(f"Invalid boolean value: {value}", err=True)
                 raise SystemExit(1)
             ctx.global_config_ops.set(show_pr_checks=value.lower() == "true")
+
+        click.echo(f"Set {key}={value}")
+        return
+
+    # Handle rebase.* config keys
+    if parts[0] == "rebase":
+        if len(parts) != 2:
+            click.echo(f"Invalid key: {key}", err=True)
+            raise SystemExit(1)
+
+        if not ctx.global_config_ops.exists():
+            click.echo(f"Global config not found at {ctx.global_config_ops.get_path()}", err=True)
+            click.echo("Run 'workstack init' to create it.", err=True)
+            raise SystemExit(1)
+
+        # Validate and set rebase config
+        subkey = parts[1]
+        if subkey == "useStacks":
+            if value.lower() not in ("true", "false"):
+                click.echo(f"Invalid boolean value: {value}", err=True)
+                raise SystemExit(1)
+            ctx.global_config_ops.set(rebase_use_stacks=value.lower() == "true")
+        elif subkey == "autoTest":
+            if value.lower() not in ("true", "false"):
+                click.echo(f"Invalid boolean value: {value}", err=True)
+                raise SystemExit(1)
+            ctx.global_config_ops.set(rebase_auto_test=value.lower() == "true")
+        elif subkey == "preserveStacks":
+            if value.lower() not in ("true", "false"):
+                click.echo(f"Invalid boolean value: {value}", err=True)
+                raise SystemExit(1)
+            ctx.global_config_ops.set(rebase_preserve_stacks=value.lower() == "true")
+        elif subkey == "conflictTool":
+            allowed_tools = ["vimdiff", "meld", "kdiff3", "opendiff", "code"]
+            if value not in allowed_tools:
+                click.echo(f"Invalid conflict tool: {value}", err=True)
+                click.echo(f"Allowed tools: {', '.join(allowed_tools)}", err=True)
+                raise SystemExit(1)
+            ctx.global_config_ops.set(rebase_conflict_tool=value)
+        elif subkey == "stackLocation":
+            ctx.global_config_ops.set(rebase_stack_location=value)
+        else:
+            click.echo(f"Unknown rebase config key: {subkey}", err=True)
+            click.echo(
+                "Valid keys: useStacks, autoTest, preserveStacks, conflictTool, stackLocation",
+                err=True,
+            )
+            raise SystemExit(1)
 
         click.echo(f"Set {key}={value}")
         return

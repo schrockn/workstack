@@ -87,6 +87,66 @@ class GlobalConfigOps(ABC):
         ...
 
     @abstractmethod
+    def get_rebase_use_stacks(self) -> bool:
+        """Get whether to always use rebase stacks (safe rebasing).
+
+        Returns:
+            True if rebase stacks should be used, False otherwise
+
+        Raises:
+            FileNotFoundError: If config file doesn't exist
+        """
+        ...
+
+    @abstractmethod
+    def get_rebase_auto_test(self) -> bool:
+        """Get whether to automatically run tests after resolving conflicts.
+
+        Returns:
+            True if tests should run automatically, False otherwise
+
+        Raises:
+            FileNotFoundError: If config file doesn't exist
+        """
+        ...
+
+    @abstractmethod
+    def get_rebase_preserve_stacks(self) -> bool:
+        """Get whether to keep rebase stacks after applying (for inspection).
+
+        Returns:
+            True if stacks should be preserved, False otherwise
+
+        Raises:
+            FileNotFoundError: If config file doesn't exist
+        """
+        ...
+
+    @abstractmethod
+    def get_rebase_conflict_tool(self) -> str:
+        """Get default tool for resolving conflicts.
+
+        Returns:
+            Name of conflict resolution tool (e.g., vimdiff, meld)
+
+        Raises:
+            FileNotFoundError: If config file doesn't exist
+        """
+        ...
+
+    @abstractmethod
+    def get_rebase_stack_location(self) -> str:
+        """Get directory name prefix for rebase stacks.
+
+        Returns:
+            Directory prefix for rebase stacks
+
+        Raises:
+            FileNotFoundError: If config file doesn't exist
+        """
+        ...
+
+    @abstractmethod
     def set(
         self,
         *,
@@ -95,6 +155,11 @@ class GlobalConfigOps(ABC):
         shell_setup_complete: bool | _UnchangedType = _UNCHANGED,
         show_pr_info: bool | _UnchangedType = _UNCHANGED,
         show_pr_checks: bool | _UnchangedType = _UNCHANGED,
+        rebase_use_stacks: bool | _UnchangedType = _UNCHANGED,
+        rebase_auto_test: bool | _UnchangedType = _UNCHANGED,
+        rebase_preserve_stacks: bool | _UnchangedType = _UNCHANGED,
+        rebase_conflict_tool: str | _UnchangedType = _UNCHANGED,
+        rebase_stack_location: str | _UnchangedType = _UNCHANGED,
     ) -> None:
         """Update config fields. Only provided fields are changed.
 
@@ -107,6 +172,11 @@ class GlobalConfigOps(ABC):
             shell_setup_complete: New shell setup status, or _UNCHANGED to keep current
             show_pr_info: New PR info display preference, or _UNCHANGED to keep current
             show_pr_checks: New CI check display preference, or _UNCHANGED to keep current
+            rebase_use_stacks: Always use rebase stacks, or _UNCHANGED to keep current
+            rebase_auto_test: Auto-run tests after conflicts, or _UNCHANGED to keep current
+            rebase_preserve_stacks: Keep stacks after applying, or _UNCHANGED to keep current
+            rebase_conflict_tool: Conflict resolution tool, or _UNCHANGED to keep current
+            rebase_stack_location: Stack directory prefix, or _UNCHANGED to keep current
 
         Raises:
             ValueError: If all fields are _UNCHANGED (nothing to update)
@@ -142,9 +212,9 @@ class RealGlobalConfigOps(GlobalConfigOps):
 
     def __init__(self) -> None:
         self._path = Path.home() / ".workstack" / "config.toml"
-        self._cache: dict[str, Path | bool] | None = None
+        self._cache: dict[str, Path | bool | str] | None = None
 
-    def _load_cache(self) -> dict[str, Path | bool]:
+    def _load_cache(self) -> dict[str, Path | bool | str]:
         """Load config from disk and cache it."""
         if not self._path.exists():
             raise FileNotFoundError(f"Global config not found at {self._path}")
@@ -160,9 +230,14 @@ class RealGlobalConfigOps(GlobalConfigOps):
             "shell_setup_complete": bool(data.get("shell_setup_complete", False)),
             "show_pr_info": bool(data.get("show_pr_info", True)),
             "show_pr_checks": bool(data.get("show_pr_checks", False)),
+            "rebase_use_stacks": bool(data.get("rebase_use_stacks", True)),
+            "rebase_auto_test": bool(data.get("rebase_auto_test", False)),
+            "rebase_preserve_stacks": bool(data.get("rebase_preserve_stacks", False)),
+            "rebase_conflict_tool": str(data.get("rebase_conflict_tool", "vimdiff")),
+            "rebase_stack_location": str(data.get("rebase_stack_location", ".rebase-stack")),
         }
 
-    def _ensure_cache(self) -> dict[str, Path | bool]:
+    def _ensure_cache(self) -> dict[str, Path | bool | str]:
         """Ensure cache is loaded and return it."""
         if self._cache is None:
             self._cache = self._load_cache()
@@ -207,6 +282,41 @@ class RealGlobalConfigOps(GlobalConfigOps):
             raise TypeError(f"Expected bool, got {type(result)}")
         return result
 
+    def get_rebase_use_stacks(self) -> bool:
+        cache = self._ensure_cache()
+        result = cache["rebase_use_stacks"]
+        if not isinstance(result, bool):
+            raise TypeError(f"Expected bool, got {type(result)}")
+        return result
+
+    def get_rebase_auto_test(self) -> bool:
+        cache = self._ensure_cache()
+        result = cache["rebase_auto_test"]
+        if not isinstance(result, bool):
+            raise TypeError(f"Expected bool, got {type(result)}")
+        return result
+
+    def get_rebase_preserve_stacks(self) -> bool:
+        cache = self._ensure_cache()
+        result = cache["rebase_preserve_stacks"]
+        if not isinstance(result, bool):
+            raise TypeError(f"Expected bool, got {type(result)}")
+        return result
+
+    def get_rebase_conflict_tool(self) -> str:
+        cache = self._ensure_cache()
+        result = cache["rebase_conflict_tool"]
+        if not isinstance(result, str):
+            raise TypeError(f"Expected str, got {type(result)}")
+        return result
+
+    def get_rebase_stack_location(self) -> str:
+        cache = self._ensure_cache()
+        result = cache["rebase_stack_location"]
+        if not isinstance(result, str):
+            raise TypeError(f"Expected str, got {type(result)}")
+        return result
+
     def set(
         self,
         *,
@@ -215,6 +325,11 @@ class RealGlobalConfigOps(GlobalConfigOps):
         shell_setup_complete: bool | _UnchangedType = _UNCHANGED,
         show_pr_info: bool | _UnchangedType = _UNCHANGED,
         show_pr_checks: bool | _UnchangedType = _UNCHANGED,
+        rebase_use_stacks: bool | _UnchangedType = _UNCHANGED,
+        rebase_auto_test: bool | _UnchangedType = _UNCHANGED,
+        rebase_preserve_stacks: bool | _UnchangedType = _UNCHANGED,
+        rebase_conflict_tool: str | _UnchangedType = _UNCHANGED,
+        rebase_stack_location: str | _UnchangedType = _UNCHANGED,
     ) -> None:
         # Check if at least one field is being updated
         if (
@@ -223,6 +338,11 @@ class RealGlobalConfigOps(GlobalConfigOps):
             and isinstance(shell_setup_complete, _UnchangedType)
             and isinstance(show_pr_info, _UnchangedType)
             and isinstance(show_pr_checks, _UnchangedType)
+            and isinstance(rebase_use_stacks, _UnchangedType)
+            and isinstance(rebase_auto_test, _UnchangedType)
+            and isinstance(rebase_preserve_stacks, _UnchangedType)
+            and isinstance(rebase_conflict_tool, _UnchangedType)
+            and isinstance(rebase_stack_location, _UnchangedType)
         ):
             raise ValueError("At least one field must be provided")
 
@@ -233,6 +353,11 @@ class RealGlobalConfigOps(GlobalConfigOps):
             current_shell = self.get_shell_setup_complete()
             current_pr_info = self.get_show_pr_info()
             current_pr_checks = self.get_show_pr_checks()
+            current_rebase_use_stacks = self.get_rebase_use_stacks()
+            current_rebase_auto_test = self.get_rebase_auto_test()
+            current_rebase_preserve_stacks = self.get_rebase_preserve_stacks()
+            current_rebase_conflict_tool = self.get_rebase_conflict_tool()
+            current_rebase_stack_location = self.get_rebase_stack_location()
         else:
             # For new config, all fields must be provided (no defaults)
             if isinstance(workstacks_root, _UnchangedType):
@@ -242,6 +367,11 @@ class RealGlobalConfigOps(GlobalConfigOps):
             current_shell = False
             current_pr_info = True
             current_pr_checks = False
+            current_rebase_use_stacks = True
+            current_rebase_auto_test = False
+            current_rebase_preserve_stacks = False
+            current_rebase_conflict_tool = "vimdiff"
+            current_rebase_stack_location = ".rebase-stack"
 
         # Apply updates
         final_root = (
@@ -261,6 +391,31 @@ class RealGlobalConfigOps(GlobalConfigOps):
         final_pr_checks = (
             current_pr_checks if isinstance(show_pr_checks, _UnchangedType) else show_pr_checks
         )
+        final_rebase_use_stacks = (
+            current_rebase_use_stacks
+            if isinstance(rebase_use_stacks, _UnchangedType)
+            else rebase_use_stacks
+        )
+        final_rebase_auto_test = (
+            current_rebase_auto_test
+            if isinstance(rebase_auto_test, _UnchangedType)
+            else rebase_auto_test
+        )
+        final_rebase_preserve_stacks = (
+            current_rebase_preserve_stacks
+            if isinstance(rebase_preserve_stacks, _UnchangedType)
+            else rebase_preserve_stacks
+        )
+        final_rebase_conflict_tool = (
+            current_rebase_conflict_tool
+            if isinstance(rebase_conflict_tool, _UnchangedType)
+            else rebase_conflict_tool
+        )
+        final_rebase_stack_location = (
+            current_rebase_stack_location
+            if isinstance(rebase_stack_location, _UnchangedType)
+            else rebase_stack_location
+        )
 
         # Write to disk
         self._path.parent.mkdir(parents=True, exist_ok=True)
@@ -270,6 +425,11 @@ use_graphite = {str(final_graphite).lower()}
 shell_setup_complete = {str(final_shell).lower()}
 show_pr_info = {str(final_pr_info).lower()}
 show_pr_checks = {str(final_pr_checks).lower()}
+rebase_use_stacks = {str(final_rebase_use_stacks).lower()}
+rebase_auto_test = {str(final_rebase_auto_test).lower()}
+rebase_preserve_stacks = {str(final_rebase_preserve_stacks).lower()}
+rebase_conflict_tool = "{final_rebase_conflict_tool}"
+rebase_stack_location = "{final_rebase_stack_location}"
 """
         self._path.write_text(content, encoding="utf-8")
         self._invalidate_cache()
