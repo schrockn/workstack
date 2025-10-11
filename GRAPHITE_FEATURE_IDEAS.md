@@ -25,11 +25,13 @@ This document contains feature proposals that specifically enhance the Graphite 
 ## 1. Stack Lifecycle Management
 
 ### Overview
+
 Complete lifecycle management for Graphite stacks, from creation to merge, with intelligent worktree coordination.
 
 ### Detailed Implementation
 
 **Stack Creation Wizard:**
+
 ```bash
 $ workstack stack create
 Stack Creation Wizard
@@ -77,6 +79,7 @@ Next: workstack switch auth-backend
 ```
 
 **Stack Adoption (Existing Branches):**
+
 ```bash
 $ workstack stack adopt feature/login
 
@@ -98,6 +101,7 @@ Create worktrees for entire stack?
 ```
 
 **Stack Destruction:**
+
 ```bash
 $ workstack stack destroy auth
 
@@ -121,6 +125,7 @@ Proceed? [y/N] y
 ```
 
 ### Benefits
+
 - Simplified creation of complex stacks
 - Consistent naming and structure
 - Complete cleanup when done
@@ -131,11 +136,13 @@ Proceed? [y/N] y
 ## 2. Interactive Stack Visualizer
 
 ### Overview
+
 Rich, interactive visualization of stack relationships with real-time status and navigation.
 
 ### Detailed Implementation
 
 **Terminal UI Mode:**
+
 ```bash
 $ workstack stack view --interactive
 
@@ -166,6 +173,7 @@ $ workstack stack view --interactive
 ```
 
 **Web Dashboard Mode:**
+
 ```bash
 $ workstack stack view --web
 
@@ -182,6 +190,7 @@ Opening stack visualizer at http://localhost:8080
 ```
 
 **ASCII Flow Mode:**
+
 ```bash
 $ workstack stack flow
 
@@ -202,6 +211,7 @@ Legend: ● commit  ✓ merged  ? blocked  → in progress
 ```
 
 ### Benefits
+
 - Instant understanding of stack state
 - Quick navigation between related worktrees
 - Visual indication of blockers
@@ -212,11 +222,13 @@ Legend: ● commit  ✓ merged  ? blocked  → in progress
 ## 3. Stack-Aware Conflict Resolution
 
 ### Overview
+
 Intelligent conflict resolution that understands stack dependencies and guides through resolution across multiple worktrees.
 
 ### Detailed Implementation
 
 **Conflict Detection:**
+
 ```bash
 $ workstack stack rebase
 
@@ -235,6 +247,7 @@ Start resolution? [Y/n]
 ```
 
 **Guided Resolution Workflow:**
+
 ```bash
 $ workstack stack resolve
 
@@ -268,6 +281,7 @@ Continue to next conflict? [Y/n]
 ```
 
 **Conflict Prevention:**
+
 ```bash
 $ workstack stack lint
 
@@ -290,6 +304,7 @@ Auto-split files? [y/N]
 ```
 
 ### Benefits
+
 - Systematic conflict resolution
 - Prevents cascade conflicts
 - Suggests preventive refactoring
@@ -300,11 +315,13 @@ Auto-split files? [y/N]
 ## 4. Stack Health Monitor
 
 ### Overview
+
 Real-time monitoring of stack health with proactive alerts and suggestions.
 
 ### Detailed Implementation
 
 **Health Dashboard:**
+
 ```bash
 $ workstack stack health
 
@@ -338,6 +355,7 @@ Recommendations:
 ```
 
 **Continuous Monitoring:**
+
 ```bash
 $ workstack stack monitor --watch
 
@@ -352,6 +370,7 @@ Monitoring stack health... (Ctrl+C to stop)
 ```
 
 **Health Scoring:**
+
 ```bash
 $ workstack stack score
 
@@ -387,6 +406,7 @@ Improve score by:
 ```
 
 ### Benefits
+
 - Proactive problem detection
 - Objective stack quality metrics
 - Actionable improvement suggestions
@@ -397,11 +417,13 @@ Improve score by:
 ## 5. Bulk Stack Operations
 
 ### Overview
+
 Perform operations across entire stacks efficiently with intelligent dependency handling.
 
 ### Detailed Implementation
 
 **Bulk Updates:**
+
 ```bash
 $ workstack stack pull
 
@@ -425,6 +447,7 @@ Resolve conflicts in auth-frontend? [Y/n]
 ```
 
 **Bulk Submit:**
+
 ```bash
 $ workstack stack submit
 
@@ -458,6 +481,7 @@ https://github.com/org/repo/issues/100
 ```
 
 **Bulk Test:**
+
 ```bash
 $ workstack stack test
 
@@ -482,6 +506,7 @@ Fix and continue? [Y/n]
 ```
 
 ### Benefits
+
 - Efficient batch operations
 - Respects dependency order
 - Atomic stack operations
@@ -492,11 +517,13 @@ Fix and continue? [Y/n]
 ## 6. Stack Review Coordinator
 
 ### Overview
+
 Coordinate code reviews across stacked PRs with intelligent reviewer assignment and progress tracking.
 
 ### Detailed Implementation
 
 **Review Assignment:**
+
 ```bash
 $ workstack stack assign-reviews
 
@@ -525,6 +552,7 @@ Apply assignments? [Y/n] y
 ```
 
 **Review Progress Tracker:**
+
 ```bash
 $ workstack stack review-status
 
@@ -551,6 +579,7 @@ Estimated completion: 2 days
 ```
 
 **Review Orchestration:**
+
 ```bash
 $ workstack stack review 234
 
@@ -571,6 +600,7 @@ Opening PR #234 in browser...
 ```
 
 ### Benefits
+
 - Coordinated review process
 - Clear review priorities
 - Bottleneck identification
@@ -581,11 +611,13 @@ Opening PR #234 in browser...
 ## 7. Stack-Based Templates
 
 ### Overview
+
 Reusable templates for common stack patterns with built-in best practices.
 
 ### Detailed Implementation
 
 **Template Library:**
+
 ```bash
 $ workstack stack templates
 
@@ -610,6 +642,7 @@ Create custom template? [y/N]
 ```
 
 **Template Application:**
+
 ```bash
 $ workstack stack create --template migration
 
@@ -637,6 +670,7 @@ Stack created with migration template!
 ```
 
 **Custom Template Creation:**
+
 ```bash
 $ workstack stack save-template
 
@@ -663,6 +697,7 @@ Capture settings:
 ```
 
 ### Benefits
+
 - Standardized workflows
 - Reduced setup time
 - Best practices enforcement
@@ -673,11 +708,13 @@ Capture settings:
 ## 8. Stack Education Mode
 
 ### Overview
+
 Interactive learning mode that teaches stacked diff workflows with guided tutorials and best practices.
 
 ### Detailed Implementation
 
 **Interactive Tutorial:**
+
 ```bash
 $ workstack stack learn
 
@@ -703,6 +740,7 @@ Press Enter to continue...
 ```
 
 **Guided Practice:**
+
 ```bash
 $ workstack stack tutorial start
 
@@ -739,6 +777,7 @@ Continue to next exercise? [Y/n]
 ```
 
 **Best Practices Enforcement:**
+
 ```bash
 $ workstack stack validate
 
@@ -768,6 +807,7 @@ Stack Score: B+ (Good, room for improvement)
 ```
 
 ### Benefits
+
 - Faster onboarding to stacked workflow
 - Reduced learning curve
 - Best practices adoption
@@ -778,11 +818,13 @@ Stack Score: B+ (Good, room for improvement)
 ## 9. Cross-Stack Dependencies
 
 ### Overview
+
 Manage complex scenarios where changes span multiple stacks with intelligent dependency tracking.
 
 ### Detailed Implementation
 
 **Dependency Detection:**
+
 ```bash
 $ workstack stack deps
 
@@ -809,6 +851,7 @@ Set up dependency tracking? [Y/n]
 ```
 
 **Dependency Management:**
+
 ```bash
 $ workstack stack link profile-ui auth-frontend
 
@@ -827,6 +870,7 @@ View dependency graph: workstack stack deps --graph
 ```
 
 **Impact Analysis:**
+
 ```bash
 $ workstack stack impact auth-frontend
 
@@ -849,6 +893,7 @@ Notify affected parties? [Y/n]
 ```
 
 ### Benefits
+
 - Manages complex dependencies
 - Prevents integration issues
 - Coordinates multi-stack work
@@ -859,11 +904,13 @@ Notify affected parties? [Y/n]
 ## 10. Stack Time Machine
 
 ### Overview
+
 View and restore previous states of your stack, understanding how it evolved over time.
 
 ### Detailed Implementation
 
 **Stack History:**
+
 ```bash
 $ workstack stack history
 
@@ -902,6 +949,7 @@ Today: Current state
 ```
 
 **State Restoration:**
+
 ```bash
 $ workstack stack checkpoint
 
@@ -927,6 +975,7 @@ Stack restored to previous state!
 ```
 
 **Stack Diffing:**
+
 ```bash
 $ workstack stack diff --time yesterday
 
@@ -953,6 +1002,7 @@ View detailed diff? [Y/n]
 ```
 
 ### Benefits
+
 - Safe experimentation
 - Easy recovery from mistakes
 - Understanding stack evolution
@@ -963,11 +1013,13 @@ View detailed diff? [Y/n]
 ## 11. Stack Merge Orchestrator
 
 ### Overview
+
 Intelligently orchestrate the merging of stacked PRs with automatic rebasing and conflict resolution.
 
 ### Detailed Implementation
 
 **Merge Planning:**
+
 ```bash
 $ workstack stack merge-plan
 
@@ -1009,6 +1061,7 @@ Select strategy: 1
 ```
 
 **Automated Merge Execution:**
+
 ```bash
 $ workstack stack merge --auto
 
@@ -1041,6 +1094,7 @@ Continue monitoring? [Y/n]
 ```
 
 **Rollback Support:**
+
 ```bash
 $ workstack stack rollback
 
@@ -1066,6 +1120,7 @@ Creating revert commits...
 ```
 
 ### Benefits
+
 - Automated merge workflow
 - Reduced manual coordination
 - Safe rollback options
@@ -1076,11 +1131,13 @@ Creating revert commits...
 ## 12. Stack Simulation Mode
 
 ### Overview
+
 Simulate stack operations before executing them to understand impacts and catch issues early.
 
 ### Detailed Implementation
 
 **Rebase Simulation:**
+
 ```bash
 $ workstack stack simulate rebase
 
@@ -1112,6 +1169,7 @@ Proceed with actual rebase? [y/N]
 ```
 
 **Merge Simulation:**
+
 ```bash
 $ workstack stack simulate merge-all
 
@@ -1144,6 +1202,7 @@ Run actual merge? [y/N]
 ```
 
 **What-If Analysis:**
+
 ```bash
 $ workstack stack what-if "split auth-frontend into 2 branches"
 
@@ -1170,6 +1229,7 @@ Execute split? [y/N]
 ```
 
 ### Benefits
+
 - Risk-free experimentation
 - Predictable outcomes
 - Better planning
@@ -1180,11 +1240,13 @@ Execute split? [y/N]
 ## 13. Stack Analytics Dashboard
 
 ### Overview
+
 Comprehensive analytics for stack-based development patterns and team productivity.
 
 ### Detailed Implementation
 
 **Personal Analytics:**
+
 ```bash
 $ workstack stack stats --personal
 
@@ -1219,6 +1281,7 @@ Improvements:
 ```
 
 **Team Analytics:**
+
 ```bash
 $ workstack stack stats --team
 
@@ -1252,6 +1315,7 @@ Recommendations:
 ```
 
 **Stack Complexity Metrics:**
+
 ```bash
 $ workstack stack complexity
 
@@ -1282,6 +1346,7 @@ Suggestions to reduce complexity:
 ```
 
 ### Benefits
+
 - Data-driven insights
 - Team performance visibility
 - Bottleneck identification
@@ -1292,11 +1357,13 @@ Suggestions to reduce complexity:
 ## 14. Stack Collaboration Hub
 
 ### Overview
+
 Real-time collaboration features for teams working on related stacks.
 
 ### Detailed Implementation
 
 **Stack Pairing:**
+
 ```bash
 $ workstack stack pair @teammate
 
@@ -1323,6 +1390,7 @@ Synced to: auth-frontend branch
 ```
 
 **Stack Handoff:**
+
 ```bash
 $ workstack stack handoff @teammate
 
@@ -1353,6 +1421,7 @@ Send handoff? [Y/n]
 ```
 
 **Stack Broadcast:**
+
 ```bash
 $ workstack stack broadcast
 
@@ -1377,6 +1446,7 @@ Broadcast sent to #dev-channel:
 ```
 
 ### Benefits
+
 - Real-time collaboration
 - Smooth handoffs
 - Team visibility
@@ -1387,11 +1457,13 @@ Broadcast sent to #dev-channel:
 ## 15. Stack CI/CD Integration
 
 ### Overview
+
 Deep integration with CI/CD systems for intelligent build and deployment of stacked changes.
 
 ### Detailed Implementation
 
 **Stack-Aware CI:**
+
 ```bash
 $ workstack stack ci-status
 
@@ -1422,6 +1494,7 @@ Fix E2E tests and retry? [Y/n]
 ```
 
 **Progressive Deployment:**
+
 ```bash
 $ workstack stack deploy --progressive
 
@@ -1459,6 +1532,7 @@ Proceed to Stage 2? [Y/n]
 ```
 
 **Stack Build Matrix:**
+
 ```bash
 $ workstack stack build-matrix
 
@@ -1482,6 +1556,7 @@ Customize matrix? [y/N]
 ```
 
 ### Benefits
+
 - Intelligent CI optimization
 - Safe progressive rollouts
 - Clear deployment status
@@ -1494,24 +1569,28 @@ Customize matrix? [y/N]
 Based on value and complexity:
 
 ### 🎯 High Priority (Maximum Impact)
+
 1. **Stack Lifecycle Management** - Core functionality enhancement
 2. **Stack Health Monitor** - Proactive problem prevention
 3. **Stack-Aware Conflict Resolution** - Major pain point solver
 4. **Interactive Stack Visualizer** - Immediate understanding
 
 ### 🔄 Medium Priority (Workflow Enhancement)
+
 5. **Bulk Stack Operations** - Efficiency multiplier
 6. **Stack Review Coordinator** - Team productivity
 7. **Stack Merge Orchestrator** - Automation value
 8. **Stack Education Mode** - Onboarding improvement
 
 ### 🚀 Future Enhancements
+
 9. **Stack Analytics Dashboard** - Long-term insights
 10. **Stack CI/CD Integration** - DevOps value
 11. **Stack Simulation Mode** - Risk reduction
 12. **Stack Time Machine** - Safety net
 
 ### 🔬 Experimental
+
 13. **Cross-Stack Dependencies** - Complex scenarios
 14. **Stack Collaboration Hub** - Team features
 15. **Stack-Based Templates** - Standardization
@@ -1521,24 +1600,28 @@ Based on value and complexity:
 ## Technical Considerations
 
 ### Architecture Patterns
+
 - **Event System**: Many features benefit from a central event bus for stack changes
 - **Cache Layer**: Graphite metadata should be cached and indexed for performance
 - **Plugin Architecture**: Consider making advanced features pluggable
 - **Background Workers**: Health monitoring and CI integration need async processing
 
 ### Integration Points
+
 - **Graphite CLI**: Deeper integration with `gt` commands
 - **Git Hooks**: Pre-commit/post-merge hooks for stack maintenance
 - **GitHub/GitLab APIs**: PR management and CI status
 - **Notification Services**: Slack, Discord, email for alerts
 
 ### Data Storage
+
 - **Stack Metadata**: SQLite for analytics and history
 - **Configuration**: Extended TOML format for stack templates
 - **Cache**: Redis/in-memory for real-time features
 - **Checkpoints**: Git bundles for state restoration
 
 ### Performance Considerations
+
 - Stack operations should be parallelized where possible
 - Large stacks (>5 branches) need optimization
 - Visualization should handle 100+ branches
@@ -1551,6 +1634,7 @@ Based on value and complexity:
 These features transform workstack from a worktree manager into a comprehensive stacked diff development platform. The key insight is that Graphite provides the stack structure, while workstack provides the workspace management - together they enable powerful workflows that neither tool could achieve alone.
 
 The highest-value features focus on:
+
 1. **Understanding** - Helping developers grasp stack relationships
 2. **Automation** - Reducing manual coordination overhead
 3. **Safety** - Preventing and resolving conflicts

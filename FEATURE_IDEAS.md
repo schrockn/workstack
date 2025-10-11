@@ -25,14 +25,17 @@ This document contains detailed feature proposals to enhance workstack's capabil
 ## 1. Status Command with Rich Information Display
 
 ### Overview
+
 A comprehensive `workstack status` command that provides a dashboard-like view of the current worktree's state, replacing the need to run multiple git and workstack commands.
 
 ### Detailed Implementation
+
 ```bash
 $ workstack status
 ```
 
 Would display:
+
 ```
 Worktree: feature-auth
 Branch: feature/user-authentication
@@ -69,6 +72,7 @@ Dependencies:
 ```
 
 ### Benefits
+
 - Single command to understand complete worktree context
 - Reduces cognitive load when switching between worktrees
 - Quick PR status check without opening browser
@@ -79,11 +83,13 @@ Dependencies:
 ## 2. Batch Operations Support
 
 ### Overview
+
 Enable operations on multiple worktrees simultaneously, saving time for repetitive tasks.
 
 ### Detailed Implementation
 
 **Batch Creation:**
+
 ```bash
 # Create multiple worktrees at once
 $ workstack create --batch fix/bug-1,fix/bug-2,fix/bug-3
@@ -97,6 +103,7 @@ Post-create scripts executed for all worktrees.
 ```
 
 **Pattern-based Removal:**
+
 ```bash
 # Remove all test worktrees
 $ workstack rm --pattern "test-*"
@@ -111,6 +118,7 @@ Remove 4 worktrees? [y/N]
 ```
 
 **Batch Updates:**
+
 ```bash
 # Pull latest changes in all worktrees
 $ workstack pull --all
@@ -125,6 +133,7 @@ Summary: 3 successful, 1 failed
 ```
 
 ### Benefits
+
 - Efficient management of multiple related worktrees
 - Consistent setup across similar branches
 - Time-saving for maintenance operations
@@ -134,11 +143,13 @@ Summary: 3 successful, 1 failed
 ## 3. Template System for Worktree Creation
 
 ### Overview
+
 Pre-defined templates for common worktree types with automatic configuration.
 
 ### Detailed Implementation
 
 **Template Definition** (`~/.workstack/templates/bugfix.toml`):
+
 ```toml
 [template]
 name = "bugfix"
@@ -162,6 +173,7 @@ commands = [
 ```
 
 **Usage:**
+
 ```bash
 $ workstack create --template bugfix memory-leak
 
@@ -175,6 +187,7 @@ Ready to work on bugfix!
 ```
 
 **Template Management:**
+
 ```bash
 # List available templates
 $ workstack template list
@@ -190,6 +203,7 @@ Saved current configuration as template: my-setup
 ```
 
 ### Benefits
+
 - Standardized workflows across team
 - Reduced setup time for common tasks
 - Enforced best practices through templates
@@ -199,11 +213,13 @@ Saved current configuration as template: my-setup
 ## 4. Worktree History and Analytics
 
 ### Overview
+
 Track and analyze worktree usage patterns to improve developer productivity.
 
 ### Detailed Implementation
 
 **History Tracking:**
+
 ```bash
 $ workstack history
 Recent activity:
@@ -219,6 +235,7 @@ Most used (last 7 days):
 ```
 
 **Detailed Analytics:**
+
 ```bash
 $ workstack stats --period 30d
 
@@ -249,6 +266,7 @@ Time Distribution:
 ```
 
 **Activity Timeline:**
+
 ```bash
 $ workstack timeline --days 7
 Mon: [root:2h] [feature-auth:6h]
@@ -259,6 +277,7 @@ Fri: [review-pr-456:2h] [feature-auth:4h]
 ```
 
 ### Benefits
+
 - Identify productivity patterns
 - Track time spent on different features
 - Optimize worktree management strategies
@@ -269,11 +288,13 @@ Fri: [review-pr-456:2h] [feature-auth:4h]
 ## 5. Enhanced Search and Navigation
 
 ### Overview
+
 Powerful search capabilities across all worktrees with smart navigation.
 
 ### Detailed Implementation
 
 **Global Search:**
+
 ```bash
 $ workstack find "TODO"
 Searching across all worktrees...
@@ -292,6 +313,7 @@ Total: 3 matches in 2 worktrees
 ```
 
 **Smart Jump with Fuzzy Matching:**
+
 ```bash
 $ workstack jump auth
 Multiple matches found:
@@ -303,6 +325,7 @@ Select (1-3) or press Enter for #1:
 ```
 
 **Interactive Selection with fzf:**
+
 ```bash
 $ workstack switch --interactive
 # Opens fzf with:
@@ -313,6 +336,7 @@ $ workstack switch --interactive
 ```
 
 **File Browser Across Worktrees:**
+
 ```bash
 $ workstack browse src/config.js
 Opening src/config.js from:
@@ -324,6 +348,7 @@ Select version to open:
 ```
 
 ### Benefits
+
 - Quick navigation without remembering exact names
 - Find code across all branches easily
 - Compare implementations across worktrees
@@ -334,11 +359,13 @@ Select version to open:
 ## 6. Backup and Restore Functionality
 
 ### Overview
+
 Automatic backup system for uncommitted changes with intelligent restore capabilities.
 
 ### Detailed Implementation
 
 **Automatic Backup on Switch:**
+
 ```bash
 $ workstack switch feature-ui
 Uncommitted changes detected in current worktree.
@@ -356,6 +383,7 @@ Select (1-4): 3
 ```
 
 **Global Stash System:**
+
 ```bash
 $ workstack stash save "WIP: authentication logic"
 Saved global stash: stash-2024-01-15-001
@@ -371,6 +399,7 @@ Applied stash to current worktree (feature-ui)
 ```
 
 **Backup Management:**
+
 ```bash
 $ workstack backup create --worktree feature-auth
 Creating backup of feature-auth...
@@ -389,6 +418,7 @@ Restoring to new worktree: feature-auth-restored
 ```
 
 ### Benefits
+
 - Never lose work when switching contexts
 - Share WIP code between worktrees
 - Disaster recovery for worktrees
@@ -399,11 +429,13 @@ Restoring to new worktree: feature-auth-restored
 ## 7. PR Management Integration
 
 ### Overview
+
 Complete pull request lifecycle management without leaving the terminal.
 
 ### Detailed Implementation
 
 **PR Creation with Templates:**
+
 ```bash
 $ workstack pr create
 Creating PR from: feature-auth
@@ -425,6 +457,7 @@ Select template: 1
 ```
 
 **PR Review Workflow:**
+
 ```bash
 $ workstack pr review 234
 ✓ Created review worktree: review-pr-234
@@ -443,6 +476,7 @@ $ workstack pr approve --comment "LGTM with minor suggestions"
 ```
 
 **PR Merge with Cleanup:**
+
 ```bash
 $ workstack pr merge 234
 Pre-merge checks:
@@ -464,6 +498,7 @@ Select: 1
 ```
 
 ### Benefits
+
 - Complete PR workflow in terminal
 - Automated review setup
 - Integrated cleanup after merge
@@ -474,11 +509,13 @@ Select: 1
 ## 8. Dependency Management
 
 ### Overview
+
 Intelligent dependency management across worktrees with change detection and synchronization.
 
 ### Detailed Implementation
 
 **Dependency Installation Across Worktrees:**
+
 ```bash
 $ workstack deps install --all
 Scanning worktrees for dependency files...
@@ -496,6 +533,7 @@ Installing dependencies:
 ```
 
 **Dependency Comparison:**
+
 ```bash
 $ workstack deps diff feature-auth feature-ui
 
@@ -514,6 +552,7 @@ Package differences:
 ```
 
 **Auto-detection and Prompting:**
+
 ```bash
 $ workstack switch feature-ui
 Dependency changes detected since last visit:
@@ -525,6 +564,7 @@ Run npm install? [Y/n]
 ```
 
 ### Benefits
+
 - Consistent dependencies across worktrees
 - Automatic detection of changes
 - Easy comparison between branches
@@ -535,11 +575,13 @@ Run npm install? [Y/n]
 ## 9. Collaboration Features
 
 ### Overview
+
 Share worktree setups and collaborate on complex multi-branch workflows.
 
 ### Detailed Implementation
 
 **Worktree Sharing:**
+
 ```bash
 $ workstack share feature-auth
 Generating shareable configuration...
@@ -555,6 +597,7 @@ Includes:
 ```
 
 **Team Templates:**
+
 ```bash
 $ workstack team init
 Connecting to team repository...
@@ -573,6 +616,7 @@ $ workstack create --team-template standard-feature my-feature
 ```
 
 **Pair Programming Support:**
+
 ```bash
 $ workstack pair start feature-auth
 Starting pair session...
@@ -586,6 +630,7 @@ Partner joined from: user@machine
 ```
 
 ### Benefits
+
 - Easy onboarding for new team members
 - Consistent team workflows
 - Simplified pair programming
@@ -596,15 +641,19 @@ Partner joined from: user@machine
 ## 10. Enhanced Visualization
 
 ### Overview
+
 Rich visual representations of worktree relationships and project state.
 
 ### Detailed Implementation
 
 **Interactive Dependency Graph:**
+
 ```bash
 $ workstack graph
 ```
+
 Generates an interactive HTML view showing:
+
 - Worktree relationships as a directed graph
 - PR status as node colors
 - Click to switch to worktree
@@ -612,6 +661,7 @@ Generates an interactive HTML view showing:
 - Export as SVG/PNG for documentation
 
 **Timeline Visualization:**
+
 ```bash
 $ workstack timeline --visual
 
@@ -626,6 +676,7 @@ Legend: █ Active development  ░ Idle
 ```
 
 **PR Flow Diagram:**
+
 ```bash
 $ workstack pr-flow
 main
@@ -636,6 +687,7 @@ main
 ```
 
 ### Benefits
+
 - Visual understanding of project structure
 - Quick identification of bottlenecks
 - Better planning for dependent work
@@ -646,11 +698,13 @@ main
 ## 11. Smart Cleanup and Maintenance
 
 ### Overview
+
 Intelligent cleanup suggestions and automated maintenance based on usage patterns.
 
 ### Detailed Implementation
 
 **Age-based Cleanup:**
+
 ```bash
 $ workstack clean --age 30d
 Found 5 worktrees older than 30 days:
@@ -667,6 +721,7 @@ Remove 2 worktrees? [y/N]
 ```
 
 **Optimization Command:**
+
 ```bash
 $ workstack optimize
 Analyzing repository health...
@@ -683,6 +738,7 @@ Performance improvement: ~15% faster operations
 ```
 
 **Smart Suggestions:**
+
 ```bash
 $ workstack suggest
 Based on your usage patterns:
@@ -703,6 +759,7 @@ Performance suggestions:
 ```
 
 ### Benefits
+
 - Automated maintenance reduces manual work
 - Prevents repository bloat
 - Improved performance over time
@@ -713,11 +770,13 @@ Performance suggestions:
 ## 12. IDE Integration
 
 ### Overview
+
 Seamless integration with popular IDEs for consistent development experience.
 
 ### Detailed Implementation
 
 **IDE Launch Commands:**
+
 ```bash
 # VS Code with workspace settings
 $ workstack code feature-auth
@@ -734,6 +793,7 @@ $ workstack idea feature-auth --module
 ```
 
 **Workspace Configuration Generation:**
+
 ```bash
 $ workstack ide setup
 Detecting IDE configurations...
@@ -750,6 +810,7 @@ Generating configurations:
 ```
 
 **IDE-specific Commands:**
+
 ```bash
 $ workstack ide --list
 Available IDE commands:
@@ -763,6 +824,7 @@ Opening VS Code diff view between worktrees...
 ```
 
 ### Benefits
+
 - Consistent IDE setup across worktrees
 - Reduced configuration time
 - Proper environment isolation
@@ -773,11 +835,13 @@ Opening VS Code diff view between worktrees...
 ## 13. Notification System
 
 ### Overview
+
 Real-time notifications for important worktree and PR events.
 
 ### Detailed Implementation
 
 **PR Status Monitoring:**
+
 ```bash
 $ workstack watch
 Monitoring PRs for all worktrees...
@@ -789,6 +853,7 @@ Monitoring PRs for all worktrees...
 ```
 
 **Desktop Notifications:**
+
 ```bash
 $ workstack notify enable
 Enabled notifications for:
@@ -803,6 +868,7 @@ Sending test notification...
 ```
 
 **Webhook Integration:**
+
 ```bash
 $ workstack webhook add slack https://hooks.slack.com/xxx
 ✓ Added Slack webhook
@@ -823,6 +889,7 @@ Select: 2
 ```
 
 ### Benefits
+
 - Stay informed without constant checking
 - Quick response to CI failures
 - Team awareness of PR status
@@ -833,11 +900,13 @@ Select: 2
 ## 14. Testing Integration
 
 ### Overview
+
 Integrated testing workflows across worktrees with comparison capabilities.
 
 ### Detailed Implementation
 
 **Test Execution:**
+
 ```bash
 $ workstack test
 Running tests in current worktree (feature-auth)...
@@ -852,6 +921,7 @@ Duration: 2m 34s
 ```
 
 **Cross-worktree Testing:**
+
 ```bash
 $ workstack test --all --parallel
 Running tests across all worktrees...
@@ -869,6 +939,7 @@ Failed tests in feature-ui:
 ```
 
 **Test Comparison:**
+
 ```bash
 $ workstack test compare feature-auth main
 Comparing test results...
@@ -890,6 +961,7 @@ Flaky tests detected:
 ```
 
 ### Benefits
+
 - Ensure tests pass before switching
 - Identify test regressions early
 - Compare test coverage between branches
@@ -900,11 +972,13 @@ Flaky tests detected:
 ## 15. Configuration Profiles
 
 ### Overview
+
 Multiple configuration profiles for different contexts (personal/work/client projects).
 
 ### Detailed Implementation
 
 **Profile Management:**
+
 ```bash
 $ workstack profile create work
 Creating profile: work
@@ -927,6 +1001,7 @@ Available profiles:
 ```
 
 **Profile Switching:**
+
 ```bash
 $ workstack profile switch work
 Switching to profile: work
@@ -939,6 +1014,7 @@ Active worktrees: 3
 ```
 
 **Per-Project Profiles:**
+
 ```bash
 $ workstack init --profile client-a
 Initializing with profile: client-a
@@ -949,6 +1025,7 @@ Initializing with profile: client-a
 ```
 
 **Profile Environment Variables:**
+
 ```toml
 # ~/.workstack/profiles/work.toml
 [env]
@@ -963,6 +1040,7 @@ labels = ["needs-review", "work-project"]
 ```
 
 ### Benefits
+
 - Separate work and personal projects
 - Different settings per client
 - Quick context switching
@@ -975,23 +1053,27 @@ labels = ["needs-review", "work-project"]
 Based on implementation complexity vs. user value:
 
 ### High Priority (Quick Wins)
+
 1. **Status Command** - High value, moderate complexity
 2. **Smart Jump/Navigation** - High value, low complexity
 3. **Template System** - High value, moderate complexity
 
 ### Medium Priority (Strategic Features)
+
 4. **Batch Operations** - Medium value, low complexity
 5. **History and Analytics** - Medium value, moderate complexity
 6. **Enhanced Visualization** - Medium value, moderate complexity
 7. **Smart Cleanup** - Medium value, low complexity
 
 ### Lower Priority (Advanced Features)
+
 8. **PR Management Integration** - High value, high complexity
 9. **IDE Integration** - Medium value, moderate complexity
 10. **Configuration Profiles** - Medium value, moderate complexity
 11. **Testing Integration** - Medium value, high complexity
 
 ### Future Considerations
+
 12. **Dependency Management** - Medium value, high complexity
 13. **Backup and Restore** - Low value, moderate complexity
 14. **Collaboration Features** - Low value, high complexity
@@ -1002,19 +1084,23 @@ Based on implementation complexity vs. user value:
 ## Implementation Notes
 
 ### Common Patterns
+
 - Most features benefit from the existing `WorkstackContext` dependency injection
 - Many features can share code with existing `list`, `sync`, and `gc` commands
 - Consider extracting common PR operations into reusable `pr_ops.py` module
 - Analytics features could share a common time-tracking database
 
 ### Technical Considerations
+
 - History/analytics require persistent storage (SQLite or JSON files)
 - Notifications need background process or webhook server
 - IDE integration requires understanding workspace file formats
 - Templates extend existing preset system
 
 ### Future Architecture
+
 Consider evolving toward a plugin system where features like notifications, IDE integration, and advanced analytics can be:
+
 - Installed separately
 - Enabled/disabled per profile
 - Extended by third parties
