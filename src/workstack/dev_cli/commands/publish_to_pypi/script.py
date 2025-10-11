@@ -40,6 +40,8 @@ RECOVERY FROM FAILURES:
      * git push
 """
 
+# pyright: reportMissingImports=false
+
 import re
 import subprocess
 import time
@@ -47,6 +49,9 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import click
+
+# PyPI CDN propagation typically takes 3-5 seconds
+PYPI_PROPAGATION_WAIT_SECONDS = 5
 
 
 @dataclass(frozen=True)
@@ -98,8 +103,8 @@ def run_git_pull(repo_root: Path, dry_run: bool) -> None:
     click.echo("✓ Pulled latest changes")
 
 
-def discover_workspace_packages(repo_root: Path) -> list[PackageInfo]:
-    """Discover all publishable packages in workspace.
+def get_workspace_packages(repo_root: Path) -> list[PackageInfo]:
+    """Get all publishable packages in workspace.
 
     Returns:
         List of packages in dependency order (dependencies first)
@@ -374,9 +379,8 @@ def wait_for_pypi_availability(package: PackageInfo, version: str, dry_run: bool
         click.echo(f"[DRY RUN] Would wait for {package.name} {version} on PyPI")
         return
 
-    wait_seconds = 5
-    click.echo(f"  ⏳ Waiting {wait_seconds}s for PyPI propagation...")
-    time.sleep(wait_seconds)
+    click.echo(f"  ⏳ Waiting {PYPI_PROPAGATION_WAIT_SECONDS}s for PyPI propagation...")
+    time.sleep(PYPI_PROPAGATION_WAIT_SECONDS)
 
 
 def publish_all_packages(
@@ -517,7 +521,7 @@ def main(dry_run: bool) -> None:
 
     # Step 1: Discover packages
     click.echo("Discovering workspace packages...")
-    packages = discover_workspace_packages(repo_root)
+    packages = get_workspace_packages(repo_root)
     click.echo(f"  ✓ Found {len(packages)} packages: {', '.join(p.name for p in packages)}")
 
     # Step 2: Check git status
