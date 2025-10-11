@@ -1,11 +1,14 @@
 """Orchestrator for collecting and assembling status information."""
 
+import logging
 from concurrent.futures import ThreadPoolExecutor, TimeoutError, as_completed
 from pathlib import Path
 
 from workstack.core.context import WorkstackContext
 from workstack.status.collectors.base import StatusCollector
 from workstack.status.models.status_data import StatusData, WorktreeInfo
+
+logger = logging.getLogger(__name__)
 
 
 class StatusOrchestrator:
@@ -66,16 +69,25 @@ class StatusOrchestrator:
                         result = future.result(timeout=0.1)  # Should be immediate once complete
                         results[collector_name] = result
                     except TimeoutError:
-                        # Collector took too long (shouldn't happen if future is done)
+                        # Error boundary: Collector timeouts shouldn't fail entire command
+                        # Log for debugging but continue with other collectors
+                        logger.debug(
+                            f"Collector '{collector_name}' timed out after {self.timeout_seconds}s"
+                        )
                         results[collector_name] = None
-                    except Exception:
-                        # Collector failed
+                    except Exception as e:
+                        # Error boundary: Individual collector failures shouldn't fail
+                        # entire command. This is an acceptable use of exception handling
+                        # at error boundaries per EXCEPTION_HANDLING.md - parallel
+                        # collectors should degrade gracefully
+                        logger.debug(f"Collector '{collector_name}' failed: {e}")
                         results[collector_name] = None
             except TimeoutError:
                 # Some collectors didn't complete in time
                 # Mark incomplete collectors as None
                 for future, collector_name in futures.items():
                     if future.running() or not future.done():
+                        logger.debug(f"Collector '{collector_name}' did not complete in time")
                         results[collector_name] = None
 
         # Get related worktrees
@@ -123,7 +135,11 @@ class StatusOrchestrator:
         Returns:
             WorktreeInfo with basic information
         """
-        is_root = worktree_path.resolve() == repo_root.resolve()
+        # Check paths exist before resolution to avoid OSError
+        is_root = False
+        if worktree_path.exists() and repo_root.exists():
+            is_root = worktree_path.resolve() == repo_root.resolve()
+
         name = "root" if is_root else worktree_path.name
         branch = ctx.git_ops.get_current_branch(worktree_path)
 
@@ -143,14 +159,30 @@ class StatusOrchestrator:
             List of WorktreeInfo for other worktrees
         """
         worktrees = ctx.git_ops.list_worktrees(repo_root)
+
+        # Check paths exist before resolution to avoid OSError
+        if not current_path.exists():
+            return []
+
         current_resolved = current_path.resolve()
 
         related = []
         for wt in worktrees:
-            if wt.path.resolve() == current_resolved:
+            # Skip if worktree path doesn't exist
+            if not wt.path.exists():
                 continue
 
-            is_root = wt.path.resolve() == repo_root.resolve()
+            wt_resolved = wt.path.resolve()
+
+            # Skip current worktree
+            if wt_resolved == current_resolved:
+                continue
+
+            # Determine if this is the root worktree
+            is_root = False
+            if repo_root.exists():
+                is_root = wt_resolved == repo_root.resolve()
+
             name = "root" if is_root else wt.path.name
 
             related.append(WorktreeInfo(name=name, path=wt.path, branch=wt.branch, is_root=is_root))

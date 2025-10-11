@@ -27,8 +27,10 @@ def status_cmd(ctx: WorkstackContext) -> None:
     current_worktree_path = None
 
     for wt in worktrees:
+        # Check path exists before resolution/comparison to avoid OSError
         if wt.path.exists():
             wt_path_resolved = wt.path.resolve()
+            # Use is_relative_to only after confirming path exists
             if current_dir == wt_path_resolved or current_dir.is_relative_to(wt_path_resolved):
                 current_worktree_path = wt_path_resolved
                 break

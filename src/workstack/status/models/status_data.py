@@ -54,12 +54,12 @@ class PullRequestStatus:
     """Pull request status information."""
 
     number: int
-    title: str
+    title: str | None  # May not be available from all data sources
     state: str
     is_draft: bool
     url: str
     checks_passing: bool | None
-    reviews: list[str]
+    reviews: list[str] | None  # May not be available from all data sources
     ready_to_merge: bool
 
 

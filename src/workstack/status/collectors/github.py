@@ -71,11 +71,11 @@ class GitHubPRCollector(StatusCollector):
 
         return PullRequestStatus(
             number=pr.number,
-            title="",  # Title not available in PullRequestInfo
+            title=None,  # Title not available in PullRequestInfo
             state=pr.state,
             is_draft=pr.is_draft,
             url=pr.url,
             checks_passing=pr.checks_passing,
-            reviews=[],  # Reviews not available in PullRequestInfo
+            reviews=None,  # Reviews not available in PullRequestInfo
             ready_to_merge=ready_to_merge,
         )
