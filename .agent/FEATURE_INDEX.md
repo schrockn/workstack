@@ -77,7 +77,9 @@ All GitHub operations are defined in `src/workstack/github_ops.py`.
 
 ## Graphite Operations
 
-All graphite operations are defined in `src/workstack/graphite_ops.py`.
+All graphite operations are defined in `src/workstack/core/graphite_ops.py`.
+
+**For comprehensive gt documentation**: See [GT_MENTAL_MODEL.md](GT_MENTAL_MODEL.md)
 
 | Operation        | ABC Interface     | Real Implementation | Fake Implementation           | Description                |
 | ---------------- | ----------------- | ------------------- | ----------------------------- | -------------------------- |
@@ -86,7 +88,7 @@ All graphite operations are defined in `src/workstack/graphite_ops.py`.
 
 **Related**:
 
-- Graphite metadata loading: `src/workstack/graphite.py`
+- Graphite metadata loading: `src/workstack/cli/graphite.py`
 - Stack parsing and branch relationships
 
 ---

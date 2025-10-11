@@ -4,6 +4,9 @@ Graphite (https://graphite.dev) is a stacked git workflow tool that allows devel
 to manage dependent branches in linear stacks. This module reads graphite's internal
 metadata to display stack information for worktrees.
 
+For comprehensive gt mental model and command reference, see:
+.agent/GT_MENTAL_MODEL.md
+
 ## What is Graphite?
 
 Graphite organizes branches into "stacks" - linear chains of dependent branches built

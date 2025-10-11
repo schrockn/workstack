@@ -97,6 +97,8 @@ The absolute path to a specific workstack directory.
 
 ## Git & Graphite Concepts
 
+**For comprehensive gt documentation**: See [GT_MENTAL_MODEL.md](GT_MENTAL_MODEL.md)
+
 ### Trunk Branch
 
 The default branch of the repository (typically `main` or `master`).
