@@ -10,6 +10,7 @@ from workstack.cli.commands.move import move_cmd
 from workstack.cli.commands.remove import remove_cmd, rm_cmd
 from workstack.cli.commands.rename import rename_cmd
 from workstack.cli.commands.shell_integration import hidden_shell_cmd
+from workstack.cli.commands.status import status_cmd
 from workstack.cli.commands.switch import switch_cmd
 from workstack.cli.commands.sync import sync_cmd
 from workstack.cli.commands.tree import tree_cmd
@@ -34,6 +35,7 @@ cli.add_command(create)
 cli.add_command(switch_cmd)
 cli.add_command(list_cmd)
 cli.add_command(ls_cmd)
+cli.add_command(status_cmd)
 cli.add_command(init_cmd)
 cli.add_command(move_cmd)
 cli.add_command(remove_cmd)
