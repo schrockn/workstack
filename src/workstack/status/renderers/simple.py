@@ -73,7 +73,7 @@ class SimpleRenderer:
         if status.plan is None or not status.plan.exists:
             return
 
-        click.echo(click.style("Plan:", fg="blue", bold=True))
+        click.echo(click.style("Plan:", fg="bright_magenta", bold=True))
 
         if status.plan.first_lines:
             for line in status.plan.first_lines:

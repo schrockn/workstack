@@ -239,8 +239,8 @@ def _format_plan_summary(worktree_path: Path) -> str | None:
     if title is None:
         return None
 
-    # Format: "  📋 <title in magenta>"
-    title_colored = click.style(title, fg="magenta")
+    # Format: "  📋 <title in bright magenta>"
+    title_colored = click.style(title, fg="bright_magenta")
     return f"  📋 {title_colored}"
 
 
