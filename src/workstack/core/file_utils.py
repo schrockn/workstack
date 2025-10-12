@@ -100,8 +100,8 @@ def atomic_write(target_path: Path, *, mode: str = "w", encoding: str = "utf-8")
 def extract_plan_title(plan_path: Path) -> str | None:
     """Extract the first heading from a markdown plan file.
 
-    Skips YAML frontmatter (between --- markers) and returns
-    the first line starting with # after frontmatter.
+    Uses python-frontmatter library to properly parse YAML frontmatter,
+    then extracts the first line starting with # from the content.
 
     Args:
         plan_path: Path to the .PLAN.md file
@@ -112,23 +112,17 @@ def extract_plan_title(plan_path: Path) -> str | None:
     if not plan_path.exists():
         return None
 
-    content = plan_path.read_text(encoding="utf-8")
+    import frontmatter
+
+    # Parse file with frontmatter library (handles YAML frontmatter properly)
+    post = frontmatter.load(str(plan_path))
+
+    # Get the content (without frontmatter)
+    content = post.content
     lines = content.splitlines()
 
-    # Skip frontmatter if present
-    frontmatter_count = 0
-    start_idx = 0
-
-    for i, line in enumerate(lines):
-        stripped = line.strip()
-        if stripped == "---":
-            frontmatter_count += 1
-            if frontmatter_count == 2:
-                start_idx = i + 1
-                break
-
     # Find first heading
-    for line in lines[start_idx:]:
+    for line in lines:
         stripped = line.strip()
         if stripped.startswith("#"):
             # Remove all # symbols and strip whitespace

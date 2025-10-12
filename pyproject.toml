@@ -16,6 +16,7 @@ requires-python = ">=3.13"
 dependencies = [
     "click>=8.1.7",
     "devclikit",
+    "python-frontmatter>=1.0.0",
 ]
 
 [project.scripts]
