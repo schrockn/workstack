@@ -79,7 +79,7 @@ All GitHub operations are defined in `src/workstack/github_ops.py`.
 
 All graphite operations are defined in `src/workstack/core/graphite_ops.py`.
 
-**For comprehensive gt documentation**: See [GT_MENTAL_MODEL.md](GT_MENTAL_MODEL.md)
+**For comprehensive gt documentation**: See [tool.graphite.md](tool.graphite.md)
 
 | Operation        | ABC Interface     | Real Implementation | Fake Implementation           | Description                |
 | ---------------- | ----------------- | ------------------- | ----------------------------- | -------------------------- |

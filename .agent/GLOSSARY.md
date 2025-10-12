@@ -97,7 +97,7 @@ The absolute path to a specific workstack directory.
 
 ## Git & Graphite Concepts
 
-**For comprehensive gt documentation**: See [GT_MENTAL_MODEL.md](GT_MENTAL_MODEL.md)
+**For comprehensive gt documentation**: See [tool.graphite.md](tool.graphite.md)
 
 ### Trunk Branch
 

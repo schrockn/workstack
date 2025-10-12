@@ -50,7 +50,7 @@ This directory contains comprehensive, agent-friendly documentation for the work
 
 - **docs/PATTERNS.md** (~8,500 tokens) - Detailed pattern explanations
 - **docs/EXCEPTION_HANDLING.md** (~5,000 tokens) - Exception handling deep dive
-- **GT_MENTAL_MODEL.md** (~7,000 tokens) - Graphite (gt) mental model
+- **tool.graphite.md** (~7,000 tokens) - Graphite (gt) mental model
 - **FEATURE_INDEX.md** (~3,000 tokens) - Find implementation locations
 - **docs/MODULE_MAP.md** - Module structure details
 
@@ -79,7 +79,7 @@ This directory contains comprehensive, agent-friendly documentation for the work
 | ------------------------------ | ------ | -------------------------- | ---------------------- |
 | **docs/PATTERNS.md**           | ~8,500 | Detailed code patterns     | Learning how to code   |
 | **docs/EXCEPTION_HANDLING.md** | ~5,000 | Exception handling guide   | Understanding LBYL     |
-| **GT_MENTAL_MODEL.md**         | ~7,000 | Graphite (gt) mental model | Working with gt/stacks |
+| **tool.graphite.md**           | ~7,000 | Graphite (gt) mental model | Working with gt/stacks |
 | **docs/QUICK_REFERENCE.md**    | ~500   | One-line examples          | Ultra-quick lookup     |
 | **docs/MODULE_MAP.md**         | -      | Module organization        | Navigating codebase    |
 
@@ -118,7 +118,7 @@ This directory contains comprehensive, agent-friendly documentation for the work
 
 ### "I need to work with Graphite/gt commands"
 
-1. **GT_MENTAL_MODEL.md** - Complete gt mental model and command reference
+1. **tool.graphite.md** - Complete gt mental model and command reference
 
 ---
 

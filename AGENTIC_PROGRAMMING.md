@@ -124,8 +124,9 @@ Think of the cache in terms of levels, similar to CPU caching. A CLAUDE.md file 
 ├── docs/
 │   ├── PATTERNS.md              # Code patterns with examples
 │   ├── EXCEPTION_HANDLING.md    # Detailed exception philosophy
-│   ├── QUICK_REFERENCE.md       # Fast lookup tables
-│   └── GT_MENTAL_MODEL.md       # External tool mental models
+│   └── QUICK_REFERENCE.md       # Fast lookup tables
+├── tools/
+│   └── graphite.md              # External tool mental models
 ├── prompts/
 │   └── code_review_checklist.md # Reusable agent prompts
 └── README.md                    # Directory purpose and index
@@ -235,6 +236,23 @@ This content belongs in root README.md or docs/CONTRIBUTING.md for humans. The `
 
 Many projects depend on external tools that agents need to understand deeply—specialized build systems, deployment pipelines, API clients, or domain-specific utilities. These tools often emerged after an agent's training cutoff or exist in niche domains where documentation is scattered. Creating comprehensive mental model documents for these tools transforms expensive discovery into efficient loading of pre-computed understanding. These documents are natural candidates for the `.agent` directory, where they serve as reusable knowledge artifacts.
 
+## Naming Convention
+
+To enable scalability and discoverability, mental model documents follow a consistent naming pattern within the `.agent/tools/` subdirectory:
+
+```
+.agent/tools/<tool_name>.md
+```
+
+Examples:
+
+- `.agent/tools/graphite.md` - Graphite CLI mental model
+- `.agent/tools/terraform.md` - Terraform infrastructure tool
+- `.agent/tools/bazel.md` - Bazel build system
+- `.agent/tools/kubernetes.md` - Kubernetes orchestration
+
+This convention organizes tool documentation in a dedicated subdirectory, making it immediately recognizable and creating a predictable namespace for external tool knowledge.
+
 ## Why This Matters
 
 When agents encounter unfamiliar tools, they resort to web searches, parsing HTML documentation into usable knowledge. This process repeats for every agent session, creating inefficiency and inconsistency. Worse, agents may make incorrect assumptions based on superficial similarity to other tools they know.
@@ -281,10 +299,10 @@ Make tool documentation discoverable and loadable when needed. Structure documen
 
 ## Practical Example
 
-Consider documenting Graphite, a specialized stacking tool for Git. Rather than assuming agents understand its unique approach to branch management, create a distilled mental model document:
+Consider documenting Graphite, a specialized stacking tool for Git. Rather than assuming agents understand its unique approach to branch management, create a distilled mental model document at `.agent/tools/graphite.md`:
 
 ```markdown
-# Graphite Mental Model
+# Graphite (gt) Mental Model
 
 ## Core Concept
 
@@ -310,11 +328,15 @@ When "parent branch not found" appears, run `gt sync`...
 
 This document provides enough context for agents to work effectively without searching for documentation or making incorrect assumptions based on Git's branching model. The focus remains on evergreen concepts unlikely to change between minor versions, ensuring documentation longevity.
 
+See `.agent/tools/graphite.md` in this repository for a complete example of tool mental model documentation.
+
 ## Maintenance Considerations
 
 Tool documentation requires ongoing attention. Focus on documenting stable, conceptual foundations rather than version-specific details. Update when tools introduce major conceptual changes, not minor feature additions. Refine based on patterns that prove useful in practice. Verify that external documentation links remain valid.
 
 The goal isn't comprehensive coverage but practical sufficiency. Document the core knowledge that enables productive work, leaving detailed reference material to official documentation.
+
+---
 
 ## Planning: Iterative Design Before Implementation
 
