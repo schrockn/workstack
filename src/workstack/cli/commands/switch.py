@@ -24,6 +24,8 @@ def render_activation_script(*, worktree_path: Path) -> str:
     lines: list[str] = [
         "# work activate-script",  # comment for visibility
         f"cd {quote(wt)}",
+        "# Unset VIRTUAL_ENV to avoid conflicts with previous activations",
+        "unset VIRTUAL_ENV",
         "# Create venv if it doesn't exist",
         f"if [ ! -d {quote(str(worktree_path / '.venv'))} ]; then",
         "  echo 'Creating virtual environment with uv sync...'",
@@ -131,6 +133,8 @@ def switch_cmd(ctx: WorkstackContext, name: str, script: bool) -> None:
             lines = [
                 "# work activate-script (root repo)",
                 f"cd '{str(root_path)}'",
+                "# Unset VIRTUAL_ENV to avoid conflicts with previous activations",
+                "unset VIRTUAL_ENV",
                 "# Create venv if it doesn't exist",
                 f"if [ ! -d '{str(venv_path)}' ]; then",
                 "  echo 'Creating virtual environment with uv sync...'",
