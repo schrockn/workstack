@@ -6,7 +6,7 @@ workstack() {
   [ -n "$_WORKSTACK_COMPLETE" ] && { command workstack "$@"; return; }
 
   local script_path exit_status
-  script_path=$(command workstack __shell "$@")
+  script_path=$(WORKSTACK_SHELL=bash command workstack __shell "$@")
   exit_status=$?
 
   # Passthrough mode: run the original command directly
