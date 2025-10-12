@@ -57,16 +57,12 @@ def strip_plan_from_filename(filename: str) -> str:
         if not prefix and not suffix:
             return "plan"
 
-        # If prefix exists and suffix exists (plan in middle), preserve one separator
+        # If plan is in the middle, preserve one separator
         if prefix and suffix:
             # Use the prefix separator if available, otherwise use suffix
             return prefix if prefix.strip() else suffix
 
-        # If only prefix exists (plan at end), return empty to remove trailing separator
-        if prefix:
-            return ""
-
-        # If only suffix exists (plan at start), return empty to remove leading separator
+        # Plan at start or end: remove it and the adjacent separator
         return ""
 
     cleaned = re.sub(pattern, replace_plan, filename, flags=re.IGNORECASE)
@@ -80,7 +76,7 @@ def strip_plan_from_filename(filename: str) -> str:
     cleaned = re.sub(r"\s+", " ", cleaned)
 
     # If stripping left us with nothing or just "plan", preserve original
-    if not cleaned or cleaned.lower() == "plan":
+    if not cleaned or cleaned == "plan":
         return filename
 
     return cleaned
