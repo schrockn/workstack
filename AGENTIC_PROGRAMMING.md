@@ -32,7 +32,9 @@ Vibe alert: these guidelines have been developed from observed experience, rathe
 
 4. [Planning: Iterative Design Before Implementation](#planning-iterative-design-before-implementation) - Invest in iterative planning with persistent artifacts before implementation to reduce context thrashing and increase the complexity of tasks that can be performed autonomously.
 
-5. [Authoring Guidelines](#authoring-guidelines) - Guidelines for maintaining this document with professional tone and clear structure.
+5. [Parallel Development with Worktrees and Workstack](#parallel-development-with-worktrees-and-workstack) - Enable parallel agentic sessions using Git worktrees and plan-based development workflows.
+
+6. [Authoring Guidelines](#authoring-guidelines) - Guidelines for maintaining this document with professional tone and clear structure.
 
 ---
 
@@ -58,9 +60,13 @@ commands/
 
 The immediate benefit is context window efficiency. When each module contains a complete feature, agents can understand everything they need without loading multiple files or maintaining mental maps of cross-file dependencies. This isn't just convenient—it fundamentally changes what agents can accomplish.
 
+For reference, Claude Code operates with a 25,000 token context window, which translates to approximately 6,000-8,000 lines of Python code depending on code density and complexity. Coarse-grained modules allow agents to load complete features within this limit.
+
 Implementation becomes dramatically faster because agents can generate complete, working features in a single response. There's no coordination overhead, no careful sequencing of changes across files. You can even develop multiple features in parallel without conflicts, since each module stands alone.
 
 Perhaps most importantly, failed experiments become cheap. Delete the file and the experiment is gone—no cleanup, no refactoring, no archaeological digs through the codebase to find orphaned code. This disposability encourages experimentation and rapid iteration.
+
+**Note**: This pattern enables safe iteration, not careless coding. Each module should still follow your project's coding standards. Disposability refers to clean architectural boundaries, not to code quality.
 
 ### Self-Describing Features for Navigation
 
@@ -345,6 +351,109 @@ Features touching multiple components or requiring architectural decisions benef
 This separation enables using different tools optimized for each phase, reduces cognitive load during implementation, and creates clear decision documentation before coding begins.
 
 ---
+
+## Parallel Development with Worktrees and Workstack
+
+### Core Principle
+
+Git worktrees enable truly parallel agentic development by creating independent working directories from a single repository. When combined with comprehensive planning and proper orchestration tools, agents can work autonomously on separate features without coordination overhead. This pattern transforms sequential development into parallel execution.
+
+### Understanding Git Worktrees
+
+Git worktrees solve a fundamental problem in parallel development: the need for multiple working copies without repository duplication. A worktree is a linked working directory that shares the same Git repository but maintains its own working files, index, and HEAD. This means you can have multiple branches checked out simultaneously in different directories, all connected to the same `.git` repository.
+
+Each worktree provides a complete, independent working directory. Agents operating in different worktrees can work simultaneously without conflicts, check out different branches independently, and maintain separate build states and dependencies. Since agents are stateless between sessions, each worktree becomes a persistent workspace for a specific task. An agent can return to its worktree and resume work without needing to understand the state of other parallel efforts.
+
+### Workstack: Orchestrating Parallel Development
+
+While Git provides worktree functionality natively through commands like `git worktree add`, managing multiple worktrees for parallel development introduces complexity. Workstack provides an orchestration layer that simplifies worktree lifecycle management, standardizes naming and organization conventions, and integrates planning documents with worktrees automatically.
+
+The tool addresses specific pain points in parallel development: tracking which worktree corresponds to which feature, maintaining consistent branch naming across worktrees, and ensuring plan documents are available in the working directory. By providing consistent commands and conventions, Workstack ensures that agents can reliably create, navigate, and manage parallel development environments.
+
+### Key Pattern: Plan-Based Development
+
+Parallel agent work requires comprehensive planning. Without detailed plans, agents cannot operate autonomously for extended periods. Plan-based development creates a contract between the human architect and the executing agents. When you use `workstack create --plan`, the tool automatically copies your plan document into the worktree as `.PLAN.md`. This file is gitignored but remains accessible to agents and tools, providing immediate context for the task at hand.
+
+### Workstack Best Practices
+
+#### Keep the Root Repository Clean
+
+The root repository should never have direct commits. It serves as the coordination point and planning center. This approach prevents conflicts between planning and execution, maintains a clean workspace for creating new plans, and ensures the root always reflects the main branch state.
+
+```bash
+# Create plans in root, execute in worktrees
+cd ~/repository/main
+echo "Implementation plan..." > plans/new-feature.md
+workstack create --plan plans/new-feature.md new-feature
+
+# Avoid making changes directly in root
+# Don't checkout branches or edit files in the root directory
+```
+
+#### Use Plan Files as Task Manifests
+
+Plan files serve as executable specifications for agents containing clear success criteria, specific implementation steps, required context and dependencies, and testing requirements. Think of them as detailed instructions that an agent can follow autonomously. The more comprehensive the plan, the longer an agent can work without human intervention.
+
+#### Leverage Plan-Based Worktree Creation
+
+Workstack's `--plan` flag automates the workflow of creating a worktree with embedded context:
+
+```bash
+workstack create --plan plans/auth-feature.md auth-feature
+```
+
+This command creates a new worktree for the feature, copies the plan to `.PLAN.md` in the worktree, checks out a new branch, and provides agents with immediate context. The `.PLAN.md` file is gitignored but accessible to tools, allowing agents to understand their mission without additional context.
+
+### Enabling Autonomous Agent Operation
+
+For parallel development to work effectively, agents must operate autonomously for extended periods. This requires comprehensive planning before execution, clear boundaries between features, and well-defined success criteria. The time invested in creating detailed plans reduces coordination overhead and increases development velocity.
+
+### Practical Example: Parallel Feature Development
+
+Consider developing three independent features simultaneously:
+
+```bash
+# In the root repository, create three plans
+echo "User authentication implementation plan..." > plans/user-auth.md
+echo "API v2 migration plan..." > plans/api-v2.md
+echo "Performance optimization plan..." > plans/perf-opt.md
+
+# Create worktrees with embedded plans
+workstack create --plan plans/user-auth.md user-auth
+workstack create --plan plans/api-v2.md api-v2
+workstack create --plan plans/perf-opt.md perf-opt
+
+# Three agents can now work in parallel
+# Agent 1: cd user-auth && implement based on .PLAN.md
+# Agent 2: cd api-v2 && implement based on .PLAN.md
+# Agent 3: cd perf-opt && implement based on .PLAN.md
+```
+
+Each agent operates independently, following its plan without needing to coordinate with others. When features are complete, they can be reviewed and merged independently.
+
+### Managing Worktree Lifecycle
+
+Worktrees should be treated as temporary workspaces. Once a feature is merged, remove its worktree to keep the development environment clean:
+
+```bash
+# After merging the authentication feature
+workstack remove user-auth
+
+# List active worktrees to review parallel work
+workstack list
+```
+
+This lifecycle management prevents accumulation of stale worktrees and maintains clarity about active development efforts.
+
+### Anti-Pattern: Underspecified Parallel Work
+
+Attempting parallel development without comprehensive planning leads to confusion, conflicts, and wasted effort. Without detailed plans, agents cannot work autonomously. They require constant clarification, defeating the purpose of parallel development. Worse, they might make conflicting assumptions, creating integration challenges later.
+
+### Integration with Planning Workflow
+
+The worktree pattern integrates seamlessly with the planning practices described earlier. Plans created during the design phase become the execution blueprints for worktrees. This creates a natural flow from conception to completion: planning phase to create detailed plans in the root repository, worktree creation using plan documents to initialize workspaces, parallel execution with multiple agents working autonomously, integration of completed features independently, and cleanup by removing worktrees after successful integration.
+
+This workflow scales to support as many parallel efforts as you have agents available, limited only by the quality of your planning and the independence of your features.
 
 ## Authoring Guidelines
 
