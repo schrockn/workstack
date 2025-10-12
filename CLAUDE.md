@@ -226,6 +226,28 @@ Time-based estimates have no basis in reality for AI-assisted development and sh
    [Clear ordering without time claims]
 ```
 
+### Git Workflows
+
+#### Handling uv.lock Conflicts During Rebase
+
+**When rebasing and encountering uv.lock conflicts:**
+
+🔴 **MUST**: Delete and regenerate `uv.lock` instead of manually resolving conflicts
+
+```bash
+# Remove conflicted lock file and regenerate
+rm uv.lock && uv sync
+```
+
+**Why**: Lock files contain checksums and complex dependency resolution that's error-prone to merge manually. Let `uv` regenerate it from the resolved `pyproject.toml`.
+
+**Process**:
+1. Resolve conflicts in `pyproject.toml` first
+2. Delete `uv.lock`
+3. Run `uv sync` to regenerate
+4. Stage the regenerated lock file: `git add uv.lock`
+5. Continue rebase: `git rebase --continue`
+
 ---
 
 ## Related Documentation
