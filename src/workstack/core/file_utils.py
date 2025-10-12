@@ -95,3 +95,45 @@ def atomic_write(target_path: Path, *, mode: str = "w", encoding: str = "utf-8")
         except FileNotFoundError:
             pass  # File was never created if mkstemp failed
         raise
+
+
+def extract_plan_title(plan_path: Path) -> str | None:
+    """Extract the first heading from a markdown plan file.
+
+    Skips YAML frontmatter (between --- markers) and returns
+    the first line starting with # after frontmatter.
+
+    Args:
+        plan_path: Path to the .PLAN.md file
+
+    Returns:
+        The heading text (without the # prefix), or None if not found or file doesn't exist
+    """
+    if not plan_path.exists():
+        return None
+
+    content = plan_path.read_text(encoding="utf-8")
+    lines = content.splitlines()
+
+    # Skip frontmatter if present
+    frontmatter_count = 0
+    start_idx = 0
+
+    for i, line in enumerate(lines):
+        stripped = line.strip()
+        if stripped == "---":
+            frontmatter_count += 1
+            if frontmatter_count == 2:
+                start_idx = i + 1
+                break
+
+    # Find first heading
+    for line in lines[start_idx:]:
+        stripped = line.strip()
+        if stripped.startswith("#"):
+            # Remove all # symbols and strip whitespace
+            title = stripped.lstrip("#").strip()
+            if title:
+                return title
+
+    return None
