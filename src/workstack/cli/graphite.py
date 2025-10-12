@@ -242,3 +242,121 @@ def get_branch_stack(ctx: WorkstackContext, repo_root: Path, branch: str) -> lis
     # Step 7: Combine ancestors and descendants
     # ancestors already includes the current branch, so we just append descendants
     return ancestors + descendants
+
+
+def get_parent_branch(ctx: WorkstackContext, repo_root: Path, branch: str) -> str | None:
+    """Get the parent branch of a given branch in the Graphite stack.
+
+    Args:
+        ctx: Workstack context with git operations
+        repo_root: Path to the repository root (or worktree root)
+        branch: Name of the branch to get the parent for
+
+    Returns:
+        The parent branch name, or None if:
+        - Graphite cache file doesn't exist
+        - Git command fails
+        - Branch is not tracked by graphite
+        - Branch is at trunk (no parent)
+
+    Example:
+        >>> parent = get_parent_branch(ctx, Path("/repo"), "feature/phase-2")
+        >>> print(parent)
+        "feature/phase-1"
+    """
+    git_dir = ctx.git_ops.get_git_common_dir(repo_root)
+    if git_dir is None:
+        return None
+
+    cache_file = git_dir / ".graphite_cache_persist"
+    if not cache_file.exists():
+        return None
+
+    cache_data = _load_graphite_cache(cache_file)
+    branches_data = cache_data.get("branches", [])
+
+    # Build branch info mapping
+    branch_info: dict[str, BranchInfo] = {}
+    for branch_name, info in branches_data:
+        parent: str | None = info.get("parentBranchName")
+        children: list[str] = info.get("children", [])
+        is_trunk: bool = info.get("validationResult") == "TRUNK"
+        branch_info[branch_name] = BranchInfo(parent=parent, children=children, is_trunk=is_trunk)
+
+    # Check if the requested branch exists in graphite's cache
+    if branch not in branch_info:
+        return None
+
+    return branch_info[branch]["parent"]
+
+
+def get_child_branches(ctx: WorkstackContext, repo_root: Path, branch: str) -> list[str]:
+    """Get the child branches of a given branch in the Graphite stack.
+
+    Args:
+        ctx: Workstack context with git operations
+        repo_root: Path to the repository root (or worktree root)
+        branch: Name of the branch to get children for
+
+    Returns:
+        List of child branch names, or empty list if:
+        - Graphite cache file doesn't exist
+        - Git command fails
+        - Branch is not tracked by graphite
+        - Branch has no children (at tip of stack)
+
+    Example:
+        >>> children = get_child_branches(ctx, Path("/repo"), "feature/phase-1")
+        >>> print(children)
+        ["feature/phase-2", "feature/phase-2-alt"]
+    """
+    git_dir = ctx.git_ops.get_git_common_dir(repo_root)
+    if git_dir is None:
+        return []
+
+    cache_file = git_dir / ".graphite_cache_persist"
+    if not cache_file.exists():
+        return []
+
+    cache_data = _load_graphite_cache(cache_file)
+    branches_data = cache_data.get("branches", [])
+
+    # Build branch info mapping
+    branch_info: dict[str, BranchInfo] = {}
+    for branch_name, info in branches_data:
+        parent: str | None = info.get("parentBranchName")
+        children: list[str] = info.get("children", [])
+        is_trunk: bool = info.get("validationResult") == "TRUNK"
+        branch_info[branch_name] = BranchInfo(parent=parent, children=children, is_trunk=is_trunk)
+
+    # Check if the requested branch exists in graphite's cache
+    if branch not in branch_info:
+        return []
+
+    return branch_info[branch]["children"]
+
+
+def find_worktree_for_branch(worktrees: list[Any], branch: str) -> Path | None:
+    """Find the worktree path for a given branch.
+
+    Args:
+        worktrees: List of WorktreeInfo from ctx.git_ops.list_worktrees()
+        branch: Branch name to search for
+
+    Returns:
+        Path to the worktree if branch is checked out in a worktree,
+        None if no worktree exists for the branch.
+
+    Note:
+        This function expects WorktreeInfo objects with 'path' and 'branch' attributes.
+
+    Example:
+        >>> worktrees = ctx.git_ops.list_worktrees(repo.root)
+        >>> wt_path = find_worktree_for_branch(worktrees, "feature-1")
+        >>> print(wt_path)
+        Path("/path/to/work/feature-1")
+    """
+    for wt in worktrees:
+        if hasattr(wt, "branch") and wt.branch == branch:
+            return wt.path
+    return None

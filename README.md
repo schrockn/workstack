@@ -67,6 +67,8 @@ workstack create --plan Add_Auth.md                # Creates worktree, moves pla
 
 ```bash
 workstack switch NAME            # Switch between worktrees (or 'root' for repo root)
+workstack switch --up            # Navigate to child branch in Graphite stack
+workstack switch --down          # Navigate to parent branch in Graphite stack
 workstack status                 # Show status of current worktree
 workstack list                   # List all worktrees (alias: ls)
 workstack list --stacks          # List with graphite stacks and PR status
@@ -77,6 +79,40 @@ workstack gc                     # Find safe-to-delete worktrees (merged PRs)
 workstack sync                   # Sync with Graphite, show cleanup candidates
 workstack sync -f                # Sync and auto-remove merged workstacks
 ```
+
+### Stack Navigation
+
+With Graphite enabled, navigate your stacks directly:
+
+```bash
+workstack switch --up       # Move to child branch in stack
+workstack switch --down     # Move to parent branch in stack
+```
+
+Example workflow:
+
+```bash
+# Current stack: main -> feature-1 -> feature-2 -> feature-3
+# You are in: feature-2
+
+workstack switch --up       # → feature-3
+workstack switch --down     # → feature-2
+workstack switch --down     # → feature-1
+workstack switch --down     # → root (main)
+```
+
+**Requirements:**
+
+- Graphite must be enabled (`workstack config set use_graphite true`)
+- Target branch must have an existing worktree
+- If no worktree exists, shows helpful message: `workstack create <branch>`
+
+**Behavior:**
+
+- `--up`: Navigates to child branch (up the stack)
+- `--down`: Navigates to parent branch (down toward trunk)
+- At stack boundaries, shows clear error messages
+- Cannot be combined with NAME argument
 
 ### Moving Branches
 
