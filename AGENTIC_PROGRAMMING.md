@@ -26,9 +26,11 @@ These practices are opinionated and prescriptive. They represent patterns that h
 
 2. [Agent Documentation: The `.agent` Directory](#agent-documentation-the-agent-directory) - Create a token cache of persistent knowledge that agents can reference instead of rediscovering.
 
-3. [Planning: Iterative Design Before Implementation](#planning-iterative-design-before-implementation) - Invest in iterative planning with persistent artifacts before implementation to reduce context thrashing and increase the complexity of tasks that can be performed autonomously.
+3. [External Tool Mental Models](#external-tool-mental-models) - Document how external tools and APIs work to prevent expensive rediscovery and incorrect assumptions.
 
-4. [Authoring Guidelines](#authoring-guidelines) - Guidelines for maintaining this document with professional tone and clear structure.
+4. [Planning: Iterative Design Before Implementation](#planning-iterative-design-before-implementation) - Invest in iterative planning with persistent artifacts before implementation to reduce context thrashing and increase the complexity of tasks that can be performed autonomously.
+
+5. [Authoring Guidelines](#authoring-guidelines) - Guidelines for maintaining this document with professional tone and clear structure.
 
 ---
 
@@ -218,6 +220,93 @@ your development environment step by step...
 This content belongs in root README.md or docs/CONTRIBUTING.md for humans. The `.agent` directory should contain machine-optimized references. Humans rarely look there, agents don't need tutorials, and mixing audiences dilutes both experiences.
 
 ---
+
+# External Tool Mental Models
+
+## Core Principle
+
+Many projects depend on external tools that agents need to understand deeply—specialized build systems, deployment pipelines, API clients, or domain-specific utilities. These tools often emerged after an agent's training cutoff or exist in niche domains where documentation is scattered. Creating comprehensive mental model documents for these tools transforms expensive discovery into efficient loading of pre-computed understanding. These documents are natural candidates for the `.agent` directory, where they serve as reusable knowledge artifacts.
+
+## Why This Matters
+
+When agents encounter unfamiliar tools, they resort to web searches, parsing HTML documentation into usable knowledge. This process repeats for every agent session, creating inefficiency and inconsistency. Worse, agents may make incorrect assumptions based on superficial similarity to other tools they know.
+
+Documenting tool mental models once creates reusable knowledge that every agent can leverage immediately. This investment pays dividends through faster development, fewer errors, and consistent understanding across all agent interactions.
+
+## What to Document
+
+Focus documentation efforts on tools specific to your domain or industry, recently released tools that postdate agent training, complex tools with non-obvious conceptual models, internal or proprietary systems unique to your organization, and tools with poor, scattered, or outdated public documentation.
+
+Skip documentation for standard Unix commands and utilities, well-established programming language features, widely-adopted frameworks like React, Django, or Rails, and common development tools like Git, Docker, or npm. These tools already exist in agent training data with sufficient depth.
+
+## Creating Effective Documentation
+
+The goal isn't to replicate official documentation but to distill it into efficient, agent-optimized knowledge. Transform verbose documentation into concise patterns that agents can quickly load and apply. A well-crafted mental model document might compress thousands of tokens of HTML documentation into hundreds of tokens of essential patterns and concepts. This distillation process—extracting core concepts from sprawling documentation—creates the token cache that makes `.agent` valuable.
+
+## Structure and Content
+
+Effective tool documentation follows a consistent pattern that helps agents quickly understand and apply the tool.
+
+### Conceptual Foundation
+
+Begin with the tool's fundamental mental model. Rather than diving into commands, explain the core concepts that make the tool's behavior predictable. For a branching tool, explain how branches relate. For a build system, describe the dependency graph. For an API, clarify the authentication flow and data models.
+
+### Common Patterns
+
+Document the workflows developers use daily. Show complete examples with context, not just isolated commands. Include the happy path prominently, then cover important variations and edge cases. Real examples with actual file paths and realistic data prove more valuable than abstract descriptions.
+
+### Error Recovery
+
+Catalog common failure modes and their solutions. When tools fail in predictable ways, documented solutions prevent agents from getting stuck. Include specific error messages, their causes, and step-by-step recovery procedures.
+
+### Authoritative Resources
+
+Provide direct links to official documentation, preventing agents from finding outdated or incorrect information through general web searches. Link to specific sections of documentation rather than just homepages.
+
+## Creating Documentation
+
+Documentation can emerge from several sources. For open-source tools, clone the repository and extract documentation directly, transforming verbose HTML documentation into concise markdown focused on practical usage. As your team discovers patterns through usage, capture them immediately—when an agent spends significant time understanding a tool's behavior, that understanding becomes valuable documentation for future sessions. When agents search tool documentation online, save useful findings and transform search results into structured documents, removing redundancy and organizing for quick reference.
+
+## Integration Strategies
+
+Make tool documentation discoverable and loadable when needed. Structure documents to support incremental loading—a quick reference for common operations, detailed patterns for complex workflows, and troubleshooting guides for error handling. In your main agent documentation, reference tool documents clearly so agents know when to load additional context.
+
+## Practical Example
+
+Consider documenting Graphite, a specialized stacking tool for Git. Rather than assuming agents understand its unique approach to branch management, create a distilled mental model document:
+
+```markdown
+# Graphite Mental Model
+
+## Core Concept
+
+Graphite manages "stacks"—linear chains of dependent branches...
+
+# ... conceptual overview continues ...
+
+## Common Operations
+
+Creating a stack:
+
+- `gt create feature-1` creates first branch in stack
+- `gt create feature-2` stacks on top of feature-1
+
+# ... additional operations ...
+
+## Error Recovery
+
+When "parent branch not found" appears, run `gt sync`...
+
+# ... more error scenarios and solutions ...
+```
+
+This document provides enough context for agents to work effectively without searching for documentation or making incorrect assumptions based on Git's branching model. The focus remains on evergreen concepts unlikely to change between minor versions, ensuring documentation longevity.
+
+## Maintenance Considerations
+
+Tool documentation requires ongoing attention. Focus on documenting stable, conceptual foundations rather than version-specific details. Update when tools introduce major conceptual changes, not minor feature additions. Refine based on patterns that prove useful in practice. Verify that external documentation links remain valid.
+
+The goal isn't comprehensive coverage but practical sufficiency. Document the core knowledge that enables productive work, leaving detailed reference material to official documentation.
 
 ## Planning: Iterative Design Before Implementation
 
