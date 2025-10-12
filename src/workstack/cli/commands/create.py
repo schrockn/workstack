@@ -87,6 +87,20 @@ def add_worktree(
     """
 
     if branch and use_existing_branch:
+        # Validate branch is not already checked out
+        existing_path = ctx.git_ops.is_branch_checked_out(repo_root, branch)
+        if existing_path:
+            click.echo(
+                f"Error: Branch '{branch}' is already checked out at {existing_path}\n"
+                f"Git doesn't allow the same branch to be checked out in multiple worktrees.\n\n"
+                f"Options:\n"
+                f"  • Use a different branch name\n"
+                f"  • Create a new branch instead: workstack create {path.name}\n"
+                f"  • Switch to that worktree: workstack switch {path.name}",
+                err=True,
+            )
+            raise SystemExit(1)
+
         ctx.git_ops.add_worktree(repo_root, path, branch=branch, ref=None, create_branch=False)
     elif branch:
         if use_graphite:
@@ -297,6 +311,20 @@ def create(
     if from_current_branch:
         # Determine which branch to switch to (use ref if provided, else main/master)
         to_branch = ref if ref else ctx.git_ops.detect_default_branch(repo.root)
+
+        # Check for edge case: can't move main to worktree then switch to main
+        current_branch = ctx.git_ops.get_current_branch(Path.cwd())
+        if current_branch == to_branch:
+            click.echo(
+                f"Error: Cannot use --from-current-branch when on '{current_branch}'.\n"
+                f"The current branch cannot be moved to a worktree and then checked out again.\n\n"
+                f"Alternatives:\n"
+                f"  • Create a new branch: workstack create {name}\n"
+                f"  • Switch to a feature branch first, then use --from-current-branch\n"
+                f"  • Use --from-branch to create from a different existing branch",
+                err=True,
+            )
+            raise SystemExit(1)
 
         # Switch current worktree to the target branch first
         ctx.git_ops.checkout_branch(repo.root, to_branch)

@@ -11,6 +11,7 @@ from tests.fakes.global_config_ops import FakeGlobalConfigOps
 from tests.fakes.graphite_ops import FakeGraphiteOps
 from workstack.cli.cli import cli
 from workstack.core.context import WorkstackContext
+from workstack.core.gitops import WorktreeInfo
 
 
 def test_create_basic_worktree() -> None:
@@ -708,3 +709,137 @@ def test_create_requires_name_or_flag() -> None:
 
         assert result.exit_code == 1
         assert "Must provide NAME" in result.output
+
+
+def test_create_from_current_branch_on_main_fails() -> None:
+    """Test that --from-current-branch fails with helpful message when on main."""
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        cwd = Path.cwd()
+        git_dir = cwd / ".git"
+        git_dir.mkdir()
+
+        workstacks_root = cwd / "workstacks"
+        work_dir = workstacks_root / cwd.name
+        work_dir.mkdir(parents=True)
+
+        config_toml = work_dir / "config.toml"
+        config_toml.write_text("", encoding="utf-8")
+
+        git_ops = FakeGitOps(
+            git_common_dirs={cwd: git_dir},
+            default_branches={cwd: "main"},
+            current_branches={cwd: "main"},
+        )
+        global_config_ops = FakeGlobalConfigOps(
+            exists=True,
+            workstacks_root=workstacks_root,
+            use_graphite=False,
+        )
+
+        test_ctx = WorkstackContext(
+            git_ops=git_ops,
+            global_config_ops=global_config_ops,
+            github_ops=FakeGitHubOps(),
+            graphite_ops=FakeGraphiteOps(),
+            dry_run=False,
+        )
+
+        result = runner.invoke(cli, ["create", "feature", "--from-current-branch"], obj=test_ctx)
+
+        assert result.exit_code == 1
+        assert "Cannot use --from-current-branch when on 'main'" in result.output
+        assert "Alternatives:" in result.output
+
+
+def test_create_detects_branch_already_checked_out() -> None:
+    """Test that create detects when branch is already checked out."""
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        cwd = Path.cwd()
+        git_dir = cwd / ".git"
+        git_dir.mkdir()
+
+        workstacks_root = cwd / "workstacks"
+        work_dir = workstacks_root / cwd.name
+        work_dir.mkdir(parents=True)
+
+        config_toml = work_dir / "config.toml"
+        config_toml.write_text("", encoding="utf-8")
+
+        # Setup: feature-branch is already checked out in an existing worktree
+        existing_wt_path = work_dir / "existing-feature"
+        existing_wt_path.mkdir(parents=True)
+
+        git_ops = FakeGitOps(
+            git_common_dirs={cwd: git_dir},
+            default_branches={cwd: "main"},
+            current_branches={cwd: "main"},
+            worktrees={
+                cwd: [
+                    WorktreeInfo(path=cwd, branch="main"),
+                    WorktreeInfo(path=existing_wt_path, branch="feature-branch"),
+                ],
+            },
+        )
+        global_config_ops = FakeGlobalConfigOps(
+            exists=True,
+            workstacks_root=workstacks_root,
+            use_graphite=False,
+        )
+
+        test_ctx = WorkstackContext(
+            git_ops=git_ops,
+            global_config_ops=global_config_ops,
+            github_ops=FakeGitHubOps(),
+            graphite_ops=FakeGraphiteOps(),
+            dry_run=False,
+        )
+
+        result = runner.invoke(
+            cli, ["create", "new-feature", "--from-branch", "feature-branch"], obj=test_ctx
+        )
+
+        assert result.exit_code == 1
+        assert "already checked out" in result.output
+        assert "feature-branch" in result.output
+
+
+def test_create_from_current_branch_on_master_fails() -> None:
+    """Test that --from-current-branch fails when on master branch too."""
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        cwd = Path.cwd()
+        git_dir = cwd / ".git"
+        git_dir.mkdir()
+
+        workstacks_root = cwd / "workstacks"
+        work_dir = workstacks_root / cwd.name
+        work_dir.mkdir(parents=True)
+
+        config_toml = work_dir / "config.toml"
+        config_toml.write_text("", encoding="utf-8")
+
+        git_ops = FakeGitOps(
+            git_common_dirs={cwd: git_dir},
+            default_branches={cwd: "master"},
+            current_branches={cwd: "master"},
+        )
+        global_config_ops = FakeGlobalConfigOps(
+            exists=True,
+            workstacks_root=workstacks_root,
+            use_graphite=False,
+        )
+
+        test_ctx = WorkstackContext(
+            git_ops=git_ops,
+            global_config_ops=global_config_ops,
+            github_ops=FakeGitHubOps(),
+            graphite_ops=FakeGraphiteOps(),
+            dry_run=False,
+        )
+
+        result = runner.invoke(cli, ["create", "feature", "--from-current-branch"], obj=test_ctx)
+
+        assert result.exit_code == 1
+        assert "Cannot use --from-current-branch when on 'master'" in result.output
