@@ -10,7 +10,14 @@ from workstack.core.context import WorkstackContext
 
 
 def generate_recovery_script(ctx: WorkstackContext) -> Path | None:
-    """Create a recovery script that returns to the repo root if cwd vanishes."""
+    """Create a recovery script that returns to the repo root if cwd vanishes.
+
+    This helper intentionally guards against runtime cwd races:
+    - Path.cwd() may raise FileNotFoundError if the directory vanished between invocations.
+    - discover_repo_context() performs the authoritative repo lookup; probing earlier provides
+      no additional safety and merely repeats the work.
+    - Returning None signals that graceful degradation is preferred to exploding at the boundary.
+    """
     try:
         current_dir = Path.cwd()
     except FileNotFoundError:

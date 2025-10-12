@@ -2,50 +2,27 @@
 
 import os
 from pathlib import Path
-from types import SimpleNamespace
 
 from click.testing import CliRunner
 
+from tests.fakes.context import create_test_context
+from tests.fakes.gitops import FakeGitOps
+from tests.fakes.global_config_ops import FakeGlobalConfigOps
 from workstack.cli.commands.prepare_cwd_recovery import prepare_cwd_recovery_cmd
 from workstack.core.context import WorkstackContext
 
 
-class StubGitOps:
-    """GitOps stub that returns a fixed repo root."""
-
-    def __init__(self, repo_root: Path | None) -> None:
-        self._repo_root = repo_root
-
-    def get_git_common_dir(self, _cwd: Path) -> Path | None:
-        if self._repo_root is None:
-            return None
-
-        git_dir = self._repo_root / ".git"
-        if not git_dir.exists():
-            return None
-        return git_dir
-
-
-class StubGlobalConfigOps:
-    """GlobalConfigOps stub that exposes a fixed workstacks root."""
-
-    def __init__(self, root: Path) -> None:
-        self._root = root
-
-    def get_workstacks_root(self) -> Path:
-        return self._root
-
-
 def build_ctx(repo_root: Path | None, workstacks_root: Path) -> WorkstackContext:
-    """Create a WorkstackContext with stubbed dependencies."""
-    git_ops = StubGitOps(repo_root)
-    global_config_ops = StubGlobalConfigOps(workstacks_root)
-    dummy = SimpleNamespace()
-    return WorkstackContext(
+    """Create a WorkstackContext with test fakes."""
+    git_common_dirs: dict[Path, Path] = {}
+    if repo_root is not None:
+        git_common_dirs[repo_root] = repo_root / ".git"
+
+    git_ops = FakeGitOps(git_common_dirs=git_common_dirs)
+    global_config_ops = FakeGlobalConfigOps(workstacks_root=workstacks_root)
+    return create_test_context(
         git_ops=git_ops,
         global_config_ops=global_config_ops,
-        github_ops=dummy,
-        graphite_ops=dummy,
         dry_run=False,
     )
 

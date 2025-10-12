@@ -100,3 +100,24 @@ def test_shell_integration_sync_generates_fish_passthrough_script(tmp_path: Path
         assert "set __workstack_exit $status" in content
     finally:
         script_path.unlink(missing_ok=True)
+
+
+def test_shell_integration_fish_escapes_special_characters(tmp_path: Path) -> None:
+    """Fish passthrough script should escape characters that trigger expansions."""
+    runner = CliRunner()
+    special_arg = "$branch;rm"
+    second_arg = "(test)"
+    result = runner.invoke(
+        cli,
+        ["__shell", "sync", special_arg, second_arg],
+        env={"WORKSTACK_SHELL": "fish"},
+    )
+    assert result.exit_code == 0
+    script_output = result.output.strip()
+    assert script_output
+    script_path = Path(script_output)
+    try:
+        content = script_path.read_text(encoding="utf-8")
+        assert 'command workstack "sync" "\\$branch\\;rm" "\\(test\\)"' in content
+    finally:
+        script_path.unlink(missing_ok=True)

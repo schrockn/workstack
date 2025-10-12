@@ -10,7 +10,11 @@ from workstack.cli.commands.create import create
 from workstack.cli.commands.prepare_cwd_recovery import generate_recovery_script
 from workstack.cli.commands.switch import switch_cmd
 from workstack.cli.debug import debug_log
-from workstack.cli.shell_utils import cleanup_stale_scripts, write_script_to_temp
+from workstack.cli.shell_utils import (
+    STALE_SCRIPT_MAX_AGE_SECONDS,
+    cleanup_stale_scripts,
+    write_script_to_temp,
+)
 from workstack.core.context import create_context
 
 PASSTHROUGH_MARKER: Final[str] = "__WORKSTACK_PASSTHROUGH__"
@@ -54,7 +58,7 @@ def _invoke_hidden_command(command_name: str, args: tuple[str, ...]) -> ShellInt
     debug_log(f"Handler: Invoking {command_name} with args: {script_args}")
 
     # Clean up stale scripts before running (opportunistic cleanup)
-    cleanup_stale_scripts(max_age_seconds=3600)
+    cleanup_stale_scripts(max_age_seconds=STALE_SCRIPT_MAX_AGE_SECONDS)
 
     runner = CliRunner()
     result = runner.invoke(
@@ -144,7 +148,40 @@ def _render_posix_passthrough(
 
 
 def _quote_fish(arg: str) -> str:
-    escaped = arg.replace("\\", "\\\\").replace('"', '\\"')
+    if not arg:
+        return '""'
+
+    escape_map = {
+        "\\": "\\\\",
+        '"': '\\"',
+        "$": "\\$",
+        "`": "\\`",
+        "~": "\\~",
+        "*": "\\*",
+        "?": "\\?",
+        "{": "\\{",
+        "}": "\\}",
+        "[": "\\[",
+        "]": "\\]",
+        "(": "\\(",
+        ")": "\\)",
+        "<": "\\<",
+        ">": "\\>",
+        "|": "\\|",
+        ";": "\\;",
+        "&": "\\&",
+    }
+    escaped_parts: list[str] = []
+    for char in arg:
+        if char == "\n":
+            escaped_parts.append("\\n")
+            continue
+        if char == "\t":
+            escaped_parts.append("\\t")
+            continue
+        escaped_parts.append(escape_map.get(char, char))
+
+    escaped = "".join(escaped_parts)
     return f'"{escaped}"'
 
 

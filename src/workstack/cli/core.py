@@ -25,6 +25,9 @@ def discover_repo_context(ctx: WorkstackContext, start: Path) -> RepoContext:
     Note: Properly handles git worktrees by finding the main repository root,
     not the worktree's .git file.
     """
+    if not start.exists():
+        raise FileNotFoundError(f"Start path '{start}' does not exist.")
+
     cur = start.resolve()
 
     root: Path | None = None
