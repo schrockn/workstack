@@ -109,6 +109,19 @@ class GitOps(ABC):
         """Prune stale worktree metadata."""
         ...
 
+    @abstractmethod
+    def is_branch_checked_out(self, repo_root: Path, branch: str) -> Path | None:
+        """Check if a branch is already checked out in any worktree.
+
+        Args:
+            repo_root: Path to the git repository root
+            branch: Branch name to check
+
+        Returns:
+            Path to the worktree where branch is checked out, or None if not checked out.
+        """
+        ...
+
 
 # ============================================================================
 # Production Implementation
@@ -275,6 +288,14 @@ class RealGitOps(GitOps):
         """Prune stale worktree metadata."""
         subprocess.run(["git", "worktree", "prune"], cwd=repo_root, check=True)
 
+    def is_branch_checked_out(self, repo_root: Path, branch: str) -> Path | None:
+        """Check if a branch is already checked out in any worktree."""
+        worktrees = self.list_worktrees(repo_root)
+        for wt in worktrees:
+            if wt.branch == branch:
+                return wt.path
+        return None
+
 
 # ============================================================================
 # Dry-Run Wrapper
@@ -366,3 +387,7 @@ class DryRunGitOps(GitOps):
     def prune_worktrees(self, repo_root: Path) -> None:
         """Print dry-run message instead of pruning worktrees."""
         click.echo("[DRY RUN] Would run: git worktree prune", err=True)
+
+    def is_branch_checked_out(self, repo_root: Path, branch: str) -> Path | None:
+        """Check if branch is checked out (read-only, delegates to wrapped)."""
+        return self._wrapped.is_branch_checked_out(repo_root, branch)

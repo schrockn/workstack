@@ -111,6 +111,14 @@ class FakeGitOps(GitOps):
         """Prune stale worktree metadata (no-op for in-memory fake)."""
         pass
 
+    def is_branch_checked_out(self, repo_root: Path, branch: str) -> Path | None:
+        """Check if a branch is already checked out in any worktree."""
+        worktrees = self.list_worktrees(repo_root)
+        for wt in worktrees:
+            if wt.branch == branch:
+                return wt.path
+        return None
+
     @property
     def deleted_branches(self) -> list[str]:
         """Get the list of branches that have been deleted.
