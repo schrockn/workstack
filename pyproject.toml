@@ -26,9 +26,9 @@ workstack-dev = "workstack.dev_cli.__main__:cli"
 [dependency-groups]
 dev = [
     "ruff>=0.5.0",
-    "pyright>=1.1.350",
     "pytest>=8.0.0",
     "pytest-cov>=5.0.0",
+    "pyright>=1.1.406",
 ]
 
 [build-system]
