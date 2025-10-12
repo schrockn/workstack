@@ -4,6 +4,37 @@ Best practices for structuring code to be amenable to AI-assisted engineering.
 
 ---
 
+## Introduction
+
+This document presents best practices for **agentic programming** - the art of structuring code and development processes to maximize effectiveness when working with AI assistants.
+
+### What is Agentic Programming?
+
+Agentic programming is an emerging discipline focused on making codebases and workflows optimally compatible with AI-assisted development. It recognizes that AI agents have unique strengths and constraints:
+
+- **Limited context windows** requiring efficient information architecture
+- **Stateless interactions** needing persistent artifacts for continuity
+- **Pattern recognition capabilities** that benefit from consistent structures
+- **Parallel processing potential** when tasks are properly decomposed
+
+### Document Philosophy
+
+These practices are opinionated and prescriptive. They represent patterns that have proven effective across multiple projects and teams. Not every pattern will apply to every codebase, but understanding the principles will help you make informed decisions about your own AI-assisted development workflow.
+
+---
+
+## Table of Contents
+
+1. [Coarse-grained Parallel Modules](#coarse-grained-parallel-modules) - Organize code into independent, self-contained modules for efficient context management and safe disposability.
+
+2. [Agent Documentation: The `.agent` Directory](#agent-documentation-the-agent-directory) - Create a token cache of persistent knowledge that agents can reference instead of rediscovering.
+
+3. [Planning: Iterative Design Before Implementation](#planning-iterative-design-before-implementation) - Invest in iterative planning with persistent artifacts before implementation to reduce context thrashing and to increased the complexity of tasks that can be performed autonomously.
+
+4. [Authoring Guidelines](#authoring-guidelines) - Guidelines for maintaining this document with professional tone and clear structure.
+
+---
+
 ## Coarse-grained Parallel Modules
 
 ### Core Principle
@@ -22,7 +53,7 @@ commands/
 └── update.py    # Complete 'update' command - standalone
 ```
 
-### Three Critical Benefits
+### Benefits
 
 #### 1. Context Window Management
 
@@ -45,7 +76,7 @@ commands/
 
 ### Self-Describing Features for Navigation
 
-**Critical:** Include metadata that makes features self-describing and discoverable.
+Include metadata and/or comments that makes features self-describing and discoverable.
 
 **Good Examples:**
 
@@ -83,7 +114,7 @@ This metadata enables:
 
 ### Example Applications (Non-Exhaustive)
 
-This pattern applies broadly to any system with parallel, independent features:
+This pattern applies broadly to any system with parallel, independent features, such as:
 
 - **CLI Commands**: One command per file with complete implementation
 - **API Endpoints**: One endpoint/resource per file
@@ -93,36 +124,6 @@ This pattern applies broadly to any system with parallel, independent features:
 - **Migration Scripts**: One migration per file
 
 The key characteristic: features that can be added, modified, or removed independently without affecting sibling features.
-
-### Implementation Guidelines
-
-- Keep modules under 500 lines for optimal context usage
-- Include all imports and dependencies in each file
-- Prefer duplication over shared utilities (within reason)
-- Use dependency injection for truly shared resources
-- Always include descriptive docstrings/help text
-
-### Anti-Pattern to Avoid
-
-```python
-# DON'T: Multiple features interleaved in one file
-cli_commands.py:
-    def list_command(): ...
-    def create_command(): ...
-    def _shared_helper(): ...  # Used by multiple commands
-    def delete_command(): ...
-```
-
-**Why this is problematic:**
-
-When an agent breaks `create_command()`, removal becomes complex and risky. You cannot simply delete the broken code without:
-
-- Checking if other commands depend on it
-- Ensuring shared helpers aren't orphaned
-- Verifying no cross-references exist
-- Potentially refactoring the entire file
-
-This violates the disposability principle and slows down agentic development.
 
 ---
 
@@ -134,11 +135,9 @@ The `.agent` directory serves as a **token cache** - a persistent store of under
 
 ### The Token Cache Concept
 
-**Problem:** Agents repeatedly consume thousands of tokens to understand the same patterns, conventions, and architectural decisions across sessions.
+Agents repeatedly consume thousands of tokens to understand the same patterns, conventions, and architectural decisions across sessions. Instead, when an agent invests significant tokens to achieve deep understanding, persist that understanding in `.agent` for future reuse. Pre-materialized knowledge that transforms expensive discovery into cheap retrieval.
 
-**Solution:** When an agent invests significant tokens to achieve deep understanding, persist that understanding in `.agent` for future reuse.
-
-**Think of it as:** Pre-computed knowledge that transforms expensive discovery into cheap retrieval.
+The cache term is useful as there are _levels_ to caching. For example you can think of CLAUDE.md as an L0 cache, a QUICK_REFERENCE.md as an L1 cache, EXCEPTION_HANDLING.md as an L2 cache, and so forth. Caches also get invalidated and must be recomputed or refilled, just as these documents do.
 
 ### Structure Example
 
@@ -238,6 +237,8 @@ Include tables, checklists, and quick references:
 
 **CLAUDE.md (Root):** Quick reference, critical rules, links to `.agent` for details
 
+Example:
+
 ```markdown
 # CLAUDE.md
 
@@ -288,9 +289,165 @@ your development environment step by step...
 
 **Why this is problematic:**
 
+- Tools that assume that .agent is programmatically recomputed will blow away human-authored changes.
 - Humans rarely look in `.agent` directory
 - Agents don't need tutorials, they need structured references
 - Wastes context window on conversational fluff
 - Belongs in `README.md` or `docs/` instead
 
 **Correct placement:** Root `README.md` or `docs/CONTRIBUTING.md` for humans, `.agent/docs/` for machine-optimized references.
+
+---
+
+## Planning: Iterative Design Before Implementation
+
+### Core Principle
+
+Invest in planning before implementation for non-trivial or complex tasks. A well-crafted plan saves time and reduces context thrashing during execution. Think of plans as execution blueprints - detailed specifications that enable efficient, autonomous agent work.
+
+### Key Pattern: Plans as Persistent Artifacts
+
+For non-trivial tasks, persist plans as `.md` files. This enables:
+
+- **Context management** across multiple agent sessions
+- **Model flexibility** - switch between planning models (o1, Claude) and execution models
+- **Progress tracking** through complex multi-step implementations
+- **Clear boundaries** between design thinking and implementation
+
+### Planning Best Practices
+
+#### 1. Iterate on the Plan
+
+Plans often require iteration. Precise planning can save lots of time later. Fix errors in plans is cheaper than fixing errors in implementations.
+
+#### 2. Persist Non-Trivial Plans
+
+For non-trivial tasks requiring more than 30 minutes of implementation, consider creating a persistent plan:
+
+```
+project/
+├── src/              # Source code
+├── docs/             # User documentation
+├── plan.md           # Current working plan (git-ignored)
+└── .gitignore        # Contains: plan.md, *_plan.md, plans/
+```
+
+Benefits of persistent plans:
+
+- **Context preservation** - No need to re-explain the task to agents
+- **Session flexibility** - Switch between agents or models mid-task
+- **Progress visibility** - Clear checklist of completed work
+- **Debugging reference** - Original intent remains accessible
+
+#### 3. Keep Plans Out of Version Control
+
+Plans should not be checked into repositories. In practice this confuses human reviewers and they become out-of-date quickly.
+
+#### 4. Two-Phase Planning for Complex Features
+
+For features touching multiple components or requiring architectural decisions, consider a two-phase approach:
+
+**Phase 1: Specification Document** (Focus: What and Why)
+
+- Overview of the feature without implementation details
+- Functional requirements, constraints, and security considerations
+- API design with interfaces and data flows
+- Architecture decisions with rationale, alternatives considered, and accepted tradeoffs
+
+**Phase 2: Implementation Plan** (Focus: How)
+
+- Pre-implementation checklist (dependencies, environment, documentation review)
+- Step-by-step implementation with specific files and patterns
+- Context requirements (files to load, patterns to follow, external docs)
+- Testing strategy (unit, integration, performance benchmarks)
+
+This separation enables:
+
+- Different tools optimized for each phase
+- Reduced cognitive load during implementation
+- Clear decision documentation before coding
+
+---
+
+## Authoring Guidelines
+
+This section provides guidance for maintaining and extending this document. Following these guidelines ensures consistency and readability.
+
+### Tone and Voice
+
+#### Professional and Informative
+
+Write clearly and directly without unnecessary dramatization:
+
+- Use clear, straightforward language
+- Avoid emphatic words like "CRITICAL", "MUST", "NEVER"
+- Present information objectively - let the content speak for itself
+- Write for intelligent readers - assume technical competence without being condescating
+- Do not inject numeric estimates (e.g. if task is over 30 minutes, do X. Spend Y% of time doing Z.)
+- Bias towards brevity. This is a high-level guide.
+
+#### Examples over Prescriptions
+
+Prefer showing over telling:
+
+Instead of: "You MUST NEVER use try/except for control flow!"
+Write: "Avoid using try/except for control flow. Check conditions explicitly instead."
+
+Instead of: "CRITICAL INSIGHT: This pattern is essential!"
+Write: "This pattern has proven effective across multiple projects."
+
+### Structure and Format
+
+#### Section Organization
+
+Each major section should include:
+
+1. **Core Principle** - One-paragraph summary of the main idea
+2. **Key Pattern** - The primary implementation approach
+3. **Detailed Explanation** - How and why it works
+4. **Examples** - Concrete implementations
+5. **Anti-patterns** - What to avoid and why
+
+#### Heading Hierarchy
+
+- `#` Document title only
+- `##` Major sections (appear in table of contents)
+- `###` Subsections within major sections
+- `####` Specific topics within subsections
+
+#### Code Examples
+
+Provide practical, contextualized examples:
+
+```python
+# Good: Complete example with context
+def search_content(query: str, filters: dict) -> list:
+    """Search content with optional filters."""
+    results = index.search(query)
+    if filters:
+        results = apply_filters(results, filters)
+    return results
+
+# Less helpful: Fragment without context
+results = search(q)  # What is q? What does search return?
+```
+
+#### Language-Agnostic When Possible
+
+Use generic examples that apply across languages:
+
+```
+project/
+├── src/           # Source code
+├── tests/         # Test files
+├── docs/          # Documentation
+└── plan.md        # Working plan (not committed)
+```
+
+When language-specific examples are needed, clearly indicate the language.
+
+#### Balance Between Abstract and Concrete
+
+- **Start with the concept** - Explain the principle
+- **Provide concrete examples** - Show real implementations
+- **Return to abstraction** - Summarize how to apply broadly
