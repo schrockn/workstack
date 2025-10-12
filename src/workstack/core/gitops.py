@@ -13,8 +13,11 @@ import subprocess
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 import click
+
+from workstack.core.rebaseops import RealRebaseOps, RebaseOps
 
 
 @dataclass(frozen=True)
@@ -36,6 +39,12 @@ class GitOps(ABC):
     All implementations (real and fake) must implement this interface.
     This interface contains ONLY runtime operations - no test setup methods.
     """
+
+    @property
+    @abstractmethod
+    def rebase_ops(self) -> RebaseOps:
+        """Get the RebaseOps instance for rebase operations."""
+        ...
 
     @abstractmethod
     def list_worktrees(self, repo_root: Path) -> list[WorktreeInfo]:
@@ -122,6 +131,128 @@ class GitOps(ABC):
         """
         ...
 
+    @abstractmethod
+    def start_rebase(
+        self,
+        cwd: Path,
+        onto: str,
+        *,
+        interactive: bool = False,
+    ) -> tuple[bool, list[str]]:
+        """Start a rebase onto the given branch.
+
+        Args:
+            cwd: Directory to run rebase in
+            onto: Branch/commit to rebase onto
+            interactive: Whether to use interactive rebase
+
+        Returns:
+            Tuple of (success, list of conflicted files)
+            - success: True if rebase completed without conflicts
+            - conflicts: List of file paths with conflicts (empty if success=True)
+        """
+        ...
+
+    @abstractmethod
+    def continue_rebase(self, cwd: Path) -> tuple[bool, list[str]]:
+        """Continue a rebase after resolving conflicts.
+
+        Args:
+            cwd: Directory with rebase in progress
+
+        Returns:
+            Tuple of (success, list of conflicted files)
+            - success: True if rebase completed
+            - conflicts: List of remaining conflicted files (empty if success=True)
+        """
+        ...
+
+    @abstractmethod
+    def abort_rebase(self, cwd: Path) -> None:
+        """Abort an ongoing rebase.
+
+        Args:
+            cwd: Directory with rebase in progress
+        """
+        ...
+
+    @abstractmethod
+    def get_rebase_status(self, cwd: Path) -> dict[str, Any]:
+        """Get detailed rebase status.
+
+        Args:
+            cwd: Directory to check
+
+        Returns:
+            Dictionary with keys:
+            - in_progress: bool - Whether rebase is active
+            - onto: str | None - Branch being rebased onto
+            - remaining_commits: int - Commits left to apply
+            - current_commit: str | None - Currently applying commit
+            - conflicts: list[str] - List of conflicted files
+        """
+        ...
+
+    @abstractmethod
+    def get_merge_base(self, cwd: Path, branch1: str, branch2: str) -> str | None:
+        """Find the merge base commit between two branches.
+
+        Args:
+            cwd: Repository directory
+            branch1: First branch name
+            branch2: Second branch name
+
+        Returns:
+            Commit SHA of merge base, or None if no common ancestor
+        """
+        ...
+
+    @abstractmethod
+    def get_commit_range(
+        self,
+        cwd: Path,
+        from_ref: str,
+        to_ref: str,
+    ) -> list[dict[str, str]]:
+        """Get list of commits between two refs.
+
+        Args:
+            cwd: Repository directory
+            from_ref: Starting ref (exclusive)
+            to_ref: Ending ref (inclusive)
+
+        Returns:
+            List of commit dicts with keys:
+            - sha: str - Commit SHA
+            - message: str - Commit message (first line)
+            - author: str - Commit author
+        """
+        ...
+
+    @abstractmethod
+    def get_conflicted_files(self, cwd: Path) -> list[str]:
+        """Get list of files with merge conflicts.
+
+        Args:
+            cwd: Repository directory
+
+        Returns:
+            List of file paths with conflicts
+        """
+        ...
+
+    @abstractmethod
+    def check_clean_worktree(self, cwd: Path) -> bool:
+        """Check if worktree has no uncommitted changes.
+
+        Args:
+            cwd: Directory to check
+
+        Returns:
+            True if worktree is clean (no uncommitted changes)
+        """
+        ...
+
 
 # ============================================================================
 # Production Implementation
@@ -133,6 +264,15 @@ class RealGitOps(GitOps):
 
     All git operations execute actual git commands via subprocess.
     """
+
+    def __init__(self) -> None:
+        """Initialize RealGitOps with a RealRebaseOps instance."""
+        self._rebase_ops = RealRebaseOps()
+
+    @property
+    def rebase_ops(self) -> RebaseOps:
+        """Get the RebaseOps instance for rebase operations."""
+        return self._rebase_ops
 
     def list_worktrees(self, repo_root: Path) -> list[WorktreeInfo]:
         """List all worktrees in the repository."""
@@ -296,6 +436,49 @@ class RealGitOps(GitOps):
                 return wt.path
         return None
 
+    def start_rebase(
+        self,
+        cwd: Path,
+        onto: str,
+        *,
+        interactive: bool = False,
+    ) -> tuple[bool, list[str]]:
+        """Start a rebase onto the given branch."""
+        return self._rebase_ops.start_rebase(cwd, onto, interactive=interactive)
+
+    def continue_rebase(self, cwd: Path) -> tuple[bool, list[str]]:
+        """Continue a rebase after resolving conflicts."""
+        return self._rebase_ops.continue_rebase(cwd)
+
+    def abort_rebase(self, cwd: Path) -> None:
+        """Abort an ongoing rebase."""
+        self._rebase_ops.abort_rebase(cwd)
+
+    def get_rebase_status(self, cwd: Path) -> dict[str, Any]:
+        """Get detailed rebase status."""
+        return self._rebase_ops.get_rebase_status(cwd)
+
+    def get_merge_base(self, cwd: Path, branch1: str, branch2: str) -> str | None:
+        """Find the merge base commit between two branches."""
+        return self._rebase_ops.get_merge_base(cwd, branch1, branch2)
+
+    def get_commit_range(
+        self,
+        cwd: Path,
+        from_ref: str,
+        to_ref: str,
+    ) -> list[dict[str, str]]:
+        """Get list of commits between two refs."""
+        return self._rebase_ops.get_commit_range(cwd, from_ref, to_ref)
+
+    def get_conflicted_files(self, cwd: Path) -> list[str]:
+        """Get list of files with merge conflicts."""
+        return self._rebase_ops.get_conflicted_files(cwd)
+
+    def check_clean_worktree(self, cwd: Path) -> bool:
+        """Check if worktree has no uncommitted changes."""
+        return self._rebase_ops.check_clean_worktree(cwd)
+
 
 # ============================================================================
 # Dry-Run Wrapper
@@ -323,6 +506,11 @@ class DryRunGitOps(GitOps):
             wrapped: The GitOps implementation to wrap (usually RealGitOps or FakeGitOps)
         """
         self._wrapped = wrapped
+
+    @property
+    def rebase_ops(self) -> RebaseOps:
+        """Get the RebaseOps instance (delegates to wrapped)."""
+        return self._wrapped.rebase_ops
 
     # Read-only operations: delegate to wrapped implementation
 
@@ -391,3 +579,49 @@ class DryRunGitOps(GitOps):
     def is_branch_checked_out(self, repo_root: Path, branch: str) -> Path | None:
         """Check if branch is checked out (read-only, delegates to wrapped)."""
         return self._wrapped.is_branch_checked_out(repo_root, branch)
+
+    def start_rebase(
+        self,
+        cwd: Path,
+        onto: str,
+        *,
+        interactive: bool = False,
+    ) -> tuple[bool, list[str]]:
+        """Print dry-run message for rebase."""
+        interactive_flag = "-i " if interactive else ""
+        click.echo(f"[DRY RUN] Would run: git rebase {interactive_flag}{onto}", err=True)
+        return self._wrapped.start_rebase(cwd, onto, interactive=interactive)
+
+    def continue_rebase(self, cwd: Path) -> tuple[bool, list[str]]:
+        """Print dry-run message for continue."""
+        click.echo("[DRY RUN] Would run: git rebase --continue", err=True)
+        return (True, [])
+
+    def abort_rebase(self, cwd: Path) -> None:
+        """Print dry-run message for abort."""
+        click.echo("[DRY RUN] Would run: git rebase --abort", err=True)
+
+    def get_rebase_status(self, cwd: Path) -> dict[str, Any]:
+        """Get rebase status (read-only, delegates to wrapped)."""
+        return self._wrapped.get_rebase_status(cwd)
+
+    def get_merge_base(self, cwd: Path, branch1: str, branch2: str) -> str | None:
+        """Get merge base (read-only, delegates to wrapped)."""
+        return self._wrapped.get_merge_base(cwd, branch1, branch2)
+
+    def get_commit_range(
+        self,
+        cwd: Path,
+        from_ref: str,
+        to_ref: str,
+    ) -> list[dict[str, str]]:
+        """Get commit range (read-only, delegates to wrapped)."""
+        return self._wrapped.get_commit_range(cwd, from_ref, to_ref)
+
+    def get_conflicted_files(self, cwd: Path) -> list[str]:
+        """Get conflicted files (read-only, delegates to wrapped)."""
+        return self._wrapped.get_conflicted_files(cwd)
+
+    def check_clean_worktree(self, cwd: Path) -> bool:
+        """Check clean worktree (read-only, delegates to wrapped)."""
+        return self._wrapped.check_clean_worktree(cwd)
