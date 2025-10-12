@@ -124,8 +124,9 @@ Think of the cache in terms of levels, similar to CPU caching. A CLAUDE.md file 
 ├── docs/
 │   ├── PATTERNS.md              # Code patterns with examples
 │   ├── EXCEPTION_HANDLING.md    # Detailed exception philosophy
-│   ├── QUICK_REFERENCE.md       # Fast lookup tables
-│   └── GT_MENTAL_MODEL.md       # External tool mental models
+│   └── QUICK_REFERENCE.md       # Fast lookup tables
+├── tools/
+│   └── graphite.md              # External tool mental models
 ├── prompts/
 │   └── code_review_checklist.md # Reusable agent prompts
 └── README.md                    # Directory purpose and index
@@ -237,20 +238,20 @@ Many projects depend on external tools that agents need to understand deeply—s
 
 ## Naming Convention
 
-To enable scalability and discoverability, mental model documents follow a consistent naming pattern:
+To enable scalability and discoverability, mental model documents follow a consistent naming pattern within the `.agent/tools/` subdirectory:
 
 ```
-.agent/tool.<tool_name>.md
+.agent/tools/<tool_name>.md
 ```
 
 Examples:
 
-- `.agent/tool.graphite.md` - Graphite CLI mental model
-- `.agent/tool.terraform.md` - Terraform infrastructure tool
-- `.agent/tool.bazel.md` - Bazel build system
-- `.agent/tool.kubernetes.md` - Kubernetes orchestration
+- `.agent/tools/graphite.md` - Graphite CLI mental model
+- `.agent/tools/terraform.md` - Terraform infrastructure tool
+- `.agent/tools/bazel.md` - Bazel build system
+- `.agent/tools/kubernetes.md` - Kubernetes orchestration
 
-This convention makes tool documentation immediately recognizable and creates a predictable namespace for external tool knowledge.
+This convention organizes tool documentation in a dedicated subdirectory, making it immediately recognizable and creating a predictable namespace for external tool knowledge.
 
 ## Why This Matters
 
@@ -298,7 +299,7 @@ Make tool documentation discoverable and loadable when needed. Structure documen
 
 ## Practical Example
 
-Consider documenting Graphite, a specialized stacking tool for Git. Rather than assuming agents understand its unique approach to branch management, create a distilled mental model document at `.agent/tool.graphite.md`:
+Consider documenting Graphite, a specialized stacking tool for Git. Rather than assuming agents understand its unique approach to branch management, create a distilled mental model document at `.agent/tools/graphite.md`:
 
 ```markdown
 # Graphite (gt) Mental Model
@@ -327,7 +328,7 @@ When "parent branch not found" appears, run `gt sync`...
 
 This document provides enough context for agents to work effectively without searching for documentation or making incorrect assumptions based on Git's branching model. The focus remains on evergreen concepts unlikely to change between minor versions, ensuring documentation longevity.
 
-See `.agent/tool.graphite.md` in this repository for a complete example of tool mental model documentation.
+See `.agent/tools/graphite.md` in this repository for a complete example of tool mental model documentation.
 
 ## Maintenance Considerations
 
