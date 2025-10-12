@@ -222,6 +222,28 @@ def _format_pr_info(
     return f"{emoji} {clickable_link}"
 
 
+def _format_plan_summary(worktree_path: Path) -> str | None:
+    """Format plan summary line if .PLAN.md exists.
+
+    Args:
+        worktree_path: Path to the worktree directory
+
+    Returns:
+        Formatted line with plan title, or None if no plan file
+    """
+    from workstack.core.file_utils import extract_plan_title
+
+    plan_path = worktree_path / ".PLAN.md"
+    title = extract_plan_title(plan_path)
+
+    if title is None:
+        return None
+
+    # Format: "  📋 <title in bright magenta>"
+    title_colored = click.style(title, fg="bright_magenta")
+    return f"  📋 {title_colored}"
+
+
 def _display_branch_stack(
     ctx: WorkstackContext,
     repo_root: Path,
@@ -349,6 +371,12 @@ def _list_worktrees(ctx: WorkstackContext, show_stacks: bool, show_checks: bool)
         )
     )
 
+    # Add plan summary if exists (only when showing stacks)
+    if show_stacks:
+        plan_summary = _format_plan_summary(repo.root)
+        if plan_summary:
+            click.echo(plan_summary)
+
     if show_stacks and root_branch:
         _display_branch_stack(
             ctx, repo.root, repo.root, root_branch, branches, True, cache_data, prs
@@ -381,6 +409,12 @@ def _list_worktrees(ctx: WorkstackContext, show_stacks: bool, show_checks: bool)
                 name, wt_branch, path=str(p), is_root=False, is_current=is_current_wt
             )
         )
+
+        # Add plan summary if exists (only when showing stacks)
+        if show_stacks and wt_path:
+            plan_summary = _format_plan_summary(wt_path)
+            if plan_summary:
+                click.echo(plan_summary)
 
         if show_stacks and wt_branch and wt_path:
             _display_branch_stack(

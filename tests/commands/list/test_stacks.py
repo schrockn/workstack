@@ -787,3 +787,267 @@ def test_list_with_stacks_corrupted_cache() -> None:
         # Should raise json.JSONDecodeError (fail-fast behavior)
         with pytest.raises(json.JSONDecodeError):
             runner.invoke(cli, ["list", "--stacks"], obj=test_ctx, catch_exceptions=False)
+
+
+def test_list_with_stacks_shows_plan_summary() -> None:
+    """Test that plan summary appears between worktree header and stack."""
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        # Set up isolated environment
+        cwd = Path.cwd()
+        workstacks_root = cwd / "workstacks"
+        git_dir = Path(".git")
+        git_dir.mkdir()
+
+        # Create graphite cache
+        graphite_cache = {
+            "branches": [
+                ["main", {"validationResult": "TRUNK", "children": ["feature"]}],
+                ["feature", {"parentBranchName": "main", "children": []}],
+            ]
+        }
+        (git_dir / ".graphite_cache_persist").write_text(json.dumps(graphite_cache))
+
+        # Create worktree with .PLAN.md
+        repo_name = cwd.name
+        work_dir = workstacks_root / repo_name
+        feature_wt = work_dir / "feature"
+        feature_wt.mkdir(parents=True)
+
+        # Create .PLAN.md with frontmatter and heading
+        plan_content = """---
+title: Feature Implementation
+date: 2025-01-15
+---
+
+# Implement OAuth2 integration
+
+Some description here.
+
+## Details
+More content.
+"""
+        (feature_wt / ".PLAN.md").write_text(plan_content, encoding="utf-8")
+
+        # Set up fakes
+        git_ops = FakeGitOps(
+            worktrees={
+                cwd: [
+                    WorktreeInfo(path=cwd, branch="main"),
+                    WorktreeInfo(path=feature_wt, branch="feature"),
+                ],
+            },
+            git_common_dirs={cwd: git_dir, feature_wt: git_dir},
+            current_branches={cwd: "main", feature_wt: "feature"},
+        )
+
+        global_config_ops = FakeGlobalConfigOps(
+            workstacks_root=workstacks_root,
+            use_graphite=True,
+        )
+
+        test_ctx = WorkstackContext(
+            git_ops=git_ops,
+            global_config_ops=global_config_ops,
+            github_ops=FakeGitHubOps(),
+            graphite_ops=FakeGraphiteOps(),
+            dry_run=False,
+        )
+
+        result = runner.invoke(cli, ["list", "--stacks"], obj=test_ctx)
+        assert result.exit_code == 0, result.output
+
+        # Strip ANSI codes for easier assertion
+        output = strip_ansi(result.output)
+
+        # Plan title should appear
+        assert "Implement OAuth2 integration" in output
+
+        # Verify order: worktree header, then plan, then stack
+        lines = output.splitlines()
+        feature_header_idx = None
+        plan_idx = None
+        stack_idx = None
+
+        for i, line in enumerate(lines):
+            if line.startswith("feature ["):
+                feature_header_idx = i
+            elif "Implement OAuth2 integration" in line:
+                plan_idx = i
+            elif "◉  feature" in line:
+                stack_idx = i
+
+        assert feature_header_idx is not None
+        assert plan_idx is not None
+        assert stack_idx is not None
+        assert feature_header_idx < plan_idx < stack_idx
+
+
+def test_list_without_stacks_hides_plan_summary() -> None:
+    """Test that plan summary only appears with --stacks flag."""
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        # Set up isolated environment
+        cwd = Path.cwd()
+        workstacks_root = cwd / "workstacks"
+        git_dir = Path(".git")
+        git_dir.mkdir()
+
+        # Create worktree with .PLAN.md
+        repo_name = cwd.name
+        work_dir = workstacks_root / repo_name
+        feature_wt = work_dir / "feature"
+        feature_wt.mkdir(parents=True)
+
+        # Create .PLAN.md
+        (feature_wt / ".PLAN.md").write_text("# Test Plan\n\nContent.", encoding="utf-8")
+
+        # Set up fakes
+        git_ops = FakeGitOps(
+            worktrees={
+                cwd: [
+                    WorktreeInfo(path=cwd, branch="main"),
+                    WorktreeInfo(path=feature_wt, branch="feature"),
+                ],
+            },
+            git_common_dirs={cwd: git_dir, feature_wt: git_dir},
+        )
+
+        global_config_ops = FakeGlobalConfigOps(
+            workstacks_root=workstacks_root,
+            use_graphite=False,
+        )
+
+        test_ctx = WorkstackContext(
+            git_ops=git_ops,
+            global_config_ops=global_config_ops,
+            github_ops=FakeGitHubOps(),
+            graphite_ops=FakeGraphiteOps(),
+            dry_run=False,
+        )
+
+        result = runner.invoke(cli, ["list"], obj=test_ctx)
+        assert result.exit_code == 0, result.output
+        output = strip_ansi(result.output)
+
+        # Plan title should NOT appear
+        assert "Test Plan" not in output
+
+
+def test_list_with_stacks_no_plan_file() -> None:
+    """Test that missing .PLAN.md doesn't cause errors."""
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        # Set up isolated environment
+        cwd = Path.cwd()
+        workstacks_root = cwd / "workstacks"
+        git_dir = Path(".git")
+        git_dir.mkdir()
+
+        # Create graphite cache
+        graphite_cache = {
+            "branches": [
+                ["main", {"validationResult": "TRUNK", "children": ["feature"]}],
+                ["feature", {"parentBranchName": "main", "children": []}],
+            ]
+        }
+        (git_dir / ".graphite_cache_persist").write_text(json.dumps(graphite_cache))
+
+        # Create worktree WITHOUT .PLAN.md
+        repo_name = cwd.name
+        work_dir = workstacks_root / repo_name
+        feature_wt = work_dir / "feature"
+        feature_wt.mkdir(parents=True)
+
+        # Set up fakes
+        git_ops = FakeGitOps(
+            worktrees={
+                cwd: [
+                    WorktreeInfo(path=cwd, branch="main"),
+                    WorktreeInfo(path=feature_wt, branch="feature"),
+                ],
+            },
+            git_common_dirs={cwd: git_dir, feature_wt: git_dir},
+            current_branches={cwd: "main", feature_wt: "feature"},
+        )
+
+        global_config_ops = FakeGlobalConfigOps(
+            workstacks_root=workstacks_root,
+            use_graphite=True,
+        )
+
+        test_ctx = WorkstackContext(
+            git_ops=git_ops,
+            global_config_ops=global_config_ops,
+            github_ops=FakeGitHubOps(),
+            graphite_ops=FakeGraphiteOps(),
+            dry_run=False,
+        )
+
+        result = runner.invoke(cli, ["list", "--stacks"], obj=test_ctx)
+        assert result.exit_code == 0, result.output
+
+        # Should display normally without plan summary
+        output = strip_ansi(result.output)
+        assert "feature [" in output
+        assert "◉  feature" in output
+
+
+def test_list_with_stacks_plan_without_frontmatter() -> None:
+    """Test parsing plan with heading as first line."""
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        # Set up isolated environment
+        cwd = Path.cwd()
+        workstacks_root = cwd / "workstacks"
+        git_dir = Path(".git")
+        git_dir.mkdir()
+
+        # Create graphite cache
+        graphite_cache = {
+            "branches": [
+                ["main", {"validationResult": "TRUNK", "children": ["feature"]}],
+                ["feature", {"parentBranchName": "main", "children": []}],
+            ]
+        }
+        (git_dir / ".graphite_cache_persist").write_text(json.dumps(graphite_cache))
+
+        # Create worktree with .PLAN.md (no frontmatter)
+        repo_name = cwd.name
+        work_dir = workstacks_root / repo_name
+        feature_wt = work_dir / "feature"
+        feature_wt.mkdir(parents=True)
+
+        plan_content = "# Simple feature implementation\n\nContent here."
+        (feature_wt / ".PLAN.md").write_text(plan_content, encoding="utf-8")
+
+        # Set up fakes
+        git_ops = FakeGitOps(
+            worktrees={
+                cwd: [
+                    WorktreeInfo(path=cwd, branch="main"),
+                    WorktreeInfo(path=feature_wt, branch="feature"),
+                ],
+            },
+            git_common_dirs={cwd: git_dir, feature_wt: git_dir},
+            current_branches={cwd: "main", feature_wt: "feature"},
+        )
+
+        global_config_ops = FakeGlobalConfigOps(
+            workstacks_root=workstacks_root,
+            use_graphite=True,
+        )
+
+        test_ctx = WorkstackContext(
+            git_ops=git_ops,
+            global_config_ops=global_config_ops,
+            github_ops=FakeGitHubOps(),
+            graphite_ops=FakeGraphiteOps(),
+            dry_run=False,
+        )
+
+        result = runner.invoke(cli, ["list", "--stacks"], obj=test_ctx)
+        assert result.exit_code == 0, result.output
+
+        output = strip_ansi(result.output)
+        assert "Simple feature implementation" in output
