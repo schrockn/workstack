@@ -8,7 +8,7 @@ function workstack
         return
     end
 
-    set -l script_path (command workstack __shell $argv)
+    set -l script_path (env WORKSTACK_SHELL=fish command workstack __shell $argv)
     set -l exit_status $status
 
     # Passthrough mode

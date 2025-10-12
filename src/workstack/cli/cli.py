@@ -7,6 +7,7 @@ from workstack.cli.commands.gc import gc_cmd
 from workstack.cli.commands.init import init_cmd
 from workstack.cli.commands.list import list_cmd, ls_cmd
 from workstack.cli.commands.move import move_cmd
+from workstack.cli.commands.prepare_cwd_recovery import prepare_cwd_recovery_cmd
 from workstack.cli.commands.remove import remove_cmd, rm_cmd
 from workstack.cli.commands.rename import rename_cmd
 from workstack.cli.commands.shell_integration import hidden_shell_cmd
@@ -46,6 +47,7 @@ cli.add_command(gc_cmd)
 cli.add_command(sync_cmd)
 cli.add_command(tree_cmd)
 cli.add_command(hidden_shell_cmd)
+cli.add_command(prepare_cwd_recovery_cmd)
 
 
 def main() -> None:

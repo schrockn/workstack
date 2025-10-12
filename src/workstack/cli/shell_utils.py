@@ -9,6 +9,8 @@ from pathlib import Path
 
 from workstack.cli.debug import debug_log
 
+STALE_SCRIPT_MAX_AGE_SECONDS = 3600
+
 
 def render_cd_script(path: Path, *, comment: str, success_message: str) -> str:
     """Generate shell script to change directory with feedback.
@@ -80,7 +82,7 @@ def write_script_to_temp(
     return temp_file
 
 
-def cleanup_stale_scripts(*, max_age_seconds: int = 3600) -> None:
+def cleanup_stale_scripts(*, max_age_seconds: int = STALE_SCRIPT_MAX_AGE_SECONDS) -> None:
     """Remove workstack temp scripts older than max_age_seconds.
 
     Args:
@@ -94,6 +96,6 @@ def cleanup_stale_scripts(*, max_age_seconds: int = 3600) -> None:
             try:
                 if script_file.stat().st_mtime < cutoff:
                     script_file.unlink()
-            except OSError:
-                # Ignore errors (file might be in use or already deleted)
-                pass
+            except (FileNotFoundError, PermissionError):
+                # Scripts may disappear between stat/unlink or be owned by another user.
+                continue
