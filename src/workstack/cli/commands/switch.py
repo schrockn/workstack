@@ -2,11 +2,17 @@ from pathlib import Path
 
 import click
 
-from workstack.cli.core import discover_repo_context, ensure_work_dir, worktree_path_for
+from workstack.cli.core import (
+    RepoContext,
+    discover_repo_context,
+    ensure_work_dir,
+    worktree_path_for,
+)
 from workstack.cli.debug import debug_log
 from workstack.cli.graphite import find_worktree_for_branch, get_child_branches, get_parent_branch
 from workstack.cli.shell_utils import write_script_to_temp
 from workstack.core.context import WorkstackContext, create_context
+from workstack.core.gitops import WorktreeInfo
 
 
 def render_activation_script(*, worktree_path: Path) -> str:
@@ -48,6 +54,121 @@ def render_activation_script(*, worktree_path: Path) -> str:
 def quote(s: str) -> str:
     # Simple single-quote shell escaping
     return "'" + s.replace("'", "'\\''") + "'"
+
+
+def _resolve_up_navigation(
+    ctx: WorkstackContext, repo: RepoContext, current_branch: str, worktrees: list[WorktreeInfo]
+) -> str:
+    """Resolve --up navigation to determine target branch name.
+
+    Args:
+        ctx: Workstack context
+        repo: Repository context
+        current_branch: Current branch name
+        worktrees: List of worktrees from git_ops.list_worktrees()
+
+    Returns:
+        Target branch name to switch to
+
+    Raises:
+        SystemExit: If navigation fails (at top of stack or target has no worktree)
+    """
+    # Navigate up to child branch
+    children = get_child_branches(ctx, repo.root, current_branch)
+    if not children:
+        click.echo("Already at the top of the stack (no child branches)", err=True)
+        raise SystemExit(1)
+
+    # Use first child (future enhancement: handle multiple children interactively)
+    target_branch = children[0]
+    if len(children) > 1:
+        click.echo(
+            f"Note: Branch '{current_branch}' has multiple children. "
+            f"Selecting first child: '{target_branch}'",
+            err=True,
+        )
+
+    # Check if target branch has a worktree
+    target_wt_path = find_worktree_for_branch(worktrees, target_branch)
+    if target_wt_path is None:
+        click.echo(
+            f"Branch '{target_branch}' is the next branch up in the stack "
+            f"but has no worktree.\n"
+            f"To create a worktree for it, run:\n"
+            f"  workstack create {target_branch}",
+            err=True,
+        )
+        raise SystemExit(1)
+
+    return target_branch
+
+
+def _resolve_down_navigation(
+    ctx: WorkstackContext, repo: RepoContext, current_branch: str, worktrees: list[WorktreeInfo]
+) -> str:
+    """Resolve --down navigation to determine target branch name.
+
+    Args:
+        ctx: Workstack context
+        repo: Repository context
+        current_branch: Current branch name
+        worktrees: List of worktrees from git_ops.list_worktrees()
+
+    Returns:
+        Target branch name or 'root' to switch to
+
+    Raises:
+        SystemExit: If navigation fails (at bottom of stack or target has no worktree)
+    """
+    # Navigate down to parent branch
+    parent_branch = get_parent_branch(ctx, repo.root, current_branch)
+    if parent_branch is None:
+        # Check if we're already on trunk
+        trunk_branch = ctx.git_ops.detect_default_branch(repo.root)
+        if current_branch == trunk_branch:
+            click.echo(
+                f"Already at the bottom of the stack (on trunk branch '{trunk_branch}')",
+                err=True,
+            )
+            raise SystemExit(1)
+        else:
+            click.echo(
+                "Error: Could not determine parent branch from Graphite metadata",
+                err=True,
+            )
+            raise SystemExit(1)
+
+    # Check if parent is the trunk - if so, switch to root
+    trunk_branch = ctx.git_ops.detect_default_branch(repo.root)
+    if parent_branch == trunk_branch:
+        # Check if trunk is checked out in root (repo.root path)
+        trunk_wt_path = find_worktree_for_branch(worktrees, trunk_branch)
+        if trunk_wt_path is not None and trunk_wt_path == repo.root:
+            # Trunk is in root repository, not in a dedicated worktree
+            return "root"
+        else:
+            # Trunk has a dedicated worktree
+            if trunk_wt_path is None:
+                click.echo(
+                    f"Branch '{parent_branch}' is the parent branch but has no worktree.\n"
+                    f"To switch to the root repository, run:\n"
+                    f"  workstack switch root",
+                    err=True,
+                )
+                raise SystemExit(1)
+            return parent_branch
+    else:
+        # Parent is not trunk, check if it has a worktree
+        target_wt_path = find_worktree_for_branch(worktrees, parent_branch)
+        if target_wt_path is None:
+            click.echo(
+                f"Branch '{parent_branch}' is the parent branch but has no worktree.\n"
+                f"To create a worktree for it, run:\n"
+                f"  workstack create {parent_branch}",
+                err=True,
+            )
+            raise SystemExit(1)
+        return parent_branch
 
 
 def complete_worktree_names(
@@ -155,7 +276,8 @@ def switch_cmd(ctx: WorkstackContext, name: str | None, script: bool, up: bool, 
         )
         raise SystemExit(1)
 
-    # Handle --up and --down navigation
+    # Determine target name based on command arguments
+    target_name: str
     if up or down:
         # Get current branch
         current_branch = ctx.git_ops.get_current_branch(Path.cwd())
@@ -167,86 +289,15 @@ def switch_cmd(ctx: WorkstackContext, name: str | None, script: bool, up: bool, 
         worktrees = ctx.git_ops.list_worktrees(repo.root)
 
         if up:
-            # Navigate up to child branch
-            children = get_child_branches(ctx, repo.root, current_branch)
-            if not children:
-                click.echo("Already at the top of the stack (no child branches)", err=True)
-                raise SystemExit(1)
+            target_name = _resolve_up_navigation(ctx, repo, current_branch, worktrees)
+        else:  # down
+            target_name = _resolve_down_navigation(ctx, repo, current_branch, worktrees)
+    else:
+        # NAME argument was provided (validated earlier)
+        target_name = name if name else ""  # This branch is unreachable due to validation
 
-            # Use first child (future enhancement: handle multiple children interactively)
-            target_branch = children[0]
-
-            # Check if target branch has a worktree
-            target_wt_path = find_worktree_for_branch(worktrees, target_branch)
-            if target_wt_path is None:
-                click.echo(
-                    f"Branch '{target_branch}' is the next branch up in the stack "
-                    f"but has no worktree.\n"
-                    f"To create a worktree for it, run:\n"
-                    f"  workstack create {target_branch}",
-                    err=True,
-                )
-                raise SystemExit(1)
-
-            # Switch to the target worktree
-            name = target_branch
-
-        elif down:
-            # Navigate down to parent branch
-            parent_branch = get_parent_branch(ctx, repo.root, current_branch)
-            if parent_branch is None:
-                # Check if we're already on trunk
-                trunk_branch = ctx.git_ops.detect_default_branch(repo.root)
-                if current_branch == trunk_branch:
-                    click.echo(
-                        f"Already at the bottom of the stack (on trunk branch '{trunk_branch}')",
-                        err=True,
-                    )
-                    raise SystemExit(1)
-                else:
-                    click.echo(
-                        "Error: Could not determine parent branch from Graphite metadata",
-                        err=True,
-                    )
-                    raise SystemExit(1)
-
-            # Check if parent is the trunk - if so, switch to root
-            trunk_branch = ctx.git_ops.detect_default_branch(repo.root)
-            if parent_branch == trunk_branch:
-                # Check if trunk is checked out in root (repo.root path)
-                trunk_wt_path = find_worktree_for_branch(worktrees, trunk_branch)
-                if trunk_wt_path is not None and trunk_wt_path == repo.root:
-                    # Trunk is in root repository, not in a dedicated worktree
-                    name = "root"
-                else:
-                    # Trunk has a dedicated worktree
-                    if trunk_wt_path is None:
-                        click.echo(
-                            f"Branch '{parent_branch}' is the parent branch but has no worktree.\n"
-                            f"To switch to the root repository, run:\n"
-                            f"  workstack switch root",
-                            err=True,
-                        )
-                        raise SystemExit(1)
-                    name = parent_branch
-            else:
-                # Parent is not trunk, check if it has a worktree
-                target_wt_path = find_worktree_for_branch(worktrees, parent_branch)
-                if target_wt_path is None:
-                    click.echo(
-                        f"Branch '{parent_branch}' is the parent branch but has no worktree.\n"
-                        f"To create a worktree for it, run:\n"
-                        f"  workstack create {parent_branch}",
-                        err=True,
-                    )
-                    raise SystemExit(1)
-                name = parent_branch
-
-    # At this point, name must be set (either from argument or navigation logic)
-    assert name is not None, "name must be set by validation or navigation logic"
-
-    # Check if name refers to 'root' which means root repo
-    if name == "root":
+    # Check if target_name refers to 'root' which means root repo
+    if target_name == "root":
         # Switch to root repo
         root_path = repo.root
         if script:
@@ -289,7 +340,7 @@ def switch_cmd(ctx: WorkstackContext, name: str | None, script: bool, up: bool, 
         return
 
     work_dir = ensure_work_dir(repo)
-    wt_path = worktree_path_for(work_dir, name)
+    wt_path = worktree_path_for(work_dir, target_name)
 
     if not wt_path.exists():
         click.echo(f"Worktree not found: {wt_path}", err=True)
@@ -300,7 +351,7 @@ def switch_cmd(ctx: WorkstackContext, name: str | None, script: bool, up: bool, 
         script_path = write_script_to_temp(
             activation_script,
             command_name="switch",
-            comment=f"activate {name}",
+            comment=f"activate {target_name}",
         )
 
         debug_log(f"Switch: Generated script at {script_path}")
@@ -313,4 +364,4 @@ def switch_cmd(ctx: WorkstackContext, name: str | None, script: bool, up: bool, 
             "Shell integration not detected. "
             "Run 'workstack init --shell' to set up automatic activation."
         )
-        click.echo(f"\nOr use: source <(workstack switch {name} --script)")
+        click.echo(f"\nOr use: source <(workstack switch {target_name} --script)")
