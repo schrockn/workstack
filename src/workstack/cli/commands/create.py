@@ -32,6 +32,56 @@ def sanitize_branch_component(name: str) -> str:
     return trimmed or "work"
 
 
+def strip_plan_from_filename(filename: str) -> str:
+    """Remove the word 'plan' from a filename stem intelligently.
+
+    Handles case-insensitive matching and common separators.
+    If removal would leave empty string, returns original unchanged.
+
+    Examples:
+        "devclikit-extraction-plan" → "devclikit-extraction"
+        "my-feature-plan" → "my-feature"
+        "plan-for-auth" → "for-auth"
+        "plan" → "plan" (preserved - would be empty)
+    """
+
+    # Pattern matches "plan" as a complete word surrounded by separators or boundaries
+    # We capture the surrounding context to handle it properly
+    pattern = r"(^|[-_\s])(plan)([-_\s]|$)"
+
+    def replace_plan(match: re.Match[str]) -> str:
+        prefix = match.group(1)
+        suffix = match.group(3)
+
+        # If both prefix and suffix are empty (entire string is "plan"), keep it
+        if not prefix and not suffix:
+            return "plan"
+
+        # If plan is in the middle, preserve one separator
+        if prefix and suffix:
+            # Use the prefix separator if available, otherwise use suffix
+            return prefix if prefix.strip() else suffix
+
+        # Plan at start or end: remove it and the adjacent separator
+        return ""
+
+    cleaned = re.sub(pattern, replace_plan, filename, flags=re.IGNORECASE)
+
+    # Clean up any leading/trailing separators
+    cleaned = cleaned.strip("-_ \t\n\r")
+
+    # Collapse consecutive separators of the same type
+    cleaned = re.sub(r"--+", "-", cleaned)
+    cleaned = re.sub(r"__+", "_", cleaned)
+    cleaned = re.sub(r"\s+", " ", cleaned)
+
+    # If stripping left us with nothing or just "plan", preserve original
+    if not cleaned or cleaned == "plan":
+        return filename
+
+    return cleaned
+
+
 def sanitize_worktree_name(name: str) -> str:
     """Sanitize a worktree name for use as a directory name.
 
@@ -269,7 +319,8 @@ def create(
             raise SystemExit(1)
         # Derive name from plan filename (strip extension)
         plan_stem = plan_file.stem  # filename without extension
-        name = sanitize_worktree_name(plan_stem)
+        cleaned_stem = strip_plan_from_filename(plan_stem)
+        name = sanitize_worktree_name(cleaned_stem)
 
     # Regular create (no special flags)
     else:

@@ -147,7 +147,7 @@ This is line 5."""
         check=True,
     )
 
-    worktree_path = workstacks_root / "repo" / "feature-plan"
+    worktree_path = workstacks_root / "repo" / "feature"
 
     # Run status command
     result = subprocess.run(

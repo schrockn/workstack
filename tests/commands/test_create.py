@@ -137,12 +137,72 @@ def test_create_with_plan_file() -> None:
         result = runner.invoke(cli, ["create", "--plan", str(plan_file)], obj=test_ctx)
 
         assert result.exit_code == 0, result.output
-        # Should create worktree with sanitized plan filename
-        wt_path = work_dir / "my-feature-plan"
+        # Should create worktree with "plan" stripped from filename
+        wt_path = work_dir / "my-feature"
         assert wt_path.exists()
         # Plan file should be moved to .PLAN.md
         assert (wt_path / ".PLAN.md").exists()
         assert not plan_file.exists()
+
+
+def test_create_with_plan_file_removes_plan_word() -> None:
+    """Test that --plan flag removes 'plan' from worktree names."""
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        cwd = Path.cwd()
+        git_dir = cwd / ".git"
+        git_dir.mkdir()
+
+        workstacks_root = cwd / "workstacks"
+        work_dir = workstacks_root / cwd.name
+        work_dir.mkdir(parents=True)
+
+        config_toml = work_dir / "config.toml"
+        config_toml.write_text("", encoding="utf-8")
+
+        git_ops = FakeGitOps(
+            git_common_dirs={cwd: git_dir},
+            default_branches={cwd: "main"},
+        )
+        global_config_ops = FakeGlobalConfigOps(
+            exists=True,
+            workstacks_root=workstacks_root,
+            use_graphite=False,
+        )
+
+        test_ctx = WorkstackContext(
+            git_ops=git_ops,
+            global_config_ops=global_config_ops,
+            github_ops=FakeGitHubOps(),
+            graphite_ops=FakeGraphiteOps(),
+            dry_run=False,
+        )
+
+        # Test multiple plan file examples
+        test_cases = [
+            ("devclikit-extraction-plan.md", "devclikit-extraction"),
+            ("auth-plan.md", "auth"),
+            ("plan-for-api.md", "for-api"),
+            ("plan.md", "plan"),  # Edge case: only "plan" should be preserved
+        ]
+
+        for plan_filename, expected_worktree_name in test_cases:
+            # Create plan file
+            plan_file = cwd / plan_filename
+            plan_file.write_text(f"# {plan_filename}\n", encoding="utf-8")
+
+            result = runner.invoke(cli, ["create", "--plan", str(plan_file)], obj=test_ctx)
+
+            assert result.exit_code == 0, f"Failed for {plan_filename}: {result.output}"
+            wt_path = work_dir / expected_worktree_name
+            assert wt_path.exists(), f"Expected worktree at {wt_path} for {plan_filename}"
+            assert (wt_path / ".PLAN.md").exists()
+            assert not plan_file.exists()
+
+            # Clean up for next test
+            import shutil
+
+            shutil.rmtree(wt_path)
 
 
 def test_create_sanitizes_worktree_name() -> None:

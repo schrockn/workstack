@@ -104,8 +104,8 @@ def test_create_with_plan_name_sanitization(tmp_path: Path) -> None:
 
     assert result.returncode == 0, f"Command failed: {result.stderr}"
 
-    # Verify worktree name is lowercase with hyphens
-    worktree_path = workstacks_root / "repo" / "my-cool-plan-file"
+    # Verify worktree name is lowercase with hyphens and "plan" removed
+    worktree_path = workstacks_root / "repo" / "my-cool-file"
     assert worktree_path.exists()
 
     # Verify plan was moved
