@@ -67,6 +67,7 @@ workstack create --plan Add_Auth.md                # Creates worktree, moves pla
 
 ```bash
 workstack switch NAME            # Switch between worktrees (or 'root' for repo root)
+workstack status                 # Show status of current worktree
 workstack list                   # List all worktrees (alias: ls)
 workstack list --stacks          # List with graphite stacks and PR status
 workstack tree                   # Show tree of worktrees with dependencies
@@ -288,9 +289,10 @@ Requires Graphite CLI (`gt`) and GitHub CLI (`gh`) installed.
 
 ### `list` / `ls` Options
 
-| Option         | Description                        |
-| -------------- | ---------------------------------- |
-| `-s, --stacks` | Show graphite stacks and PR status |
+| Option         | Description                                     |
+| -------------- | ----------------------------------------------- |
+| `-s, --stacks` | Show graphite stacks and PR status              |
+| `-c, --checks` | Show CI check status (requires GitHub API call) |
 
 ### `move` Options
 
