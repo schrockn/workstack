@@ -2,6 +2,7 @@ from workstack.cli.commands.create import (
     default_branch_for_worktree,
     sanitize_branch_component,
     sanitize_worktree_name,
+    strip_plan_from_filename,
 )
 
 
@@ -32,3 +33,50 @@ def test_sanitize_worktree_name() -> None:
     assert sanitize_worktree_name("@@weird!!name??") == "weird-name"
     assert sanitize_worktree_name("   spaces   ") == "spaces"
     assert sanitize_worktree_name("---") == "work"  # Empty result defaults to "work"
+
+
+def test_strip_plan_from_filename() -> None:
+    """Test intelligent removal of 'plan' from filenames."""
+    # Real-world examples
+    assert strip_plan_from_filename("devclikit-extraction-plan") == "devclikit-extraction"
+
+    # Basic cases - suffix
+    assert strip_plan_from_filename("my-feature-plan") == "my-feature"
+
+    # Basic cases - prefix
+    assert strip_plan_from_filename("plan-for-auth") == "for-auth"
+
+    # Position variations
+    assert strip_plan_from_filename("plan-something") == "something"
+    assert strip_plan_from_filename("something-plan") == "something"
+    assert strip_plan_from_filename("something-plan-else") == "something-else"
+
+    # Multiple occurrences
+    assert strip_plan_from_filename("plan-my-plan-feature") == "my-feature"
+    assert strip_plan_from_filename("my-plan-feature-plan") == "my-feature"
+
+    # Edge case: only "plan" - should be preserved
+    assert strip_plan_from_filename("plan") == "plan"
+
+    # Separator variations
+    assert strip_plan_from_filename("my_feature_plan") == "my_feature"
+    assert strip_plan_from_filename("my feature plan") == "my feature"
+    assert strip_plan_from_filename("my-feature_plan") == "my-feature"
+
+    # Case variations
+    assert strip_plan_from_filename("MY-FEATURE-PLAN") == "MY-FEATURE"
+    assert strip_plan_from_filename("My-Feature-Plan") == "My-Feature"
+    assert strip_plan_from_filename("my-feature-PLAN") == "my-feature"
+
+    # Non-plan words should be preserved
+    assert strip_plan_from_filename("airplane-feature") == "airplane-feature"
+    assert strip_plan_from_filename("explain-system") == "explain-system"
+    assert strip_plan_from_filename("planted-tree") == "planted-tree"
+
+    # Plan variants should NOT be removed (only exact word "plan")
+    assert strip_plan_from_filename("planning-session") == "planning-session"
+    assert strip_plan_from_filename("plans-document") == "plans-document"
+
+    # Leading/trailing separators after plan removal should be cleaned
+    assert strip_plan_from_filename("-plan-feature") == "feature"
+    assert strip_plan_from_filename("feature-plan-") == "feature"
