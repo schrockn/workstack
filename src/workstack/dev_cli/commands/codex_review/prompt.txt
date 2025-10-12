@@ -1,0 +1,91 @@
+# Context Loading Phase
+
+First, read and understand the repository's coding standards and conventions:
+
+1. Read CLAUDE.md in the root directory - this contains the core coding standards
+2. Read all .md files in the .agent/ directory - these contain additional patterns, guidelines, and conventions
+3. Pay special attention to:
+   - Exception handling patterns
+   - Type annotation requirements
+   - Import conventions
+   - Testing patterns
+   - CLI development guidelines
+
+# Review Generation Phase
+
+Now perform a comprehensive code review:
+
+1. Get the git diff between {base_branch} and {current_branch}:
+   ```
+   git diff {base_branch}...{current_branch}
+   ```
+
+2. Analyze each changed file against:
+   - The repository-specific standards you just read
+   - General software engineering best practices
+   - Code quality, readability, and maintainability
+   - Security considerations
+   - Performance implications
+   - Test coverage
+
+3. Generate a detailed review in markdown format with the following structure:
+
+   # Code Review: {current_branch}
+
+   **Date**: {date}
+   **Base Branch**: {base_branch}
+   **Current Branch**: {current_branch}
+
+   ## Summary
+   Brief overview of the changes and overall assessment
+
+   ## Statistics
+   - Files changed: X
+   - Lines added: Y
+   - Lines removed: Z
+
+   ## Issues by Severity
+
+   ### 🔴 Critical Issues
+   Issues that must be fixed before merging (bugs, security issues, broken standards)
+
+   ### 🟠 High Priority
+   Important issues that should be addressed (performance, major style violations)
+
+   ### 🟡 Medium Priority
+   Issues that would improve code quality (minor violations, suggestions)
+
+   ### 🟢 Low Priority
+   Nice-to-have improvements (formatting, documentation)
+
+   ### ℹ️ Informational
+   Notes and observations (not issues)
+
+   ## Positive Observations
+   Good practices observed in the code
+
+   ## Detailed Findings
+
+   For each issue, provide:
+   - **Location**: file:line
+   - **Issue**: What's wrong
+   - **Why it matters**: Impact/consequences
+   - **Recommendation**: How to fix it
+   - **Example**: Code snippet if helpful
+
+   ## Recommendations Summary
+   Prioritized list of actions to take
+
+4. Save the review to {output_file}
+
+5. Display a summary message:
+   'Review complete! Full report saved to {output_file}'
+
+   Then show just the Summary and Issues by Severity sections for quick reference.
+
+Remember to:
+- Apply BOTH repository-specific standards AND general best practices
+- Be constructive and specific in feedback
+- Acknowledge good practices, not just problems
+- Provide actionable recommendations
+- Consider that the code may have been written by any developer or AI model
