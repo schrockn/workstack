@@ -18,6 +18,8 @@ Agents work within limited context windows that require efficient information ar
 
 These practices are opinionated and prescriptive. They represent patterns that have proven effective across multiple projects and teams. Not every pattern will apply to every codebase, but understanding the principles will help you make informed decisions about your own AI-assisted development workflow.
 
+Vibe alert: these guidelines have been developed from observed experience, rather than formal evaluations. We have not rigorously tested this techniques nor understand which ones are more effective than others relatively, and to the degree that they actually compound. These are formulated from intuition, first-principles reasoning, and from observed behavior during actual development.
+
 ---
 
 ## Table of Contents
