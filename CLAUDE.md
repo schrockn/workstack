@@ -242,6 +242,7 @@ rm uv.lock && uv sync
 **Why**: Lock files contain checksums and complex dependency resolution that's error-prone to merge manually. Let `uv` regenerate it from the resolved `pyproject.toml`.
 
 **Process**:
+
 1. Resolve conflicts in `pyproject.toml` first
 2. Delete `uv.lock`
 3. Run `uv sync` to regenerate
