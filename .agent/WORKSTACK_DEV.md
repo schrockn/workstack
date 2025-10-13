@@ -24,43 +24,60 @@ The `workstack-dev` CLI serves as a centralized home for development-time tools 
 
 ### Entry Point
 
-Defined in `pyproject.toml`:
+Defined in `packages/workstack-dev/pyproject.toml`:
 
 ```toml
 [project.scripts]
-workstack-dev = "workstack.dev_cli.__main__:cli"
+workstack-dev = "workstack_dev.__main__:cli"
 ```
 
 ### Core Components
 
 ```
-src/workstack/dev_cli/
-├── __main__.py          # Entry point - uses dev_cli_core framework
-└── commands/
-    ├── clean_cache/
-    │   ├── command.py   # Click command definition
-    │   └── script.py    # PEP 723 implementation
-    └── publish_to_pypi/
-        ├── command.py   # Click command definition
-        └── script.py    # PEP 723 implementation
+packages/workstack-dev/
+├── pyproject.toml
+├── src/workstack_dev/
+│   ├── __main__.py          # Entry point - uses devclikit framework
+│   └── commands/            # Auto-discovered commands (examples below)
+│       ├── clean_cache/
+│       │   ├── command.py   # Click command definition
+│       │   └── script.py    # PEP 723 implementation
+│       ├── codex_review/
+│       │   ├── command.py   # Click command definition
+│       │   ├── script.py    # PEP 723 implementation
+│       │   └── prompt.txt   # Codex prompt template
+│       ├── completion/
+│       │   ├── command.py   # Click command definition
+│       │   └── script.py    # PEP 723 implementation
+│       ├── create_agents_symlinks/
+│       │   ├── command.py   # Click command definition
+│       │   └── script.py    # PEP 723 implementation
+│       ├── publish_to_pypi/
+│       │   ├── command.py   # Click command definition
+│       │   └── script.py    # PEP 723 implementation
+│       └── ...              # Additional commands follow same pattern
+└── tests/                   # Tests for workstack-dev commands
 
-src/dev_cli_core/        # CLI framework (provides discovery & execution)
-├── __init__.py          # Public API exports
-├── cli_factory.py       # create_cli() factory function
-├── loader.py            # Command discovery and dynamic loading
-├── runner.py            # PEP 723 script execution
-├── completion.py        # Shell completion support
-├── exceptions.py        # Framework exceptions
-└── utils.py             # Shared utilities
+packages/devclikit/          # CLI framework (provides discovery & execution)
+└── src/devclikit/
+    ├── __init__.py          # Public API exports
+    ├── cli_factory.py       # create_cli() factory function
+    ├── loader.py            # Command discovery and dynamic loading
+    ├── runner.py            # PEP 723 script execution
+    ├── completion.py        # Shell completion support
+    ├── exceptions.py        # Framework exceptions
+    └── utils.py             # Shared utilities
 ```
+
+**Note:** The commands listed above are examples. New commands can be added at any time by creating a new directory under `commands/` with the standard `command.py` and `script.py` files. The CLI framework automatically discovers all commands.
 
 ### CLI Initialization
 
-The `__main__.py` uses the `dev_cli_core.create_cli()` factory to construct the CLI:
+The `__main__.py` uses the `devclikit.create_cli()` factory to construct the CLI:
 
 ```python
 from pathlib import Path
-from dev_cli_core import create_cli
+from devclikit import create_cli
 
 cli = create_cli(
     name="workstack-dev",
@@ -82,9 +99,9 @@ The `create_cli()` factory automatically:
 
 ### Command Discovery System
 
-**Provided by: `dev_cli_core` framework**
+**Provided by: `devclikit` framework**
 
-The `dev_cli_core.loader.load_commands()` function implements automatic command discovery:
+The `devclikit.loader.load_commands()` function implements automatic command discovery:
 
 1. **Scan** `commands/` directory for subdirectories
 2. **Find** `command.py` files in each subdirectory
@@ -107,7 +124,7 @@ def load_commands(
 
 **Error handling:** Broken command modules are caught and logged without breaking the entire CLI (when `strict=False`).
 
-See `src/dev_cli_core/README.md` for full framework documentation.
+See `packages/devclikit/README.md` for full framework documentation.
 
 ### Command Structure Pattern
 
@@ -121,7 +138,7 @@ Defines the CLI interface using Click decorators:
 # commands/my_command/command.py
 import click
 from pathlib import Path
-from dev_cli_core import run_pep723_script
+from devclikit import run_pep723_script
 
 @click.command(name="my-command")
 @click.option("--dry-run", is_flag=True, help="Show what would be done")
@@ -140,7 +157,7 @@ def command(dry_run: bool) -> None:
 
 - Define Click command name and options
 - Parse CLI flags/arguments
-- Forward arguments to script.py via `dev_cli_core.run_pep723_script()`
+- Forward arguments to script.py via `devclikit.run_pep723_script()`
 
 #### 2. `script.py` - PEP 723 Implementation
 
@@ -182,7 +199,7 @@ if __name__ == "__main__":
 
 **PEP 723** (Inline script metadata) allows scripts to declare their dependencies directly in the file using a special comment block.
 
-**Required structure** (see `src/workstack/dev_cli/CLAUDE.md` for full details):
+**Required structure** (see `packages/workstack-dev/src/workstack_dev/CLAUDE.md` for full details):
 
 ```python
 #!/usr/bin/env python3
@@ -206,7 +223,7 @@ This suppresses false positive import warnings because pyright performs static a
 
 ### Script Execution Utility
 
-**Provided by: `dev_cli_core.runner`**
+**Provided by: `devclikit.runner`**
 
 The `run_pep723_script()` function provides a standardized way to execute PEP 723 scripts:
 
@@ -275,14 +292,14 @@ def run_pep723_script(
 
 To add a new command:
 
-1. **Create directory:** `src/workstack/dev_cli/commands/my_feature/`
+1. **Create directory:** `packages/workstack-dev/src/workstack_dev/commands/my_feature/`
 
 2. **Create `command.py`:**
 
    ```python
    import click
    from pathlib import Path
-   from dev_cli_core import run_pep723_script
+   from devclikit import run_pep723_script
 
    @click.command(name="my-feature")
    def command() -> None:
@@ -323,16 +340,16 @@ No other changes needed - the command is automatically discovered and registered
 The `workstack-dev` CLI is **completely separate** from the main `workstack` CLI:
 
 - **workstack** (`src/workstack/__main__.py`) - User-facing worktree management
-- **workstack-dev** (`src/workstack/dev_cli/__main__.py`) - Development tools
+- **workstack-dev** (`packages/workstack-dev/src/workstack_dev/__main__.py`) - Development tools
 
-Both are defined in `pyproject.toml` as separate entry points.
+Both are defined in their respective `pyproject.toml` files as separate entry points.
 
 ## Dependencies
 
 **Framework dependencies:**
 
-- `dev_cli_core` - Internal CLI framework package (in `src/dev_cli_core/`)
-- `click>=8.1.7` - CLI framework used by both workstack-dev and dev_cli_core
+- `devclikit` - CLI framework package (in `packages/devclikit/`)
+- `click>=8.1.7` - CLI framework used by both workstack-dev and devclikit
 
 **Command-specific dependencies:**
 
@@ -341,11 +358,11 @@ Both are defined in `pyproject.toml` as separate entry points.
 - Only loaded when running that specific command
 - Isolated from main project dependencies
 
-**Architecture note:** The `dev_cli_core` framework is an internal package that provides the command discovery and execution infrastructure. Commands in `workstack.dev_cli.commands` use the framework's facilities but remain organizationally separate.
+**Architecture note:** The `devclikit` framework is an independent package that provides the command discovery and execution infrastructure. Commands in `workstack_dev.commands` use the framework's facilities but remain organizationally separate.
 
 ## Testing
 
-**Location:** `tests/dev_cli/`
+**Location:** `packages/workstack-dev/tests/`
 
 Commands can be tested at two levels:
 
@@ -368,11 +385,11 @@ All without modifying the core CLI framework.
 
 ## Framework Reusability
 
-The `dev_cli_core` framework is designed to be reusable for other projects. It provides:
+The `devclikit` framework is designed to be reusable for other projects. It provides:
 
 - **Zero-config command discovery** - Just drop commands in a directory
 - **PEP 723 script execution** - Commands manage their own dependencies
 - **Shell completion** - Built-in bash/zsh/fish support
 - **Factory function** - Simple `create_cli()` API
 
-See `src/dev_cli_core/README.md` and `src/dev_cli_core/examples/` for documentation and examples on using the framework in other projects.
+See `packages/devclikit/README.md` and `packages/devclikit/src/devclikit/examples/` for documentation and examples on using the framework in other projects.

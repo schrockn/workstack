@@ -159,7 +159,7 @@ class MyOps(ABC):  # ✅ Not Protocol
 
 ### Dev CLI Scripts (PEP 723)
 
-**All `script.py` files in dev_cli/commands must include this directive:**
+**All `script.py` files in workstack-dev commands must include this directive:**
 
 ```python
 #!/usr/bin/env python3

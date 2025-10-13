@@ -31,7 +31,7 @@ def main() -> None:
     workstack_dev = shutil.which("workstack-dev")
     if workstack_dev is None:
         # Fallback to running via python module
-        cmd = [sys.executable, "-m", "workstack.dev_cli.__main__"]
+        cmd = [sys.executable, "-m", "workstack_dev.__main__"]
     else:
         cmd = [workstack_dev]
 

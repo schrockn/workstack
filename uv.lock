@@ -6,6 +6,7 @@ requires-python = ">=3.13"
 members = [
     "devclikit",
     "workstack",
+    "workstack-dev",
 ]
 
 [[package]]
@@ -280,6 +281,7 @@ dev = [
     { name = "pytest" },
     { name = "pytest-cov" },
     { name = "ruff" },
+    { name = "workstack-dev" },
 ]
 
 [package.metadata]
@@ -295,4 +297,20 @@ dev = [
     { name = "pytest", specifier = ">=8.0.0" },
     { name = "pytest-cov", specifier = ">=5.0.0" },
     { name = "ruff", specifier = ">=0.5.0" },
+    { name = "workstack-dev", editable = "packages/workstack-dev" },
+]
+
+[[package]]
+name = "workstack-dev"
+version = "0.1.10"
+source = { editable = "packages/workstack-dev" }
+dependencies = [
+    { name = "click" },
+    { name = "devclikit" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "click", specifier = ">=8.1.7" },
+    { name = "devclikit", editable = "packages/devclikit" },
 ]

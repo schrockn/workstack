@@ -45,7 +45,7 @@ The generated review includes:
 
 ## Implementation
 
-The command is implemented in `src/workstack/dev_cli/commands/codex_review/`:
+The command is implemented in `packages/workstack-dev/src/workstack_dev/commands/codex_review/`:
 
 - `command.py`: Click CLI interface
 - `script.py`: Core review logic with branch detection
