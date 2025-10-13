@@ -8,6 +8,7 @@ from workstack.cli.commands.init import init_cmd
 from workstack.cli.commands.list import list_cmd, ls_cmd
 from workstack.cli.commands.move import move_cmd
 from workstack.cli.commands.prepare_cwd_recovery import prepare_cwd_recovery_cmd
+from workstack.cli.commands.rebase import rebase_group
 from workstack.cli.commands.remove import remove_cmd, rm_cmd
 from workstack.cli.commands.rename import rename_cmd
 from workstack.cli.commands.shell_integration import hidden_shell_cmd
@@ -39,6 +40,7 @@ cli.add_command(ls_cmd)
 cli.add_command(status_cmd)
 cli.add_command(init_cmd)
 cli.add_command(move_cmd)
+cli.add_command(rebase_group)
 cli.add_command(remove_cmd)
 cli.add_command(rm_cmd)
 cli.add_command(rename_cmd)

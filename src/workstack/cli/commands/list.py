@@ -9,7 +9,12 @@ from workstack.core.github_ops import PullRequestInfo
 
 
 def _format_worktree_line(
-    name: str, branch: str | None, path: str | None, is_root: bool, is_current: bool
+    name: str,
+    branch: str | None,
+    path: str | None,
+    is_root: bool,
+    is_current: bool,
+    has_rebase_stack: bool = False,
 ) -> str:
     """Format a single worktree line with colorization.
 
@@ -19,6 +24,7 @@ def _format_worktree_line(
         path: Filesystem path to display (if provided, shows path instead of branch)
         is_root: True if this is the root repository worktree
         is_current: True if this is the worktree the user is currently in
+        has_rebase_stack: True if this branch has an active rebase stack
 
     Returns:
         Formatted line with appropriate colorization
@@ -38,6 +44,11 @@ def _format_worktree_line(
     # Build the main line
     parts = [name_part, location_part]
     line = " ".join(p for p in parts if p)
+
+    # Add rebase stack indicator
+    if has_rebase_stack:
+        stack_indicator = click.style(" [REBASE STACK]", fg="yellow", bold=True)
+        line += stack_indicator
 
     # Add indicator on the right for current worktree
     if is_current:
@@ -311,12 +322,18 @@ def _display_branch_stack(
 
 def _list_worktrees(ctx: WorkstackContext, show_stacks: bool, show_checks: bool) -> None:
     """Internal function to list worktrees."""
+    from workstack.core.rebase_stack_ops import RebaseStackOps
+
     repo = discover_repo_context(ctx, Path.cwd())
     current_dir = Path.cwd().resolve()
 
     # Get branch info for all worktrees
     worktrees = ctx.git_ops.list_worktrees(repo.root)
     branches = {wt.path: wt.branch for wt in worktrees}
+
+    # Get active rebase stacks
+    stack_ops = RebaseStackOps(ctx.git_ops, ctx.global_config_ops)
+    active_stacks = {stack.branch_name for stack in stack_ops.list_stacks(repo.root)}
 
     # Determine which worktree the user is currently in
     current_worktree_path = None
@@ -365,9 +382,15 @@ def _list_worktrees(ctx: WorkstackContext, show_stacks: bool, show_checks: bool)
     # Show root repo first (display as "root" to distinguish from worktrees)
     root_branch = branches.get(repo.root)
     is_current_root = repo.root.resolve() == current_worktree_path
+    has_root_stack = root_branch is not None and root_branch in active_stacks
     click.echo(
         _format_worktree_line(
-            "root", root_branch, path=str(repo.root), is_root=True, is_current=is_current_root
+            "root",
+            root_branch,
+            path=str(repo.root),
+            is_root=True,
+            is_current=is_current_root,
+            has_rebase_stack=has_root_stack,
         )
     )
 
@@ -404,9 +427,15 @@ def _list_worktrees(ctx: WorkstackContext, show_stacks: bool, show_checks: bool)
             click.echo()
 
         is_current_wt = bool(wt_path and wt_path.resolve() == current_worktree_path)
+        has_wt_stack = wt_branch is not None and wt_branch in active_stacks
         click.echo(
             _format_worktree_line(
-                name, wt_branch, path=str(p), is_root=False, is_current=is_current_wt
+                name,
+                wt_branch,
+                path=str(p),
+                is_root=False,
+                is_current=is_current_wt,
+                has_rebase_stack=has_wt_stack,
             )
         )
 

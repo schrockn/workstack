@@ -5,10 +5,13 @@ in its constructor. Construct instances directly with keyword arguments.
 """
 
 from pathlib import Path
+from typing import Any
 
 import click
 
+from tests.fakes.rebaseops import FakeRebaseOps
 from workstack.core.gitops import GitOps, WorktreeInfo
+from workstack.core.rebaseops import RebaseOps
 
 
 class FakeGitOps(GitOps):
@@ -70,6 +73,11 @@ class FakeGitOps(GitOps):
         current_branches: dict[Path, str | None] | None = None,
         default_branches: dict[Path, str] | None = None,
         git_common_dirs: dict[Path, Path] | None = None,
+        merge_bases: dict[tuple[str, str], str | None] | None = None,
+        commit_ranges: dict[tuple[str, str], list[dict[str, str]]] | None = None,
+        conflicted_files: dict[Path, list[str]] | None = None,
+        rebase_in_progress: dict[Path, bool] | None = None,
+        clean_worktrees: dict[Path, bool] | None = None,
     ) -> None:
         """Create FakeGitOps with pre-configured state.
 
@@ -78,6 +86,11 @@ class FakeGitOps(GitOps):
             current_branches: Mapping of cwd -> current branch
             default_branches: Mapping of repo_root -> default branch
             git_common_dirs: Mapping of cwd -> git common directory
+            merge_bases: Mapping of (branch1, branch2) -> merge base SHA
+            commit_ranges: Mapping of (from_ref, to_ref) -> list of commits
+            conflicted_files: Mapping of cwd -> list of conflicted file paths
+            rebase_in_progress: Mapping of cwd -> whether rebase is in progress
+            clean_worktrees: Mapping of cwd -> whether worktree is clean
         """
         self._worktrees = worktrees or {}
         self._current_branches = current_branches or {}
@@ -89,6 +102,20 @@ class FakeGitOps(GitOps):
         self._added_worktrees: list[tuple[Path, str | None]] = []
         self._removed_worktrees: list[Path] = []
         self._checked_out_branches: list[tuple[Path, str]] = []
+
+        # Create FakeRebaseOps with rebase-related state
+        self._rebase_ops_instance = FakeRebaseOps(
+            merge_bases=merge_bases,
+            commit_ranges=commit_ranges,
+            conflicted_files=conflicted_files,
+            rebase_in_progress=rebase_in_progress,
+            clean_worktrees=clean_worktrees,
+        )
+
+    @property
+    def rebase_ops(self) -> RebaseOps:
+        """Get the RebaseOps instance for rebase operations."""
+        return self._rebase_ops_instance
 
     def list_worktrees(self, repo_root: Path) -> list[WorktreeInfo]:
         """List all worktrees in the repository."""
@@ -174,6 +201,49 @@ class FakeGitOps(GitOps):
             if wt.branch == branch:
                 return wt.path
         return None
+
+    def start_rebase(
+        self,
+        cwd: Path,
+        onto: str,
+        *,
+        interactive: bool = False,
+    ) -> tuple[bool, list[str]]:
+        """Start a rebase (delegates to RebaseOps)."""
+        return self._rebase_ops_instance.start_rebase(cwd, onto, interactive=interactive)
+
+    def continue_rebase(self, cwd: Path) -> tuple[bool, list[str]]:
+        """Continue a rebase (delegates to RebaseOps)."""
+        return self._rebase_ops_instance.continue_rebase(cwd)
+
+    def abort_rebase(self, cwd: Path) -> None:
+        """Abort a rebase (delegates to RebaseOps)."""
+        self._rebase_ops_instance.abort_rebase(cwd)
+
+    def get_rebase_status(self, cwd: Path) -> dict[str, Any]:
+        """Get rebase status (delegates to RebaseOps)."""
+        return self._rebase_ops_instance.get_rebase_status(cwd)
+
+    def get_merge_base(self, cwd: Path, branch1: str, branch2: str) -> str | None:
+        """Get merge base (delegates to RebaseOps)."""
+        return self._rebase_ops_instance.get_merge_base(cwd, branch1, branch2)
+
+    def get_commit_range(
+        self,
+        cwd: Path,
+        from_ref: str,
+        to_ref: str,
+    ) -> list[dict[str, str]]:
+        """Get commit range (delegates to RebaseOps)."""
+        return self._rebase_ops_instance.get_commit_range(cwd, from_ref, to_ref)
+
+    def get_conflicted_files(self, cwd: Path) -> list[str]:
+        """Get conflicted files (delegates to RebaseOps)."""
+        return self._rebase_ops_instance.get_conflicted_files(cwd)
+
+    def check_clean_worktree(self, cwd: Path) -> bool:
+        """Check if worktree is clean (delegates to RebaseOps)."""
+        return self._rebase_ops_instance.check_clean_worktree(cwd)
 
     @property
     def deleted_branches(self) -> list[str]:
