@@ -34,7 +34,9 @@ Vibe alert: these guidelines have been developed from observed experience, rathe
 
 5. [Parallel Development with Worktrees and Workstack](#parallel-development-with-worktrees-and-workstack) - Enable parallel agentic sessions using Git worktrees and plan-based development workflows.
 
-6. [Authoring Guidelines](#authoring-guidelines) - Guidelines for maintaining this document with professional tone and clear structure.
+6. [Test Architecture: Coarse-Grained Dependency Injection](#test-architecture-coarse-grained-dependency-injection) - Structure tests using injectable dependencies with stateful fakes for efficient agent test authoring and fast feedback loops.
+
+7. [Authoring Guidelines](#authoring-guidelines) - Guidelines for maintaining this document with professional tone and clear structure.
 
 ---
 
@@ -169,14 +171,12 @@ Correct approach:
 if path.exists():
     resolved = path.resolve()
 ```
-````
 
 Problematic approach:
 
 ```python
 resolved = path.resolve()  # May fail if path doesn't exist
 ```
-
 ````
 
 The contrast makes the pattern immediately clear without requiring paragraph-long explanations.
@@ -186,12 +186,12 @@ The contrast makes the pattern immediately clear without requiring paragraph-lon
 Include tables and quick references for common decision points:
 
 ```markdown
-| If you're writing...    | Check this...                          |
-|-------------------------|----------------------------------------|
-| Exception handling      | → Exception Handling section           |
-| Subprocess calls        | → Always use check=True                |
-| Path operations         | → Validate existence before resolving  |
-````
+| If you're writing... | Check this...                         |
+| -------------------- | ------------------------------------- |
+| Exception handling   | → Exception Handling section          |
+| Subprocess calls     | → Always use check=True               |
+| Path operations      | → Validate existence before resolving |
+```
 
 These navigation aids help agents quickly locate relevant guidance without loading entire documents.
 
@@ -230,13 +230,13 @@ This content belongs in root README.md or docs/CONTRIBUTING.md for humans. The `
 
 ---
 
-# External Tool Mental Models
+## External Tool Mental Models
 
-## Core Principle
+### Core Principle
 
 Many projects depend on external tools that agents need to understand deeply—specialized build systems, deployment pipelines, API clients, or domain-specific utilities. These tools often emerged after an agent's training cutoff or exist in niche domains where documentation is scattered. Creating comprehensive mental model documents for these tools transforms expensive discovery into efficient loading of pre-computed understanding. These documents are natural candidates for the `.agent` directory, where they serve as reusable knowledge artifacts.
 
-## Naming Convention
+### Naming Convention
 
 To enable scalability and discoverability, mental model documents follow a consistent naming pattern within the `.agent/tools/` subdirectory:
 
@@ -253,51 +253,51 @@ Examples:
 
 This convention organizes tool documentation in a dedicated subdirectory, making it immediately recognizable and creating a predictable namespace for external tool knowledge.
 
-## Why This Matters
+### Why This Matters
 
 When agents encounter unfamiliar tools, they resort to web searches, parsing HTML documentation into usable knowledge. This process repeats for every agent session, creating inefficiency and inconsistency. Worse, agents may make incorrect assumptions based on superficial similarity to other tools they know.
 
 Documenting tool mental models once creates reusable knowledge that every agent can leverage immediately. This investment pays dividends through faster development, fewer errors, and consistent understanding across all agent interactions.
 
-## What to Document
+### What to Document
 
 Focus documentation efforts on tools specific to your domain or industry, recently released tools that postdate agent training, complex tools with non-obvious conceptual models, internal or proprietary systems unique to your organization, and tools with poor, scattered, or outdated public documentation.
 
 Skip documentation for standard Unix commands and utilities, well-established programming language features, widely-adopted frameworks like React, Django, or Rails, and common development tools like Git, Docker, or npm. These tools already exist in agent training data with sufficient depth.
 
-## Creating Effective Documentation
+### Creating Effective Documentation
 
 The goal isn't to replicate official documentation but to distill it into efficient, agent-optimized knowledge. Transform verbose documentation into concise patterns that agents can quickly load and apply. A well-crafted mental model document might compress thousands of tokens of HTML documentation into hundreds of tokens of essential patterns and concepts. This distillation process—extracting core concepts from sprawling documentation—creates the token cache that makes `.agent` valuable.
 
-## Structure and Content
+### Structure and Content
 
 Effective tool documentation follows a consistent pattern that helps agents quickly understand and apply the tool.
 
-### Conceptual Foundation
+#### Conceptual Foundation
 
 Begin with the tool's fundamental mental model. Rather than diving into commands, explain the core concepts that make the tool's behavior predictable. For a branching tool, explain how branches relate. For a build system, describe the dependency graph. For an API, clarify the authentication flow and data models.
 
-### Common Patterns
+#### Common Patterns
 
 Document the workflows developers use daily. Show complete examples with context, not just isolated commands. Include the happy path prominently, then cover important variations and edge cases. Real examples with actual file paths and realistic data prove more valuable than abstract descriptions.
 
-### Error Recovery
+#### Error Recovery
 
 Catalog common failure modes and their solutions. When tools fail in predictable ways, documented solutions prevent agents from getting stuck. Include specific error messages, their causes, and step-by-step recovery procedures.
 
-### Authoritative Resources
+#### Authoritative Resources
 
 Provide direct links to official documentation, preventing agents from finding outdated or incorrect information through general web searches. Link to specific sections of documentation rather than just homepages.
 
-## Creating Documentation
+### Creating Documentation
 
 Documentation can emerge from several sources. For open-source tools, clone the repository and extract documentation directly, transforming verbose HTML documentation into concise markdown focused on practical usage. As your team discovers patterns through usage, capture them immediately—when an agent spends significant time understanding a tool's behavior, that understanding becomes valuable documentation for future sessions. When agents search tool documentation online, save useful findings and transform search results into structured documents, removing redundancy and organizing for quick reference.
 
-## Integration Strategies
+### Integration Strategies
 
 Make tool documentation discoverable and loadable when needed. Structure documents to support incremental loading—a quick reference for common operations, detailed patterns for complex workflows, and troubleshooting guides for error handling. In your main agent documentation, reference tool documents clearly so agents know when to load additional context.
 
-## Practical Example
+### Practical Example
 
 Consider documenting Graphite, a specialized stacking tool for Git. Rather than assuming agents understand its unique approach to branch management, create a distilled mental model document at `.agent/tools/graphite.md`:
 
@@ -330,7 +330,7 @@ This document provides enough context for agents to work effectively without sea
 
 See `.agent/tools/graphite.md` in this repository for a complete example of tool mental model documentation.
 
-## Maintenance Considerations
+### Maintenance Considerations
 
 Tool documentation requires ongoing attention. Focus on documenting stable, conceptual foundations rather than version-specific details. Update when tools introduce major conceptual changes, not minor feature additions. Refine based on patterns that prove useful in practice. Verify that external documentation links remain valid.
 
@@ -476,6 +476,295 @@ Attempting parallel development without comprehensive planning leads to confusio
 The worktree pattern integrates seamlessly with the planning practices described earlier. Plans created during the design phase become the execution blueprints for worktrees. This creates a natural flow from conception to completion: planning phase to create detailed plans in the root repository, worktree creation using plan documents to initialize workspaces, parallel execution with multiple agents working autonomously, integration of completed features independently, and cleanup by removing worktrees after successful integration.
 
 This workflow scales to support as many parallel efforts as you have agents available, limited only by the quality of your planning and the independence of your features.
+
+---
+
+## Test Architecture: Coarse-Grained Dependency Injection
+
+### Core Principle
+
+Structure tests using **coarse-grained dependency injection** - wrap entire categories of external operations into injectable dependencies with stateful fake implementations. Rather than mocking individual functions or methods, group related operations together and provide three implementations: Real, Dry-Run, and Fake. This coarse granularity matches how agents think about systems, enables efficient test authoring, and maintains clear boundaries between test setup and execution.
+
+### Why Coarse-Grained?
+
+The key insight is granularity. Fine-grained mocking (individual functions, specific calls) creates fragile tests that require deep implementation knowledge. Coarse-grained injection (entire operational categories) creates robust tests that remain stable as implementations evolve.
+
+```python
+# Fine-grained (fragile, hard for agents to understand)
+mock_subprocess.run.return_value.stdout = "branch-1\nbranch-2"
+mock_path.exists.return_value = True
+mock_path.resolve.return_value = Path("/resolved/path")
+
+# Coarse-grained (robust, clear to agents)
+fake_git = FakeGitRepository(
+    branches=["branch-1", "branch-2"],
+    current_branch="branch-1"
+)
+fake_filesystem = FakeFilesystem(
+    existing_files={Path("/resolved/path")}
+)
+```
+
+### Key Pattern: Category-Based Dependencies
+
+Group operations by the external system they interact with, not by implementation details:
+
+```python
+# Category: Version Control Operations
+class VersionControl(ABC):
+    @abstractmethod
+    def list_branches(self) -> list[str]: ...
+
+    @abstractmethod
+    def current_branch(self) -> str: ...
+
+    @abstractmethod
+    def create_branch(self, name: str) -> None: ...
+
+# Category: Data Persistence
+class DataStore(ABC):
+    @abstractmethod
+    def save_record(self, record: dict) -> str: ...
+
+    @abstractmethod
+    def find_records(self, query: dict) -> list[dict]: ...
+
+# Category: External Service Communication
+class NotificationService(ABC):
+    @abstractmethod
+    def send_email(self, to: str, subject: str, body: str) -> None: ...
+
+    @abstractmethod
+    def send_sms(self, to: str, message: str) -> None: ...
+```
+
+Each category becomes a single dependency that can be injected as a unit. This creates natural boundaries that make sense to both humans and agents.
+
+### The Three Implementations Pattern
+
+Every category of operations should have three implementations:
+
+1. **Real** - Actual implementation for production
+2. **Dry-Run** - Safe wrapper that simulates writes but performs reads
+3. **Fake** - In-memory implementation with injectable state for testing
+
+```python
+# Real: Actual implementation
+class GitVersionControl(VersionControl):
+    def list_branches(self) -> list[str]:
+        result = subprocess.run(["git", "branch"], ...)
+        return parse_branches(result.stdout)
+
+# Dry-Run: Safe exploration
+class DryRunVersionControl(VersionControl):
+    def __init__(self, wrapped: VersionControl):
+        self._wrapped = wrapped
+
+    def list_branches(self) -> list[str]:
+        return self._wrapped.list_branches()  # Read operations: pass through
+
+    def create_branch(self, name: str) -> None:
+        print(f"[DRY RUN] Would create branch: {name}")  # Write operations: simulate
+
+# Fake: Testable with injectable state
+class FakeVersionControl(VersionControl):
+    def __init__(self, branches: list[str] | None = None):
+        self.branches = branches or ["main"]
+
+    def list_branches(self) -> list[str]:
+        return self.branches.copy()
+
+    def create_branch(self, name: str) -> None:
+        self.branches.append(name)
+```
+
+### Organizing Dependencies
+
+How you organize and inject these dependencies depends on your architecture. The key is consistency and explicit state visibility.
+
+**Option 1: Direct Constructor Injection**
+
+```python
+class ApplicationService:
+    def __init__(self, vcs: VersionControl, store: DataStore):
+        self.vcs = vcs
+        self.store = store
+```
+
+**Option 2: Context Objects**
+
+```python
+@dataclass
+class AppContext:
+    version_control: VersionControl
+    data_store: DataStore
+    notifications: NotificationService
+```
+
+**Option 3: Factory Pattern**
+
+```python
+class DependencyFactory:
+    def create_dependencies(self, test_mode: bool = False):
+        if test_mode:
+            return self._create_fakes()
+        return self._create_real()
+```
+
+Choose the pattern that fits your codebase. The value lies in the coarse granularity and stateful fakes, not the specific injection mechanism.
+
+### Creating Effective Fakes with Injectable State
+
+The power of this pattern emerges from constructor-based state injection. Fakes accept their entire state at construction time, making test scenarios explicit and visible:
+
+```python
+class FakeDataStore(DataStore):
+    def __init__(self,
+                 records: list[dict] | None = None,
+                 error_on_save: bool = False,
+                 save_latency_ms: int = 0):
+        """All state injected at construction for test clarity."""
+        self.records = records or []
+        self.error_on_save = error_on_save
+        self.save_latency_ms = save_latency_ms
+        self.saved_records = []  # Track operations for assertions
+
+    def save_record(self, record: dict) -> str:
+        if self.error_on_save:
+            raise ConnectionError("Database unavailable")
+
+        if self.save_latency_ms:
+            time.sleep(self.save_latency_ms / 1000)
+
+        record_id = str(uuid.uuid4())
+        self.records.append({**record, "id": record_id})
+        self.saved_records.append(record)  # For test assertions
+        return record_id
+```
+
+This approach makes test intent crystal clear:
+
+```python
+def test_handles_database_errors():
+    # Explicit state injection - intent is obvious
+    fake_store = FakeDataStore(error_on_save=True)
+    service = ApplicationService(FakeVersionControl(), fake_store)
+
+    with pytest.raises(ConnectionError):
+        service.process_data({"value": 42})
+
+def test_concurrent_saves():
+    # Complex scenario still clear through constructor state
+    fake_store = FakeDataStore(
+        records=[{"id": "1", "value": "existing"}],
+        save_latency_ms=100
+    )
+    # Test proceeds with predictable behavior
+```
+
+### Testing CLI Commands
+
+Standard pattern for command testing with dependency injection:
+
+```python
+def test_command_behavior() -> None:
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        # 1. Set up filesystem state
+        cwd = Path.cwd()
+        (cwd / ".git").mkdir()
+
+        # 2. Configure fakes with state
+        git = FakeVersionControl(branches=["main", "feature"])
+        store = FakeDataStore(records=[{"id": "1", "name": "test"}])
+
+        # 3. Create context with dependencies
+        context = AppContext(
+            version_control=git,
+            data_store=store,
+            notifications=FakeNotificationService()
+        )
+
+        # 4. Invoke command with context
+        result = runner.invoke(cli, ["command", "args"], obj=context)
+
+        # 5. Assert on result
+        assert result.exit_code == 0
+        assert "expected output" in result.output
+```
+
+### Testing Dry-Run Behavior
+
+Verify dry-run prevents destructive operations:
+
+```python
+def test_dry_run_does_not_delete() -> None:
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        # Create resource that should NOT be deleted
+        important_file = Path.cwd() / "important.txt"
+        important_file.write_text("data")
+
+        # Wrap fake with dry-run
+        filesystem = DryRunFilesystem(FakeFilesystem())
+
+        context = AppContext(
+            version_control=FakeVersionControl(),
+            filesystem=filesystem
+        )
+
+        result = runner.invoke(cli, ["delete", "important.txt"], obj=context)
+
+        # Verify dry-run message printed
+        assert "[DRY RUN]" in result.output
+        # Verify file still exists
+        assert important_file.exists()
+```
+
+### Benefits for Agentic Development
+
+This pattern specifically addresses agent constraints and capabilities:
+
+**Context Window Efficiency**: Agents can understand the entire test setup from constructor parameters without tracing through mock configurations.
+
+**Pattern Recognition**: The consistent three-implementation pattern lets agents quickly identify which variant to use in which situation.
+
+**Autonomous Test Creation**: With stateful fakes, agents can create comprehensive test scenarios without understanding implementation details.
+
+**Safe Exploration**: Dry-run implementations let agents test destructive operations without system damage.
+
+**Fast Feedback Loops**: Unit tests with fakes run in milliseconds, enabling agents to iterate quickly while integration tests verify actual system behavior.
+
+### When to Apply This Pattern
+
+Use coarse-grained dependency injection when:
+
+- Your code has external dependencies (filesystem, network, databases)
+- You need fast, reliable tests
+- Agents will be writing or modifying tests
+- You want to support dry-run modes for safety
+
+The pattern may be overkill for:
+
+- Pure computational functions without external dependencies
+- Simple scripts with minimal testing needs
+- Prototypes where test infrastructure investment isn't justified
+
+### Integration with Other Patterns
+
+This testing architecture complements other agentic programming patterns:
+
+**Coarse-grained Parallel Modules**: Each module can have its own set of fake implementations, maintaining the independence that makes parallel development possible.
+
+**Planning**: Test strategies become part of implementation plans, with specific guidance on which fakes to use for different scenarios.
+
+**Agent Documentation**: Document common fake configurations and testing patterns in `.agent/docs/TESTING.md` for reuse across sessions.
+
+### Summary
+
+Coarse-grained dependency injection with stateful fakes creates a testing architecture that both humans and agents can work with effectively. By grouping related operations into injectable categories and providing Real, Dry-Run, and Fake implementations, you enable fast tests, safe exploration, and autonomous agent test authoring. The coarse granularity matches how agents conceptualize systems, while constructor-based state injection makes test intent explicit and maintainable.
+
+---
 
 ## Authoring Guidelines
 
