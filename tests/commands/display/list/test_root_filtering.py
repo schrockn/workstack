@@ -26,7 +26,7 @@ from pathlib import Path
 
 from click.testing import CliRunner
 
-from tests.commands.list import strip_ansi
+from tests.commands.display.list import strip_ansi
 from tests.fakes.github_ops import FakeGitHubOps
 from tests.fakes.gitops import FakeGitOps
 from tests.fakes.global_config_ops import FakeGlobalConfigOps
