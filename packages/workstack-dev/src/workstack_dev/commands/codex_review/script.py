@@ -154,7 +154,7 @@ def main(base: str | None, output: str | None) -> None:
 
     # Execute Codex
     result = subprocess.run(
-        ["codex", "exec", codex_prompt],
+        ["codex", "exec", "--sandbox", "workspace-write", codex_prompt],
         check=True,
         capture_output=False,  # Let output stream to terminal
     )
