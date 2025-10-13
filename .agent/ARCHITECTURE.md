@@ -461,7 +461,7 @@ See: [tests/CLAUDE.md](../../tests/CLAUDE.md) for details.
 
 ### Graphite Integration (`graphite_ops.py`)
 
-**For complete gt mental model**: See [tool.graphite.md](tool.graphite.md)
+**For complete gt mental model**: See [tools/gt.md](tools/gt.md)
 
 **Operations**:
 

@@ -234,6 +234,6 @@ Time-based estimates have no basis in reality for AI-assisted development and sh
 - [.agent/docs/PATTERNS.md](.agent/docs/PATTERNS.md) - Code examples
 - [.agent/docs/EXCEPTION_HANDLING.md](.agent/docs/EXCEPTION_HANDLING.md) - Exception guide
 - [.agent/docs/QUICK_REFERENCE.md](.agent/docs/QUICK_REFERENCE.md) - Quick lookup
-- [.agent/tool.graphite.md](.agent/tool.graphite.md) - Graphite (gt) mental model (load when working with gt/stacks)
+- [.agent/tools/gt.md](.agent/tools/gt.md) - Graphite (gt) mental model (load when working with gt/stacks)
 - [tests/CLAUDE.md](tests/CLAUDE.md) - Testing patterns
 - [README.md](README.md) - Project overview
