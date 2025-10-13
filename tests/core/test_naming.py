@@ -99,6 +99,10 @@ def test_strip_plan_from_filename() -> None:
     # Implementation plan in middle
     assert strip_plan_from_filename("my-implementation-plan-feature") == "my-feature"
 
+    # Mixed leading "plan" with implementation plan phrase
+    assert strip_plan_from_filename("plan-implementation-plan") == "implementation"
+    assert strip_plan_from_filename("plan implementation plan") == "implementation"
+
     # Edge case: just "implementation-plan" becomes "implementation"
     # (Similar to how we would strip "plan" if there was other text)
     assert strip_plan_from_filename("implementation-plan") == "implementation"
