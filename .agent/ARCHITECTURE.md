@@ -94,45 +94,60 @@ Workstack uses a **3-layer architecture**:
 
 ## Module Organization
 
-### Root Level (`src/workstack/`)
+### Root Packages (`src/workstack/`)
 
-**Entry Point**:
+**CLI Package (`cli/`)**
 
-- `cli.py` - Creates `WorkstackContext`, registers commands
-- `__main__.py` - Entry point for `python -m workstack`
+- `cli/cli.py` - CLI entry point and Click command registration
+- `cli/__init__.py` - Exposes `cli` group for `workstack` console script
+- `cli/core.py` - Repo discovery, worktree path helpers, validation
+- `cli/config.py` - Repository config loading (`config.toml`)
+- `cli/tree.py` - Tree rendering helpers for `workstack tree`
+- `cli/graphite.py` - Graphite stack helpers consumed by commands
+- `cli/shell_utils.py` - Shared shell helper utilities
+- `cli/shell_integration/` - Shell wrapper scripts + handler used by `workstack __shell`
+- `cli/commands/` - Individual Click commands (see below)
 
-**Core Modules**:
+**Core Package (`core/`)**
 
-- `context.py` - `WorkstackContext` frozen dataclass, dependency injection
-- `core.py` - Pure business logic (repo discovery, path construction)
-- `config.py` - Configuration loading from TOML
-- `tree.py` - Tree visualization logic
-- `graphite.py` - Graphite-specific integration logic
+- `core/context.py` - `WorkstackContext` creator + dependency injection wiring
+- `core/gitops.py` - Git worktree operations (ABC + real + dry-run wrappers)
+- `core/global_config_ops.py` - Global config management
+- `core/github_ops.py` - GitHub CLI integrations
+- `core/graphite_ops.py` - Graphite CLI integrations
+- `core/file_utils.py` - File helpers shared across layers
 
-**Operations Modules** (ABC Pattern):
+**Status Package (`status/`)**
 
-- `gitops.py` - Git worktree operations
-- `github_ops.py` - GitHub API operations
-- `graphite_ops.py` - Graphite CLI operations
-- `global_config_ops.py` - Global config management
+- `status/orchestrator.py` - Coordinates collectors and renderers
+- `status/collectors/` - Git, Graphite, GitHub, and plan file collectors
+- `status/models/` - Pydantic-style data structures for status payloads
+- `status/renderers/` - Output renderers (currently `SimpleRenderer`)
 
-### Commands (`src/workstack/commands/`)
+**Developer CLI (`dev_cli/`)**
+
+- PEP 723 powered scripts for maintenance tasks (see `src/workstack/dev_cli/CLAUDE.md`)
+
+### Commands (`src/workstack/cli/commands/`)
 
 Each command is a self-contained module:
 
-| Command         | Purpose                                      |
-| --------------- | -------------------------------------------- |
-| `create.py`     | Create new worktree with plan file support   |
-| `list.py`       | List worktrees with PR status/graphite info  |
-| `remove.py`     | Remove worktree and optionally delete branch |
-| `switch.py`     | Switch worktrees, generate shell activation  |
-| `sync.py`       | Sync with graphite, identify merged PRs      |
-| `init.py`       | Initialize global/repo config, shell setup   |
-| `config.py`     | Manage configuration (list/get/set)          |
-| `completion.py` | Generate shell completion scripts            |
-| `gc.py`         | Garbage collect merged worktrees             |
-| `rename.py`     | Rename worktree (move directory)             |
-| `tree.py`       | Display tree visualization                   |
+| Command                   | Purpose                                             |
+| ------------------------- | --------------------------------------------------- |
+| `create.py`               | Create new worktree with plan file support          |
+| `list.py`                 | List worktrees with PR status/graphite info         |
+| `remove.py`               | Remove worktree and optionally delete branch        |
+| `switch.py`               | Switch worktrees, generate shell activation         |
+| `sync.py`                 | Sync with graphite, identify merged PRs             |
+| `init.py`                 | Initialize global/repo config, shell setup          |
+| `config.py`               | Manage configuration (list/get/set)                 |
+| `completion.py`           | Generate shell completion scripts                   |
+| `gc.py`                   | Garbage collect merged worktrees                    |
+| `rename.py`               | Rename worktree (move directory)                    |
+| `tree.py`                 | Display tree visualization                          |
+| `move.py`                 | Move current branch into a new or existing worktree |
+| `status.py`               | Aggregate git/graphite/GitHub/plan status           |
+| `prepare_cwd_recovery.py` | Print shell snippet to recover current directory    |
 
 ### Testing (`tests/`)
 
@@ -159,34 +174,36 @@ tests/
 ### Module Dependencies
 
 ```
-cli.py
+cli/cli.py
   │
-  ├──> context.py ────────> gitops.py (ABC)
-  │                    ├──> github_ops.py (ABC)
-  │                    ├──> graphite_ops.py (ABC)
-  │                    └──> global_config_ops.py (ABC)
+  ├──> core/context.py ──> gitops.py (ABC)
+  │                      ├──> github_ops.py (ABC)
+  │                      ├──> graphite_ops.py (ABC)
+  │                      └──> global_config_ops.py (ABC)
   │
-  └──> commands/*.py
+  └──> cli/commands/*.py
          │
-         ├──> core.py ────> context.py (for types)
-         ├──> config.py
-         ├──> tree.py ───> graphite.py ───> graphite_ops.py (via context)
-         └──> graphite.py
+         ├──> cli/core.py ───> core/context.py (types only)
+         ├──> cli/config.py
+         ├──> cli/tree.py ───> cli/graphite.py ───> core/graphite_ops.py
+         ├──> cli/shell_utils.py ───> core/gitops.py (via context)
+         └──> status/orchestrator.py (status command only)
+                                └──> status/collectors/* (may use context ops)
 ```
 
 **Import Rules**:
 
-1. Commands import `core`, `config`, `tree`, `graphite` - NEVER ops directly
-2. Core modules use ops through injected `WorkstackContext` parameter
-3. Ops modules have zero dependencies on commands or core
-4. No circular dependencies (enforced by design)
+1. Commands _never_ import `core/*_ops.py` directly — all external effects flow through the injected `WorkstackContext`.
+2. Shared CLI helpers live under `workstack.cli.*` and may depend on `core` operations through the context.
+3. The status package depends on both CLI helpers and `core` ops but has no knowledge of individual commands.
+4. Operations (`workstack.core.*`) remain leaf modules with no imports from CLI or status layers.
 
 ### Data Flow
 
 ```
 User Input (CLI)
     ↓
-Click Command Handler (commands/*.py)
+Click Command Handler (cli/commands/*.py)
     ↓
 WorkstackContext (injected via @click.pass_obj)
     ↓
@@ -208,7 +225,7 @@ Subprocess / Filesystem / External APIs
 ```
 1. User runs: workstack create my-feature
    ↓
-2. cli.py main() called
+2. cli/cli.py main() called
    ↓
 3. create_context(dry_run=False) creates WorkstackContext
    - Instantiates RealGitOps()
@@ -216,7 +233,7 @@ Subprocess / Filesystem / External APIs
    - Instantiates RealGitHubOps()
    - Instantiates RealGraphiteOps()
    ↓
-4. Click routes to create_cmd() in commands/create.py
+4. Click routes to create_cmd() in cli/commands/create.py
    ↓
 5. create_cmd receives WorkstackContext via @click.pass_obj
    ↓

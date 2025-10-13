@@ -191,7 +191,7 @@ class RepoContext:
 
 **Creation**: `discover_repo_context(ctx, Path.cwd())`
 
-**File**: `src/workstack/core.py`
+**File**: `src/workstack/cli/core.py`
 
 ### Workstack Context
 
@@ -211,11 +211,11 @@ class WorkstackContext:
 
 **Purpose**: Dependency injection container passed to all commands.
 
-**Creation**: `create_context(dry_run=False)` in `cli.py`
+**Creation**: `create_context(dry_run=False)` in `src/workstack/core/context.py`
 
 **Usage**: Commands receive via `@click.pass_obj` decorator.
 
-**File**: `src/workstack/context.py`
+**File**: `src/workstack/core/context.py`
 
 ---
 

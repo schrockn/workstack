@@ -57,7 +57,7 @@ else:
 ```
 
 **Why agents do this**: Most Python uses EAFP. This codebase uses LBYL.
-**Detection**: `grep -r "try:" src/workstack/commands/` should find ~0
+**Detection**: `grep -r "try:" src/workstack/cli/commands/` should find ~0
 **Severity**: 🔴 Critical - Violates core pattern
 **Fix**: Convert to if/else check → See PATTERNS.md:353-365
 
@@ -101,7 +101,7 @@ def sync_cmd(ctx: WorkstackContext):
 ```
 
 **Why agents do this**: Direct subprocess calls seem simpler
-**Detection**: `grep -r "subprocess" src/workstack/commands/`
+**Detection**: `grep -r "subprocess" src/workstack/cli/commands/`
 **Severity**: 🔴 Critical - Blocks testing, breaks DI
 **Fix**: Add method to ops interface → See ARCHITECTURE.md:64-93
 
@@ -165,7 +165,7 @@ click.echo("Created worktree")
 ```
 
 **Why agents do this**: Habit
-**Detection**: `grep -r "print(" src/workstack/commands/`
+**Detection**: `grep -r "print(" src/workstack/cli/commands/`
 **Severity**: 🟢 Style - Works but wrong
 **Fix**: Replace with click.echo() → See PATTERNS.md:624-627
 
@@ -268,16 +268,21 @@ class Config:
 
 ```
 src/workstack/
-├── cli.py              # Entry, creates context
-├── context.py          # WorkstackContext (DI)
-├── core.py             # Pure business logic
-├── *_ops.py            # Operations (ABC interfaces)
-└── commands/*.py       # CLI commands
+├── cli/
+│   ├── cli.py              # Click entry point
+│   ├── core.py             # Repo discovery + helpers
+│   ├── config.py           # Repo config loader
+│   ├── commands/*.py       # CLI commands (Click)
+│   └── shell_integration/  # Wrapper scripts + handler
+├── core/
+│   ├── context.py          # WorkstackContext factory
+│   └── *_ops.py            # External operations (ABC + Real)
+└── status/                 # Status collectors + renderers
 
 tests/
-├── fakes/*.py          # In-memory implementations
-├── commands/test_*.py  # Command tests (use fakes)
-└── integration/        # Real git tests
+├── fakes/*.py              # In-memory implementations
+├── commands/test_*.py      # Command tests (use fakes)
+└── integration/            # Real git tests
 ```
 
 ---
@@ -286,19 +291,19 @@ tests/
 
 ### Add New Command
 
-1. Create `src/workstack/commands/my_cmd.py`
-2. Pattern: `commands/rename.py` (simple) or `commands/create.py` (complex)
+1. Create `src/workstack/cli/commands/my_cmd.py`
+2. Pattern: `cli/commands/rename.py` (simple) or `cli/commands/create.py` (complex)
 3. Add `@click.command()` and `@click.pass_obj`
-4. Register in `cli.py`: `cli.add_command(my_cmd)`
+4. Register in `cli/cli.py`: `cli.add_command(my_cmd)`
 5. Write tests in `tests/commands/test_my_cmd.py`
 
 ### Add New Operation
 
-1. Create ABC in `src/workstack/my_ops.py`
+1. Create ABC in `src/workstack/core/my_ops.py`
 2. Implement `RealMyOps` and `DryRunMyOps`
 3. Create `tests/fakes/my_ops.py` with `FakeMyOps`
-4. Add to `WorkstackContext` in `context.py`
-5. Update `create_context()` in `cli.py`
+4. Add to `WorkstackContext` in `core/context.py`
+5. Update `create_context()` in `core/context.py`
 
 ### Write Test
 
