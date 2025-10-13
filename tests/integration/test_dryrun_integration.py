@@ -4,13 +4,23 @@ These tests verify that dry-run mode prevents destructive operations
 while still allowing read operations.
 """
 
+import os
 import subprocess
 from pathlib import Path
 
 from click.testing import CliRunner
 
+from tests.fakes.github_ops import FakeGitHubOps
+from tests.fakes.gitops import FakeGitOps
+from tests.fakes.global_config_ops import FakeGlobalConfigOps
+from tests.fakes.graphite_ops import FakeGraphiteOps
+from tests.fakes.shell_ops import FakeShellOps
 from workstack.cli.cli import cli
-from workstack.core.context import create_context
+from workstack.core.context import WorkstackContext, create_context
+from workstack.core.github_ops import DryRunGitHubOps
+from workstack.core.gitops import DryRunGitOps, WorktreeInfo
+from workstack.core.global_config_ops import DryRunGlobalConfigOps
+from workstack.core.graphite_ops import DryRunGraphiteOps
 
 
 def init_git_repo(repo_path: Path, default_branch: str = "main") -> None:
@@ -45,11 +55,37 @@ def test_dryrun_read_operations_still_work(tmp_path: Path) -> None:
     repo.mkdir()
     init_git_repo(repo, "main")
 
-    ctx = create_context(dry_run=True)
+    # Set up fakes to avoid needing real config file
+    git_ops = FakeGitOps(
+        worktrees={
+            repo: [WorktreeInfo(path=repo, branch="main")],
+        },
+        git_common_dirs={repo: repo / ".git"},
+    )
+    global_config_ops = FakeGlobalConfigOps(
+        workstacks_root=tmp_path / "workstacks",
+        use_graphite=False,
+    )
+
+    # Wrap fakes in dry-run wrappers
+    ctx = WorkstackContext(
+        git_ops=DryRunGitOps(git_ops),
+        global_config_ops=DryRunGlobalConfigOps(global_config_ops),
+        github_ops=DryRunGitHubOps(FakeGitHubOps()),
+        graphite_ops=DryRunGraphiteOps(FakeGraphiteOps()),
+        shell_ops=FakeShellOps(),
+        dry_run=True,
+    )
 
     runner = CliRunner()
     # List should work even in dry-run mode since it's a read operation
-    result = runner.invoke(cli, ["list"], obj=ctx)
+    # Change to repo directory so discover_repo_context can find it
+    original_cwd = os.getcwd()
+    try:
+        os.chdir(repo)
+        result = runner.invoke(cli, ["list"], obj=ctx)
+    finally:
+        os.chdir(original_cwd)
 
     # Should succeed (read operations are not blocked)
     assert result.exit_code == 0
