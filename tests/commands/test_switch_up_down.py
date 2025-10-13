@@ -16,7 +16,7 @@ from workstack.core.gitops import WorktreeInfo
 
 
 def setup_graphite_stack(
-    git_dir: Path, branches: dict[str, dict[str, list[str] | str | None]]
+    git_dir: Path, branches: dict[str, dict[str, list[str] | str | bool | None]]
 ) -> None:
     """Set up a fake Graphite cache file with a stack structure.
 
