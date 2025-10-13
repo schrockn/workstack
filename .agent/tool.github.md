@@ -71,10 +71,10 @@ Each entity has CRUD operations accessible via `gh` commands, making GitHub oper
 
 **Critical distinction**: `gh` operates on GitHub-hosted entities, while `git` operates on local repository objects.
 
-| Entity Type | Tool | Scope | Example |
-|------------|------|-------|---------|
-| Commits, branches, files | `git` | Local repo | `git commit`, `git branch` |
-| PRs, issues, CI runs | `gh` | GitHub remote | `gh pr create`, `gh run list` |
+| Entity Type              | Tool  | Scope         | Example                       |
+| ------------------------ | ----- | ------------- | ----------------------------- |
+| Commits, branches, files | `git` | Local repo    | `git commit`, `git branch`    |
+| PRs, issues, CI runs     | `gh`  | GitHub remote | `gh pr create`, `gh run list` |
 
 **Key insight**: `gh` is **stateless** - it queries GitHub's API on every command. Unlike git (which has a local `.git` directory) or Graphite (which has `.graphite_cache_persist`), `gh` maintains no local state beyond authentication credentials.
 
@@ -89,6 +89,7 @@ Each entity has CRUD operations accessible via `gh` commands, making GitHub oper
 ```
 
 **Authentication flow**:
+
 1. `gh auth login` - Interactive OAuth flow
 2. Token stored securely in system keychain
 3. All subsequent commands use stored token
@@ -127,12 +128,12 @@ Every `gh` command is a wrapper around GitHub's REST or GraphQL APIs:
 
 `gh` provides multiple output formats:
 
-| Mode | Flag | Use Case |
-|------|------|----------|
-| Human-readable | (default) | Terminal viewing |
-| JSON | `--json <fields>` | Scripting, parsing |
-| Template | `--template <go-template>` | Custom formatting |
-| Web | `--web` | Open in browser |
+| Mode           | Flag                       | Use Case           |
+| -------------- | -------------------------- | ------------------ |
+| Human-readable | (default)                  | Terminal viewing   |
+| JSON           | `--json <fields>`          | Scripting, parsing |
+| Template       | `--template <go-template>` | Custom formatting  |
+| Web            | `--web`                    | Open in browser    |
 
 ---
 
@@ -140,38 +141,38 @@ Every `gh` command is a wrapper around GitHub's REST or GraphQL APIs:
 
 ### Essential Terms
 
-| Term | Definition | Example |
-|------|------------|---------|
-| **PR** | Pull Request - proposed changes to repository | `gh pr create` |
-| **Issue** | Task, bug, or feature request | `gh issue create` |
-| **Run** | Workflow execution (CI/CD job) | `gh run view 123` |
-| **Release** | Tagged version with assets | `gh release create v1.0.0` |
-| **Gist** | Code snippet or paste | `gh gist create file.txt` |
-| **Repo** | Repository (codebase) | `gh repo view` |
-| **Fork** | Personal copy of someone else's repo | `gh repo fork` |
-| **Head** | Source branch of a PR | `--head my-branch` |
-| **Base** | Target branch of a PR | `--base main` |
-| **Draft** | PR not ready for review | `gh pr create --draft` |
-| **Checks** | CI/CD status for a PR | PR checks (pass/fail) |
+| Term        | Definition                                    | Example                    |
+| ----------- | --------------------------------------------- | -------------------------- |
+| **PR**      | Pull Request - proposed changes to repository | `gh pr create`             |
+| **Issue**   | Task, bug, or feature request                 | `gh issue create`          |
+| **Run**     | Workflow execution (CI/CD job)                | `gh run view 123`          |
+| **Release** | Tagged version with assets                    | `gh release create v1.0.0` |
+| **Gist**    | Code snippet or paste                         | `gh gist create file.txt`  |
+| **Repo**    | Repository (codebase)                         | `gh repo view`             |
+| **Fork**    | Personal copy of someone else's repo          | `gh repo fork`             |
+| **Head**    | Source branch of a PR                         | `--head my-branch`         |
+| **Base**    | Target branch of a PR                         | `--base main`              |
+| **Draft**   | PR not ready for review                       | `gh pr create --draft`     |
+| **Checks**  | CI/CD status for a PR                         | PR checks (pass/fail)      |
 
 ### PR States
 
-| State | Meaning | Transitions |
-|-------|---------|-------------|
-| `OPEN` | Active, awaiting review/merge | → `MERGED`, `CLOSED` |
-| `MERGED` | Accepted and merged | (terminal) |
-| `CLOSED` | Rejected or abandoned | → `OPEN` (reopen) |
-| `DRAFT` | Work in progress, not ready | → `OPEN` (ready) |
+| State    | Meaning                       | Transitions          |
+| -------- | ----------------------------- | -------------------- |
+| `OPEN`   | Active, awaiting review/merge | → `MERGED`, `CLOSED` |
+| `MERGED` | Accepted and merged           | (terminal)           |
+| `CLOSED` | Rejected or abandoned         | → `OPEN` (reopen)    |
+| `DRAFT`  | Work in progress, not ready   | → `OPEN` (ready)     |
 
 ### Check States
 
-| State | Meaning | Example |
-|-------|---------|---------|
-| `SUCCESS` | All checks passed | CI tests passed |
-| `FAILURE` | One or more checks failed | Linting errors |
-| `PENDING` | Checks in progress | Tests running |
-| `SKIPPED` | Check skipped | Not required for this branch |
-| `NEUTRAL` | Check completed, no pass/fail | Informational check |
+| State     | Meaning                       | Example                      |
+| --------- | ----------------------------- | ---------------------------- |
+| `SUCCESS` | All checks passed             | CI tests passed              |
+| `FAILURE` | One or more checks failed     | Linting errors               |
+| `PENDING` | Checks in progress            | Tests running                |
+| `SKIPPED` | Check skipped                 | Not required for this branch |
+| `NEUTRAL` | Check completed, no pass/fail | Informational check          |
 
 ---
 
@@ -188,6 +189,7 @@ gh auth login                     # Interactive OAuth flow
 ```
 
 **Interactive prompts**:
+
 1. GitHub.com or GitHub Enterprise?
 2. HTTPS or SSH protocol?
 3. Authenticate via web browser or token?
@@ -195,6 +197,7 @@ gh auth login                     # Interactive OAuth flow
 5. Token: Paste personal access token
 
 **What it does**:
+
 - Stores OAuth token in system keychain
 - Configures git protocol (HTTPS/SSH)
 - Sets up git credential helper
@@ -238,6 +241,7 @@ gh config set pager less          # Set pager for long output
 ```
 
 **Common settings**:
+
 - `editor`: Editor for PR/issue descriptions
 - `git_protocol`: https or ssh
 - `browser`: Browser for `--web` flag
@@ -253,6 +257,7 @@ gh repo set-default owner/repo    # Set default repo
 ```
 
 **What it does**:
+
 - Creates `.git/config` entry for `gh.repo`
 - Subsequent `gh` commands use this repo by default
 - Overrides git remote detection
@@ -280,6 +285,7 @@ gh pr list --json number,title    # JSON output with specific fields
 ```
 
 **JSON output fields**:
+
 ```bash
 --json number           # PR number
 --json title            # PR title
@@ -309,6 +315,7 @@ gh pr view --json statusCheckRollup # Include CI check details
 ```
 
 **Output**:
+
 ```
 Add feature X #123
 Draft • schrockn wants to merge 3 commits into main from feature-x
@@ -340,6 +347,7 @@ gh pr create --label bug          # Add labels
 ```
 
 **Interactive flow**:
+
 1. Detects current branch vs default branch
 2. Prompts for title (defaults to last commit message)
 3. Prompts for body (opens editor)
@@ -348,6 +356,7 @@ gh pr create --label bug          # Add labels
 6. Prints PR URL
 
 **Options**:
+
 - `--draft`: Create as draft PR
 - `--fill`: Auto-fill from commit messages
 - `--web`: Open browser instead of CLI
@@ -372,6 +381,7 @@ gh pr checkout https://...        # Checkout by URL
 ```
 
 **What it does**:
+
 1. Fetches PR branch from remote
 2. Creates local branch tracking remote
 3. Checks out the branch
@@ -409,6 +419,7 @@ gh pr checks --watch              # Watch checks in real-time
 ```
 
 **Output**:
+
 ```
 All checks have passed
 ✓ test     Tests   1m23s  https://...
@@ -430,6 +441,7 @@ gh pr merge --delete-branch       # Delete branch after merge
 ```
 
 **Options**:
+
 - `--merge`: Create merge commit (default)
 - `--squash`: Squash commits into one
 - `--rebase`: Rebase onto base branch
@@ -613,6 +625,7 @@ gh repo clone owner/repo mydir    # Clone to directory
 ```
 
 **Advantages over `git clone`**:
+
 - Handles authentication automatically
 - Supports `owner/repo` shorthand
 - Configures remotes appropriately for forks
@@ -791,11 +804,13 @@ gh api -H "Accept: application/vnd.github.v3+json" ...
 ```
 
 **Placeholders**:
+
 - `{owner}`: Repository owner (auto-detected)
 - `{repo}`: Repository name (auto-detected)
 - `{branch}`: Current branch (auto-detected)
 
 **Options**:
+
 - `-X/--method`: HTTP method (GET, POST, PATCH, DELETE)
 - `-f/--raw-field`: String parameter
 - `-F/--field`: Typed parameter (JSON types)
@@ -1090,17 +1105,20 @@ def get_prs_for_repo(
 ```
 
 **What it does**:
+
 - Executes: `gh pr list --state all --json number,headRefName,url,state,isDraft[,statusCheckRollup]`
 - Parses JSON output
 - Maps `headRefName` (branch) to `PullRequestInfo`
 - Returns: `{"feature-branch": PullRequestInfo(...)}`
 
 **Performance consideration**:
+
 - `statusCheckRollup` is **slow** (fetches CI status for each PR)
 - Only fetched when `include_checks=True`
 - Workstack uses Graphite cache first, falls back to gh
 
 **Usage in workstack**:
+
 ```bash
 # Shows PR info for each worktree
 workstack list
@@ -1119,12 +1137,14 @@ class GitHubPRCollector(StatusCollector):
 ```
 
 **Data flow**:
+
 1. Tries Graphite cache first (fast, but no CI status)
 2. Falls back to `gh pr list` if Graphite unavailable
 3. Parses PR state, checks, draft status
 4. Determines "ready to merge" status
 
 **Ready to merge logic**:
+
 ```python
 ready_to_merge = (
     pr.state == "OPEN"
@@ -1147,6 +1167,7 @@ except (subprocess.CalledProcessError, FileNotFoundError, json.JSONDecodeError):
 ```
 
 **Why try/except is acceptable here**:
+
 - Cannot reliably check gh installation/auth without duplicating gh's logic
 - This is an error boundary (boundary between system and external tool)
 - Graceful degradation: workstack continues without PR info
@@ -1165,11 +1186,13 @@ if not prs:
 ```
 
 **Why**:
+
 - Graphite cache (`.git/.graphite_pr_info`) is local and instant
 - `gh pr list` requires API calls (slower, rate-limited)
 - Graphite updates cache during `gt sync`
 
 **Trade-off**:
+
 - Graphite cache may be stale between syncs
 - gh always fetches latest (but slower)
 
@@ -1184,6 +1207,7 @@ if include_checks:
 ```
 
 **Available fields** (from gh):
+
 - `number`: PR number
 - `title`: PR title
 - `body`: PR description
@@ -1198,6 +1222,7 @@ if include_checks:
 - `createdAt`: Creation timestamp
 
 **Field selection strategy**:
+
 - Always fetch: core metadata (number, state, branch, url)
 - Conditionally fetch: expensive fields (statusCheckRollup)
 - Never fetch unused: title, body, author (reduces response size)
@@ -1226,25 +1251,28 @@ show_pr_info = true     # Enable PR info in listings
 ```
 
 **When enabled**:
+
 - `workstack list` shows PR status for each worktree
 - `workstack status` includes PR information
 - Requires `gh` CLI installed and authenticated
 
 **When disabled or gh unavailable**:
+
 - PR info omitted from output
 - No errors, graceful degradation
 - All other workstack features work normally
 
 ### Performance Characteristics
 
-| Operation | Method | Speed | Rate Limit |
-|-----------|--------|-------|------------|
-| List all PRs (no checks) | `gh pr list` | ~500ms | Yes |
-| List all PRs (with checks) | `gh pr list --json statusCheckRollup` | ~2-5s | Yes |
-| Graphite cache read | Read `.graphite_pr_info` | <10ms | No |
-| Single PR status | `gh pr view <num>` | ~300ms | Yes |
+| Operation                  | Method                                | Speed  | Rate Limit |
+| -------------------------- | ------------------------------------- | ------ | ---------- |
+| List all PRs (no checks)   | `gh pr list`                          | ~500ms | Yes        |
+| List all PRs (with checks) | `gh pr list --json statusCheckRollup` | ~2-5s  | Yes        |
+| Graphite cache read        | Read `.graphite_pr_info`              | <10ms  | No         |
+| Single PR status           | `gh pr view <num>`                    | ~300ms | Yes        |
 
 **Best practices**:
+
 1. Use Graphite cache when available (instant)
 2. Fetch checks only when needed (display-time, not listing-time)
 3. Batch operations when possible (single `gh pr list` for all branches)
@@ -1536,14 +1564,14 @@ done
 
 ### When to Use gh Commands
 
-| Situation | Command | Why |
-|-----------|---------|-----|
-| Create PR | `gh pr create` | Faster than web UI |
-| Check PR status | `gh pr status` | See all relevant PRs |
-| Review PRs | `gh pr checkout` + `gh pr review` | Full workflow in terminal |
-| Monitor CI | `gh run watch` | Real-time feedback |
-| Script operations | `gh api` | Direct API access |
-| Multi-repo work | `gh pr list -R` | No need to cd |
+| Situation         | Command                           | Why                       |
+| ----------------- | --------------------------------- | ------------------------- |
+| Create PR         | `gh pr create`                    | Faster than web UI        |
+| Check PR status   | `gh pr status`                    | See all relevant PRs      |
+| Review PRs        | `gh pr checkout` + `gh pr review` | Full workflow in terminal |
+| Monitor CI        | `gh run watch`                    | Real-time feedback        |
+| Script operations | `gh api`                          | Direct API access         |
+| Multi-repo work   | `gh pr list -R`                   | No need to cd             |
 
 ### Common Mistakes to Avoid
 
@@ -1574,6 +1602,7 @@ done
 ### Performance Tips
 
 1. **Batch operations**
+
    ```bash
    # Bad: N API calls
    for branch in $(git branch -r); do
@@ -1585,6 +1614,7 @@ done
    ```
 
 2. **Selective field fetching**
+
    ```bash
    # Slow: Fetches everything
    gh pr list --json state,statusCheckRollup
@@ -1594,6 +1624,7 @@ done
    ```
 
 3. **Use Graphite cache when available**
+
    ```python
    # Workstack pattern: try cache first
    prs = graphite_ops.get_prs_from_graphite(...)
@@ -1611,6 +1642,7 @@ done
 ### Scripting Best Practices
 
 1. **Always use `--json` in scripts**
+
    ```bash
    # Fragile
    gh pr list | grep OPEN
@@ -1620,6 +1652,7 @@ done
    ```
 
 2. **Check command success**
+
    ```bash
    if gh pr view 123 --json state > /dev/null 2>&1; then
      # PR exists
@@ -1629,6 +1662,7 @@ done
    ```
 
 3. **Handle missing gh gracefully**
+
    ```python
    try:
        subprocess.run(["gh", "pr", "list"], check=True)
@@ -1646,6 +1680,7 @@ done
 ### Integration Patterns
 
 **Pattern 1: Lazy loading PR data**
+
 ```python
 class WorktreeInfo:
     _pr_cache: PullRequestInfo | None = None
@@ -1657,6 +1692,7 @@ class WorktreeInfo:
 ```
 
 **Pattern 2: Error boundary**
+
 ```python
 try:
     result = subprocess.run(["gh", "pr", "list"], check=True)
@@ -1667,6 +1703,7 @@ except (subprocess.CalledProcessError, FileNotFoundError):
 ```
 
 **Pattern 3: Conditional fetching**
+
 ```python
 if config.show_pr_info:
     prs = github_ops.get_prs_for_repo(repo, include_checks=False)
