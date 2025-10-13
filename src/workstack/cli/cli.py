@@ -5,6 +5,7 @@ from workstack.cli.commands.config import config_group
 from workstack.cli.commands.create import create
 from workstack.cli.commands.gc import gc_cmd
 from workstack.cli.commands.init import init_cmd
+from workstack.cli.commands.jump import jump_cmd
 from workstack.cli.commands.list import list_cmd, ls_cmd
 from workstack.cli.commands.move import move_cmd
 from workstack.cli.commands.prepare_cwd_recovery import prepare_cwd_recovery_cmd
@@ -33,6 +34,7 @@ def cli(ctx: click.Context) -> None:
 # Register all commands
 cli.add_command(completion_group)
 cli.add_command(create)
+cli.add_command(jump_cmd)
 cli.add_command(switch_cmd)
 cli.add_command(list_cmd)
 cli.add_command(ls_cmd)

@@ -69,6 +69,7 @@ workstack create --plan Add_Auth.md                # Creates worktree, moves pla
 workstack switch NAME            # Switch between worktrees (or 'root' for repo root)
 workstack switch --up            # Navigate to child branch in Graphite stack
 workstack switch --down          # Navigate to parent branch in Graphite stack
+workstack jump BRANCH            # Jump to branch (finds worktree automatically)
 workstack status                 # Show status of current worktree
 workstack list                   # List all worktrees (alias: ls)
 workstack list --stacks          # List with graphite stacks and PR status
@@ -87,7 +88,47 @@ With Graphite enabled, navigate your stacks directly:
 ```bash
 workstack switch --up       # Move to child branch in stack
 workstack switch --down     # Move to parent branch in stack
+workstack jump BRANCH       # Jump to any branch in a stack (finds worktree automatically)
 ```
+
+#### Jump to Branch
+
+Find and switch to a worktree by branch name:
+
+```bash
+workstack jump feature/user-auth    # Finds worktree containing this branch
+workstack jump hotfix/critical-bug  # Works with any branch in your stacks
+```
+
+**How it works:**
+
+- Searches all worktrees to find which one contains the target branch in its Graphite stack
+- Automatically switches to that worktree and checks out the branch
+- No need to remember which worktree has which branch
+
+**Requirements:**
+
+- Graphite must be enabled (`workstack config set use_graphite true`)
+- Branch must exist in at least one worktree's stack
+
+**Behavior:**
+
+- **One match**: Switches to the worktree and checks out the branch
+- **Multiple matches**: Shows all worktrees containing the branch (choose manually with `workstack switch`)
+- **No match**: Shows error with suggestion to create worktree
+
+Example workflow:
+
+```bash
+# You have multiple worktrees with different stacks:
+# - worktree "feature-work": main -> feature-1 -> feature-2 -> feature-3
+# - worktree "bugfix-work": main -> bugfix-1 -> bugfix-2
+
+workstack jump feature-2    # → Switches to "feature-work" and checks out feature-2
+workstack jump bugfix-1     # → Switches to "bugfix-work" and checks out bugfix-1
+```
+
+#### Stack Navigation with Switch
 
 Example workflow:
 

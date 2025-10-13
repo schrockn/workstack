@@ -325,6 +325,59 @@ def get_child_branches(ctx: WorkstackContext, repo_root: Path, branch: str) -> l
     return branch_info[branch]["children"]
 
 
+def find_worktrees_containing_branch(
+    ctx: WorkstackContext,
+    repo_root: Path,
+    worktrees: list[WorktreeInfo],
+    target_branch: str,
+) -> list[WorktreeInfo]:
+    """Find all worktrees that have target_branch in their Graphite stack.
+
+    Args:
+        ctx: Workstack context with git operations
+        repo_root: Path to the repository root
+        worktrees: List of all worktrees from list_worktrees()
+        target_branch: Branch name to search for
+
+    Returns:
+        List of WorktreeInfo objects whose stacks contain target_branch.
+        Empty list if no worktrees contain the branch.
+
+    Algorithm:
+        1. For each worktree:
+           a. Get the worktree's checked-out branch
+           b. Skip worktrees with detached HEAD (branch=None)
+           c. Call get_branch_stack() to get the full stack for that branch
+           d. Check if target_branch is in that stack
+           e. If yes, add worktree to results
+        2. Return all matching worktrees
+
+    Example:
+        >>> worktrees = ctx.git_ops.list_worktrees(repo.root)
+        >>> matching = find_worktrees_containing_branch(ctx, repo.root, worktrees, "feature-2")
+        >>> print([wt.path for wt in matching])
+        [Path("/path/to/work/feature-work")]
+    """
+    matching_worktrees: list[WorktreeInfo] = []
+
+    for wt in worktrees:
+        # Skip worktrees with detached HEAD
+        if wt.branch is None:
+            continue
+
+        # Get the stack for this worktree's branch
+        stack = get_branch_stack(ctx, repo_root, wt.branch)
+        if stack is None:
+            # Graphite cache doesn't exist or branch not tracked
+            continue
+
+        # Check if target_branch is in this stack
+        if target_branch in stack:
+            matching_worktrees.append(wt)
+
+    return matching_worktrees
+
+
 def find_worktree_for_branch(worktrees: list[WorktreeInfo], branch: str) -> Path | None:
     """Find the worktree path for a given branch.
 
