@@ -20,6 +20,10 @@ from pathlib import Path
 from typing import Any
 
 from workstack.core.gitops import GitOps
+from workstack.core.global_config_ops import GlobalConfigOps
+
+DEFAULT_STACK_LOCATION = ".rebase-stack"
+STACK_BRANCH_PREFIX = "workstack/rebase-stack-"
 
 
 class StackState(Enum):
@@ -66,13 +70,19 @@ class RebaseStackOps:
     in isolation before being applied to the actual branch.
     """
 
-    def __init__(self, git_ops: GitOps) -> None:
+    def __init__(
+        self,
+        git_ops: GitOps,
+        global_config_ops: GlobalConfigOps | None = None,
+    ) -> None:
         """Initialize with a GitOps instance.
 
         Args:
             git_ops: GitOps instance for git operations
         """
         self.git_ops = git_ops
+        self._global_config_ops = global_config_ops
+        self._stack_location = self._resolve_stack_location()
 
     def create_stack(
         self,
@@ -90,22 +100,28 @@ class RebaseStackOps:
         Returns:
             Path to the created stack worktree
 
-        The stack is created as a git worktree at:
-        <repo_root>/../.rebase-stack-<branch>/
+        The stack is created as a git worktree under the configured stack
+        location (default: <repo_root>/../.rebase-stack-<branch>/).
         """
         stack_path = self._get_stack_path(repo_root, branch)
+        stack_branch = self._get_stack_branch_name(branch)
 
         # Remove existing stack if present
         if stack_path.exists():
             self.cleanup_stack(repo_root, branch)
+        else:
+            # Ensure leftover stack branches from previous runs are removed
+            self._delete_branch_if_exists(repo_root, stack_branch)
+
+        stack_path.parent.mkdir(parents=True, exist_ok=True)
 
         # Create worktree for the branch
         self.git_ops.add_worktree(
             repo_root=repo_root,
             path=stack_path,
-            branch=branch,
-            ref=None,
-            create_branch=False,
+            branch=stack_branch,
+            ref=branch,
+            create_branch=True,
         )
 
         # Save metadata
@@ -130,21 +146,23 @@ class RebaseStackOps:
             branch: Branch name whose stack to remove
         """
         stack_path = self._get_stack_path(repo_root, branch)
+        stack_branch = self._get_stack_branch_name(branch)
 
-        if not stack_path.exists():
-            return
+        if stack_path.exists():
+            # Remove metadata
+            metadata_file = stack_path / ".rebase-stack-metadata"
+            if metadata_file.exists():
+                metadata_file.unlink()
 
-        # Remove metadata
-        metadata_file = stack_path / ".rebase-stack-metadata"
-        if metadata_file.exists():
-            metadata_file.unlink()
+            # Remove worktree
+            self.git_ops.remove_worktree(
+                repo_root=repo_root,
+                path=stack_path,
+                force=True,
+            )
 
-        # Remove worktree
-        self.git_ops.remove_worktree(
-            repo_root=repo_root,
-            path=stack_path,
-            force=True,
-        )
+        # Remove stack branch if it still exists
+        self._delete_branch_if_exists(repo_root, stack_branch)
 
     def get_stack_path(self, repo_root: Path, branch: str) -> Path:
         """Get the path for a branch's rebase stack.
@@ -171,15 +189,12 @@ class RebaseStackOps:
         worktrees = self.git_ops.list_worktrees(repo_root)
 
         for wt in worktrees:
-            # Check if this is a rebase stack
-            if not wt.path.name.startswith(".rebase-stack-"):
-                continue
-
-            if wt.branch is None:
-                continue
-
             metadata = self._load_metadata(wt.path)
             if metadata is None:
+                continue
+
+            expected_path = self._get_stack_path(repo_root, metadata.branch_name)
+            if wt.path.resolve() != expected_path:
                 continue
 
             # Get current rebase status
@@ -191,7 +206,7 @@ class RebaseStackOps:
 
             stacks.append(
                 StackInfo(
-                    branch_name=wt.branch,
+                    branch_name=metadata.branch_name,
                     stack_path=wt.path,
                     created_at=datetime.fromisoformat(metadata.created_at),
                     state=state,
@@ -223,12 +238,8 @@ class RebaseStackOps:
         rebase_status = self.git_ops.get_rebase_status(stack_path)
         state = self._determine_state(stack_path, rebase_status, metadata)
 
-        branch = self.git_ops.get_current_branch(stack_path)
-        if branch is None:
-            return None
-
         return StackInfo(
-            branch_name=branch,
+            branch_name=metadata.branch_name,
             stack_path=stack_path,
             created_at=datetime.fromisoformat(metadata.created_at),
             state=state,
@@ -278,11 +289,72 @@ class RebaseStackOps:
 
     # Private helper methods
 
+    def _resolve_stack_location(self) -> str:
+        """Resolve stack location prefix from config."""
+        if self._global_config_ops is None:
+            return DEFAULT_STACK_LOCATION
+
+        try:
+            location = self._global_config_ops.get_rebase_stack_location()
+        except FileNotFoundError:
+            return DEFAULT_STACK_LOCATION
+
+        if not location or location.strip() == "":
+            return DEFAULT_STACK_LOCATION
+
+        return location.strip()
+
+    def _get_stack_branch_name(self, branch: str) -> str:
+        """Generate a unique stack branch name for the given branch."""
+        safe_branch = branch.replace("/", "-")
+        return f"{STACK_BRANCH_PREFIX}{safe_branch}"
+
+    def _delete_branch_if_exists(self, repo_root: Path, branch: str) -> None:
+        """Delete branch if it exists, ignoring errors when absent."""
+        if branch == "":
+            return
+
+        if not self._branch_exists(repo_root, branch):
+            return
+
+        subprocess.run(
+            ["git", "branch", "-D", branch],
+            cwd=repo_root,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+    def _branch_exists(self, repo_root: Path, branch: str) -> bool:
+        """Check if a git branch exists."""
+        result = subprocess.run(
+            ["git", "show-ref", "--verify", f"refs/heads/{branch}"],
+            cwd=repo_root,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        return result.returncode == 0
+
     def _get_stack_path(self, repo_root: Path, branch: str) -> Path:
         """Get the stack path for a branch."""
-        # Sanitize branch name for filesystem
         safe_branch = branch.replace("/", "-")
-        return repo_root.parent / f".rebase-stack-{safe_branch}"
+
+        location = self._stack_location.strip()
+        if not location:
+            location = DEFAULT_STACK_LOCATION
+
+        location_path = Path(location)
+        if location_path.is_absolute() or len(location_path.parts) > 1:
+            if location_path.is_absolute():
+                base_dir = location_path
+            else:
+                base_dir = repo_root.parent / location_path
+            return (base_dir / safe_branch).resolve()
+
+        separator = "" if location.endswith(("-", "_")) else "-"
+        directory_name = f"{location}{separator}{safe_branch}"
+        return (repo_root.parent / directory_name).resolve()
 
     def _save_metadata(self, stack_path: Path, metadata: StackMetadata) -> None:
         """Save metadata to the stack directory."""

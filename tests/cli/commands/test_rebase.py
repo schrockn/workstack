@@ -275,7 +275,7 @@ def test_rebase_status_with_stacks(tmp_path: Path) -> None:
 
     # Create a stack manually
     git_ops = RealGitOps()
-    stack_ops = RebaseStackOps(git_ops)
+    stack_ops = RebaseStackOps(git_ops, FakeGlobalConfigOps())
     stack_ops.create_stack(repo, "feature", "main")
 
     test_ctx = WorkstackContext(
@@ -326,7 +326,7 @@ def test_rebase_abort(tmp_path: Path) -> None:
 
     # Create a stack
     git_ops = RealGitOps()
-    stack_ops = RebaseStackOps(git_ops)
+    stack_ops = RebaseStackOps(git_ops, FakeGlobalConfigOps())
     stack_ops.create_stack(repo, "feature", "main")
 
     test_ctx = WorkstackContext(
@@ -389,7 +389,7 @@ def test_rebase_abort_without_branch_uses_current(tmp_path: Path) -> None:
 
     # Create a stack for feature
     git_ops = RealGitOps()
-    stack_ops = RebaseStackOps(git_ops)
+    stack_ops = RebaseStackOps(git_ops, FakeGlobalConfigOps())
     stack_ops.create_stack(repo, "feature", "main")
 
     test_ctx = WorkstackContext(
@@ -441,7 +441,7 @@ def test_rebase_status_specific_branch(tmp_path: Path) -> None:
 
     # Create a stack
     git_ops = RealGitOps()
-    stack_ops = RebaseStackOps(git_ops)
+    stack_ops = RebaseStackOps(git_ops, FakeGlobalConfigOps())
     stack_ops.create_stack(repo, "feature", "main")
 
     test_ctx = WorkstackContext(

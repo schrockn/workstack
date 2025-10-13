@@ -58,7 +58,7 @@ def preview_cmd(
     click.echo(f"Creating rebase stack for {branch}...")
 
     # Create stack
-    stack_ops = RebaseStackOps(ctx.git_ops)
+    stack_ops = RebaseStackOps(ctx.git_ops, ctx.global_config_ops)
 
     if stack_ops.stack_exists(repo.root, branch):
         click.echo(
@@ -105,7 +105,7 @@ def status_cmd(ctx: WorkstackContext, branch: str | None) -> None:
     """
     cwd = Path.cwd()
     repo = discover_repo_context(ctx, cwd)
-    stack_ops = RebaseStackOps(ctx.git_ops)
+    stack_ops = RebaseStackOps(ctx.git_ops, ctx.global_config_ops)
 
     if branch:
         # Show single stack status
@@ -154,7 +154,7 @@ def resolve_cmd(
             click.echo("Error: Not on a branch. Specify branch name.", err=True)
             raise SystemExit(1)
 
-    stack_ops = RebaseStackOps(ctx.git_ops)
+    stack_ops = RebaseStackOps(ctx.git_ops, ctx.global_config_ops)
 
     if not stack_ops.stack_exists(repo.root, branch):
         click.echo(f"No rebase stack for {branch}", err=True)
@@ -234,7 +234,7 @@ def test_cmd(
             click.echo("Error: Not on a branch. Specify branch name.", err=True)
             raise SystemExit(1)
 
-    stack_ops = RebaseStackOps(ctx.git_ops)
+    stack_ops = RebaseStackOps(ctx.git_ops, ctx.global_config_ops)
 
     if not stack_ops.stack_exists(repo.root, branch):
         click.echo(f"No rebase stack for {branch}", err=True)
@@ -319,7 +319,7 @@ def apply_cmd(
             click.echo("Error: Not on a branch. Specify branch name.", err=True)
             raise SystemExit(1)
 
-    stack_ops = RebaseStackOps(ctx.git_ops)
+    stack_ops = RebaseStackOps(ctx.git_ops, ctx.global_config_ops)
 
     if not stack_ops.stack_exists(repo.root, branch):
         click.echo(f"No rebase stack to apply for {branch}", err=True)
@@ -344,18 +344,26 @@ def apply_cmd(
     )
     stack_commit = result.stdout.strip()
 
-    # Update stack state and cleanup BEFORE updating branch ref
-    # (git won't let us force-update a branch that's checked out in a worktree)
+    branch_worktree = ctx.git_ops.is_branch_checked_out(repo.root, branch)
+    if branch_worktree is not None:
+        subprocess.run(
+            ["git", "reset", "--hard", stack_commit],
+            cwd=branch_worktree,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    else:
+        subprocess.run(
+            ["git", "branch", "-f", branch, stack_commit],
+            cwd=repo.root,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
     stack_ops.update_stack_state(stack_path, StackState.APPLIED)
     stack_ops.cleanup_stack(repo.root, branch)
-
-    # Now update the branch ref to point to stack's commit
-    subprocess.run(
-        ["git", "branch", "-f", branch, stack_commit],
-        cwd=repo.root,
-        check=True,
-        capture_output=True,
-    )
 
     click.echo(click.style("✓ Rebase applied successfully!", fg="green", bold=True))
     click.echo(f"{branch} has been rebased successfully")
@@ -380,7 +388,7 @@ def compare_cmd(ctx: WorkstackContext, branch: str | None) -> None:
             click.echo("Error: Not on a branch. Specify branch name.", err=True)
             raise SystemExit(1)
 
-    stack_ops = RebaseStackOps(ctx.git_ops)
+    stack_ops = RebaseStackOps(ctx.git_ops, ctx.global_config_ops)
 
     if not stack_ops.stack_exists(repo.root, branch):
         click.echo(f"No rebase stack for {branch}", err=True)
@@ -429,7 +437,7 @@ def abort_cmd(ctx: WorkstackContext, branch: str | None) -> None:
     """
     cwd = Path.cwd()
     repo = discover_repo_context(ctx, cwd)
-    stack_ops = RebaseStackOps(ctx.git_ops)
+    stack_ops = RebaseStackOps(ctx.git_ops, ctx.global_config_ops)
 
     if branch is None:
         branch = ctx.git_ops.get_current_branch(repo.root)
@@ -576,7 +584,7 @@ def _validate_before_apply(
         checks_passed = False
 
     # Check: Tests passed (if they were run)
-    stack_ops = RebaseStackOps(ctx.git_ops)
+    stack_ops = RebaseStackOps(ctx.git_ops, ctx.global_config_ops)
     info = stack_ops.get_stack_info(stack_path)
 
     if info and info.state == StackState.FAILED:

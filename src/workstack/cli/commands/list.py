@@ -332,7 +332,7 @@ def _list_worktrees(ctx: WorkstackContext, show_stacks: bool, show_checks: bool)
     branches = {wt.path: wt.branch for wt in worktrees}
 
     # Get active rebase stacks
-    stack_ops = RebaseStackOps(ctx.git_ops)
+    stack_ops = RebaseStackOps(ctx.git_ops, ctx.global_config_ops)
     active_stacks = {stack.branch_name for stack in stack_ops.list_stacks(repo.root)}
 
     # Determine which worktree the user is currently in

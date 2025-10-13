@@ -11,8 +11,10 @@ from pathlib import Path
 
 import pytest
 
+from tests.fakes.global_config_ops import FakeGlobalConfigOps
 from workstack.core.gitops import RealGitOps
 from workstack.core.rebase_stack_ops import (
+    STACK_BRANCH_PREFIX,
     RebaseStackOps,
     StackState,
 )
@@ -47,7 +49,7 @@ def test_repo(tmp_path: Path) -> Path:
 @pytest.fixture
 def stack_ops() -> RebaseStackOps:
     """Create a RebaseStackOps instance with real git operations."""
-    return RebaseStackOps(RealGitOps())
+    return RebaseStackOps(RealGitOps(), FakeGlobalConfigOps())
 
 
 def test_create_stack(stack_ops: RebaseStackOps, test_repo: Path) -> None:
@@ -71,6 +73,35 @@ def test_create_stack(stack_ops: RebaseStackOps, test_repo: Path) -> None:
     assert data["state"] == "created"
     assert "original_commit" in data
     assert "created_at" in data
+
+
+def test_create_stack_when_branch_checked_out(
+    stack_ops: RebaseStackOps,
+    test_repo: Path,
+) -> None:
+    """Stack creation succeeds even if branch is currently checked out."""
+    subprocess.run(["git", "checkout", "feature-branch"], cwd=test_repo, check=True)
+
+    stack_path = stack_ops.create_stack(test_repo, "feature-branch", "main")
+
+    assert stack_path.exists()
+    head_branch = subprocess.run(
+        ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+        cwd=stack_path,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    assert head_branch == f"{STACK_BRANCH_PREFIX}feature-branch"
+
+    current_repo_branch = subprocess.run(
+        ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+        cwd=test_repo,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    assert current_repo_branch == "feature-branch"
 
 
 def test_cleanup_stack(stack_ops: RebaseStackOps, test_repo: Path) -> None:
@@ -210,6 +241,17 @@ def test_get_stack_path(stack_ops: RebaseStackOps, test_repo: Path) -> None:
 
     expected = test_repo.parent / ".rebase-stack-my-branch"
     assert stack_path == expected
+
+
+def test_get_stack_path_respects_config(test_repo: Path) -> None:
+    """Stack paths honor configured stack location prefix."""
+    custom_config = FakeGlobalConfigOps(rebase_stack_location="rebase-worktrees")
+    custom_ops = RebaseStackOps(RealGitOps(), custom_config)
+
+    stack_path = custom_ops.get_stack_path(test_repo, "my-branch")
+
+    assert stack_path.name == "rebase-worktrees-my-branch"
+    assert stack_path.parent == test_repo.parent
 
 
 def test_stack_metadata_persistence(stack_ops: RebaseStackOps, test_repo: Path) -> None:
