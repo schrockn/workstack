@@ -33,21 +33,57 @@ def sanitize_branch_component(name: str) -> str:
 
 
 def strip_plan_from_filename(filename: str) -> str:
-    """Remove the word 'plan' from a filename stem intelligently.
+    """Remove 'plan' or 'implementation plan' from a filename stem intelligently.
 
-    Handles case-insensitive matching and common separators.
+    Handles case-insensitive matching and common separators (-, _, space).
     If removal would leave empty string, returns original unchanged.
 
     Examples:
         "devclikit-extraction-plan" → "devclikit-extraction"
         "my-feature-plan" → "my-feature"
-        "plan-for-auth" → "for-auth"
+        "implementation-plan-for-auth" → "for-auth"
+        "feature_implementation_plan" → "feature"
         "plan" → "plan" (preserved - would be empty)
     """
 
-    # Pattern matches "plan" as a complete word surrounded by separators or boundaries
-    # We capture the surrounding context to handle it properly
-    pattern = r"(^|[-_\s])(plan)([-_\s]|$)"
+    original_trimmed = filename.strip("-_ \t\n\r")
+    original_is_plan = original_trimmed.casefold() == "plan" if original_trimmed else False
+
+    # First, handle "implementation plan" with various separators
+    # Pattern matches "implementation" + separator + "plan" as complete words
+    impl_pattern = r"(^|[-_\s])(implementation)([-_\s])(plan)([-_\s]|$)"
+
+    def replace_impl_plan(match: re.Match[str]) -> str:
+        prefix = match.group(1)
+        implementation_word = match.group(2)  # Preserves original case
+        suffix = match.group(5)
+
+        if suffix == "" and prefix:
+            prefix_start = match.start(1)
+            preceding_segment = filename[:prefix_start]
+            trimmed_segment = preceding_segment.strip("-_ \t\n\r")
+            if trimmed_segment:
+                preceding_tokens = re.split(r"[-_\s]+", trimmed_segment)
+                if preceding_tokens:
+                    preceding_token = preceding_tokens[-1]
+                    if preceding_token.casefold() == "plan":
+                        return f"{prefix}{implementation_word}"
+
+        # If entire string is "implementation-plan", keep just "implementation"
+        if not prefix and not suffix:
+            return implementation_word
+
+        # If in the middle, preserve one separator
+        if prefix and suffix:
+            return prefix if prefix.strip() else suffix
+
+        # At start or end: remove it and the adjacent separator
+        return ""
+
+    cleaned = re.sub(impl_pattern, replace_impl_plan, filename, flags=re.IGNORECASE)
+
+    # Then handle standalone "plan" as a complete word
+    plan_pattern = r"(^|[-_\s])(plan)([-_\s]|$)"
 
     def replace_plan(match: re.Match[str]) -> str:
         prefix = match.group(1)
@@ -65,18 +101,30 @@ def strip_plan_from_filename(filename: str) -> str:
         # Plan at start or end: remove it and the adjacent separator
         return ""
 
-    cleaned = re.sub(pattern, replace_plan, filename, flags=re.IGNORECASE)
+    cleaned = re.sub(plan_pattern, replace_plan, cleaned, flags=re.IGNORECASE)
 
-    # Clean up any leading/trailing separators
-    cleaned = cleaned.strip("-_ \t\n\r")
+    def clean_separators(text: str) -> str:
+        stripped = text.strip("-_ \t\n\r")
+        stripped = re.sub(r"--+", "-", stripped)
+        stripped = re.sub(r"__+", "_", stripped)
+        stripped = re.sub(r"\s+", " ", stripped)
+        return stripped
 
-    # Collapse consecutive separators of the same type
-    cleaned = re.sub(r"--+", "-", cleaned)
-    cleaned = re.sub(r"__+", "_", cleaned)
-    cleaned = re.sub(r"\s+", " ", cleaned)
+    cleaned = clean_separators(cleaned)
+
+    plan_only_cleaned = clean_separators(
+        re.sub(plan_pattern, replace_plan, filename, flags=re.IGNORECASE)
+    )
+
+    if (
+        cleaned.casefold() == "plan"
+        and plan_only_cleaned
+        and plan_only_cleaned.casefold() != "plan"
+    ):
+        cleaned = plan_only_cleaned
 
     # If stripping left us with nothing or just "plan", preserve original
-    if not cleaned or cleaned == "plan":
+    if not cleaned or (cleaned.casefold() == "plan" and original_is_plan):
         return filename
 
     return cleaned
