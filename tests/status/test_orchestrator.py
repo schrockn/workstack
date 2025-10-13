@@ -3,6 +3,7 @@
 from pathlib import Path
 
 from tests.fakes.context import create_test_context
+from workstack.status.collectors.base import StatusCollector
 from workstack.status.collectors.git import GitStatusCollector
 from workstack.status.collectors.plan import PlanFileCollector
 from workstack.status.orchestrator import StatusOrchestrator
@@ -54,7 +55,7 @@ def test_orchestrator_handles_missing_plan(tmp_path: Path) -> None:
     worktree_path = tmp_path / "worktree"
     worktree_path.mkdir()
 
-    collectors = [PlanFileCollector()]
+    collectors: list[StatusCollector] = [PlanFileCollector()]
 
     orchestrator = StatusOrchestrator(collectors)
     status = orchestrator.collect_status(ctx, worktree_path, tmp_path)

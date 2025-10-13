@@ -31,6 +31,7 @@ from tests.fakes.github_ops import FakeGitHubOps
 from tests.fakes.gitops import FakeGitOps
 from tests.fakes.global_config_ops import FakeGlobalConfigOps
 from tests.fakes.graphite_ops import FakeGraphiteOps
+from tests.fakes.shell_ops import FakeShellOps
 from workstack.cli.cli import cli
 from workstack.core.context import WorkstackContext
 from workstack.core.gitops import WorktreeInfo
@@ -108,6 +109,7 @@ def test_root_on_trunk_shows_only_trunk() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=graphite_ops,
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -222,6 +224,7 @@ def test_root_on_non_trunk_shows_ancestors_only() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=graphite_ops,
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -347,6 +350,7 @@ def test_non_root_worktree_shows_descendants_with_worktrees() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=graphite_ops,
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 

@@ -5,6 +5,8 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Final
 
+import click
+
 
 class _UnchangedType:
     """Sentinel type for unchanged config values."""
@@ -279,3 +281,77 @@ show_pr_checks = {str(final_pr_checks).lower()}
 
     def get_path(self) -> Path:
         return self._path
+
+
+# ============================================================================
+# Dry-Run Wrapper
+# ============================================================================
+
+
+class DryRunGlobalConfigOps(GlobalConfigOps):
+    """Dry-run wrapper for global config operations.
+
+    Read operations are delegated to the wrapped implementation.
+    Write operations print dry-run messages instead of modifying the config file.
+    """
+
+    def __init__(self, wrapped: GlobalConfigOps) -> None:
+        """Initialize dry-run wrapper with a real implementation.
+
+        Args:
+            wrapped: The real global config operations implementation to wrap
+        """
+        self._wrapped = wrapped
+
+    def get_workstacks_root(self) -> Path:
+        """Delegate read operation to wrapped implementation."""
+        return self._wrapped.get_workstacks_root()
+
+    def get_use_graphite(self) -> bool:
+        """Delegate read operation to wrapped implementation."""
+        return self._wrapped.get_use_graphite()
+
+    def get_shell_setup_complete(self) -> bool:
+        """Delegate read operation to wrapped implementation."""
+        return self._wrapped.get_shell_setup_complete()
+
+    def get_show_pr_info(self) -> bool:
+        """Delegate read operation to wrapped implementation."""
+        return self._wrapped.get_show_pr_info()
+
+    def get_show_pr_checks(self) -> bool:
+        """Delegate read operation to wrapped implementation."""
+        return self._wrapped.get_show_pr_checks()
+
+    def set(
+        self,
+        *,
+        workstacks_root: Path | _UnchangedType = _UNCHANGED,
+        use_graphite: bool | _UnchangedType = _UNCHANGED,
+        shell_setup_complete: bool | _UnchangedType = _UNCHANGED,
+        show_pr_info: bool | _UnchangedType = _UNCHANGED,
+        show_pr_checks: bool | _UnchangedType = _UNCHANGED,
+    ) -> None:
+        """Print dry-run message instead of updating config."""
+        updates: list[str] = []
+        if not isinstance(workstacks_root, _UnchangedType):
+            updates.append(f"workstacks_root={workstacks_root}")
+        if not isinstance(use_graphite, _UnchangedType):
+            updates.append(f"use_graphite={use_graphite}")
+        if not isinstance(shell_setup_complete, _UnchangedType):
+            updates.append(f"shell_setup_complete={shell_setup_complete}")
+        if not isinstance(show_pr_info, _UnchangedType):
+            updates.append(f"show_pr_info={show_pr_info}")
+        if not isinstance(show_pr_checks, _UnchangedType):
+            updates.append(f"show_pr_checks={show_pr_checks}")
+
+        if updates:
+            click.echo(f"[DRY RUN] Would update config: {', '.join(updates)}", err=True)
+
+    def exists(self) -> bool:
+        """Delegate read operation to wrapped implementation."""
+        return self._wrapped.exists()
+
+    def get_path(self) -> Path:
+        """Delegate read operation to wrapped implementation."""
+        return self._wrapped.get_path()

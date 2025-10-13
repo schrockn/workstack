@@ -7,6 +7,7 @@ from tests.fakes.github_ops import FakeGitHubOps
 from tests.fakes.gitops import FakeGitOps
 from tests.fakes.global_config_ops import FakeGlobalConfigOps
 from tests.fakes.graphite_ops import FakeGraphiteOps
+from tests.fakes.shell_ops import FakeShellOps
 from workstack.cli.commands.list import _is_trunk_branch
 from workstack.core.context import WorkstackContext
 
@@ -39,6 +40,7 @@ def test_trunk_branch_with_validation_result_trunk() -> None:
             global_config_ops=global_config_ops,
             graphite_ops=graphite_ops,
             github_ops=FakeGitHubOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -73,6 +75,7 @@ def test_non_trunk_branch_with_no_parent() -> None:
             global_config_ops=global_config_ops,
             graphite_ops=graphite_ops,
             github_ops=FakeGitHubOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -107,6 +110,7 @@ def test_branch_with_parent() -> None:
             global_config_ops=global_config_ops,
             graphite_ops=graphite_ops,
             github_ops=FakeGitHubOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -140,6 +144,7 @@ def test_branch_not_in_cache() -> None:
             global_config_ops=global_config_ops,
             graphite_ops=graphite_ops,
             github_ops=FakeGitHubOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -162,6 +167,7 @@ def test_missing_git_directory() -> None:
         global_config_ops=global_config_ops,
         graphite_ops=graphite_ops,
         github_ops=FakeGitHubOps(),
+        shell_ops=FakeShellOps(),
         dry_run=False,
     )
 
@@ -189,6 +195,7 @@ def test_missing_cache_file() -> None:
             global_config_ops=global_config_ops,
             graphite_ops=graphite_ops,
             github_ops=FakeGitHubOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -211,6 +218,7 @@ def test_cache_data_optimization() -> None:
         global_config_ops=global_config_ops,
         graphite_ops=graphite_ops,
         github_ops=FakeGitHubOps(),
+        shell_ops=FakeShellOps(),
         dry_run=False,
     )
 

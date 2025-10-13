@@ -8,6 +8,7 @@ from tests.fakes.github_ops import FakeGitHubOps
 from tests.fakes.gitops import FakeGitOps
 from tests.fakes.global_config_ops import FakeGlobalConfigOps
 from tests.fakes.graphite_ops import FakeGraphiteOps
+from tests.fakes.shell_ops import FakeShellOps
 from workstack.cli.cli import cli
 from workstack.core.context import WorkstackContext
 from workstack.core.gitops import WorktreeInfo
@@ -53,6 +54,7 @@ def test_gc_lists_merged_pr_worktrees() -> None:
             global_config_ops=global_config_ops,
             github_ops=github_ops,
             graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -103,6 +105,7 @@ def test_gc_lists_closed_pr_worktrees() -> None:
             global_config_ops=global_config_ops,
             github_ops=github_ops,
             graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -147,6 +150,7 @@ def test_gc_skips_root_repo() -> None:
             global_config_ops=global_config_ops,
             github_ops=github_ops,
             graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -191,6 +195,7 @@ def test_gc_skips_detached_head() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -238,6 +243,7 @@ def test_gc_skips_non_managed_worktrees() -> None:
             global_config_ops=global_config_ops,
             github_ops=github_ops,
             graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -287,6 +293,7 @@ def test_gc_displays_deletion_suggestions() -> None:
             global_config_ops=global_config_ops,
             github_ops=github_ops,
             graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -339,6 +346,7 @@ def test_gc_queries_pr_status_for_each_branch() -> None:
             global_config_ops=global_config_ops,
             github_ops=github_ops,
             graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -388,6 +396,7 @@ def test_gc_handles_branches_without_prs() -> None:
             global_config_ops=global_config_ops,
             github_ops=github_ops,
             graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -436,6 +445,7 @@ def test_gc_handles_open_prs() -> None:
             global_config_ops=global_config_ops,
             github_ops=github_ops,
             graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -473,6 +483,7 @@ def test_gc_debug_shows_commands() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -511,6 +522,7 @@ def test_gc_no_deletable_worktrees() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 

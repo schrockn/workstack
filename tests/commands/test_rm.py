@@ -6,6 +6,7 @@ from tests.fakes.github_ops import FakeGitHubOps
 from tests.fakes.gitops import FakeGitOps
 from tests.fakes.global_config_ops import FakeGlobalConfigOps
 from tests.fakes.graphite_ops import FakeGraphiteOps
+from tests.fakes.shell_ops import FakeShellOps
 from workstack.cli.cli import cli
 from workstack.core.context import WorkstackContext
 
@@ -43,6 +44,7 @@ def test_rm_force_removes_directory() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=graphite_ops,
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -85,6 +87,7 @@ def test_rm_prompts_and_aborts_on_no() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=graphite_ops,
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -129,6 +132,7 @@ def test_rm_dry_run_does_not_delete() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=graphite_ops,
+            shell_ops=FakeShellOps(),
             dry_run=True,
         )
 
@@ -197,6 +201,7 @@ def test_rm_dry_run_with_delete_stack() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=graphite_ops,
+            shell_ops=FakeShellOps(),
             dry_run=True,
         )
 
@@ -238,6 +243,7 @@ def test_rm_rejects_dot_dot() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=graphite_ops,
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -271,6 +277,7 @@ def test_rm_rejects_root_slash() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=graphite_ops,
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -304,6 +311,7 @@ def test_rm_rejects_path_with_slash() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=graphite_ops,
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -337,6 +345,7 @@ def test_rm_rejects_root_name() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=graphite_ops,
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 

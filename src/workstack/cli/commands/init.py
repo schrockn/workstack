@@ -1,6 +1,4 @@
-import os
 import re
-import shutil
 import tomllib
 from pathlib import Path
 
@@ -10,6 +8,7 @@ from workstack.cli.core import discover_repo_context, ensure_work_dir
 from workstack.core.context import WorkstackContext
 from workstack.core.file_utils import atomic_write
 from workstack.core.global_config_ops import GlobalConfigOps
+from workstack.core.shell_ops import ShellOps
 
 
 def detect_root_project_name(repo_root: Path) -> str | None:
@@ -43,18 +42,19 @@ def is_repo_named(repo_root: Path, expected_name: str) -> bool:
     return (name or "").lower() == expected_name.lower()
 
 
-def detect_graphite() -> bool:
+def detect_graphite(shell_ops: ShellOps) -> bool:
     """Detect if Graphite (gt) is installed and available in PATH."""
-    return shutil.which("gt") is not None
+    return shell_ops.check_tool_installed("gt") is not None
 
 
 def create_global_config(
     global_config_ops: GlobalConfigOps,
+    shell_ops: ShellOps,
     workstacks_root: Path,
     shell_setup_complete: bool,
 ) -> None:
     """Create global config using the provided config ops."""
-    use_graphite = detect_graphite()
+    use_graphite = detect_graphite(shell_ops)
     global_config_ops.set(
         workstacks_root=workstacks_root,
         use_graphite=use_graphite,
@@ -117,30 +117,6 @@ def _add_gitignore_entry(content: str, entry: str, prompt_message: str) -> tuple
     return (content, True)
 
 
-def detect_shell() -> tuple[str, Path] | None:
-    """Detect current shell and return (shell_name, rc_file_path).
-
-    Returns None if shell cannot be detected or is unsupported.
-    """
-    shell_path = os.environ.get("SHELL", "")
-    if not shell_path:
-        return None
-
-    shell_name = Path(shell_path).name
-
-    if shell_name == "bash":
-        rc_file = Path.home() / ".bashrc"
-        return ("bash", rc_file)
-    if shell_name == "zsh":
-        rc_file = Path.home() / ".zshrc"
-        return ("zsh", rc_file)
-    if shell_name == "fish":
-        rc_file = Path.home() / ".config" / "fish" / "config.fish"
-        return ("fish", rc_file)
-
-    return None
-
-
 def get_shell_wrapper_content(shell: str) -> str:
     """Load the shell wrapper function for the given shell type."""
     shell_integration_dir = Path(__file__).parent.parent / "shell_integration"
@@ -156,12 +132,12 @@ def get_shell_wrapper_content(shell: str) -> str:
     return wrapper_file.read_text(encoding="utf-8")
 
 
-def perform_shell_setup() -> bool:
+def perform_shell_setup(shell_ops: ShellOps) -> bool:
     """Interactively set up shell integration (completion + wrapper function).
 
     Returns True if setup was completed, False if skipped.
     """
-    shell_info = detect_shell()
+    shell_info = shell_ops.detect_shell()
     if not shell_info:
         click.echo("Unable to detect shell. Skipping shell integration setup.")
         return False
@@ -268,7 +244,7 @@ def init_cmd(
 
     # Handle --shell flag: only do shell setup
     if shell:
-        setup_complete = perform_shell_setup()
+        setup_complete = perform_shell_setup(ctx.shell_ops)
         if setup_complete:
             ctx.global_config_ops.set(shell_setup_complete=True)
         return
@@ -300,10 +276,12 @@ def init_cmd(
         click.echo("(This directory will contain subdirectories for each repository)")
         workstacks_root = click.prompt("Worktrees root directory", type=Path)
         workstacks_root = workstacks_root.expanduser().resolve()
-        create_global_config(ctx.global_config_ops, workstacks_root, shell_setup_complete=False)
+        create_global_config(
+            ctx.global_config_ops, ctx.shell_ops, workstacks_root, shell_setup_complete=False
+        )
         click.echo(f"Created global config at {ctx.global_config_ops.get_path()}")
         # Show graphite status on first init
-        has_graphite = detect_graphite()
+        has_graphite = detect_graphite(ctx.shell_ops)
         if has_graphite:
             click.echo("Graphite (gt) detected - will use 'gt create' for new branches")
         else:
@@ -375,6 +353,6 @@ def init_cmd(
     # On first-time init, offer shell setup if not already completed
     if first_time_init:
         if not ctx.global_config_ops.get_shell_setup_complete():
-            setup_complete = perform_shell_setup()
+            setup_complete = perform_shell_setup(ctx.shell_ops)
             if setup_complete:
                 ctx.global_config_ops.set(shell_setup_complete=True)

@@ -4,6 +4,7 @@ from tests.fakes.github_ops import FakeGitHubOps
 from tests.fakes.gitops import FakeGitOps
 from tests.fakes.global_config_ops import FakeGlobalConfigOps
 from tests.fakes.graphite_ops import FakeGraphiteOps
+from tests.fakes.shell_ops import FakeShellOps
 from workstack.core.context import WorkstackContext
 
 
@@ -12,6 +13,7 @@ def create_test_context(
     global_config_ops: FakeGlobalConfigOps | None = None,
     github_ops: FakeGitHubOps | None = None,
     graphite_ops: FakeGraphiteOps | None = None,
+    shell_ops: FakeShellOps | None = None,
     dry_run: bool = False,
 ) -> WorkstackContext:
     """Create test context with optional pre-configured ops.
@@ -25,6 +27,8 @@ def create_test_context(
                    If None, creates empty FakeGitHubOps.
         graphite_ops: Optional FakeGraphiteOps with test configuration.
                      If None, creates empty FakeGraphiteOps.
+        shell_ops: Optional FakeShellOps with test configuration.
+                  If None, creates empty FakeShellOps (no shell detected).
         dry_run: Whether to set dry_run mode
 
     Returns:
@@ -61,10 +65,14 @@ def create_test_context(
     if graphite_ops is None:
         graphite_ops = FakeGraphiteOps()
 
+    if shell_ops is None:
+        shell_ops = FakeShellOps()
+
     return WorkstackContext(
         git_ops=git_ops,
         global_config_ops=global_config_ops,
         github_ops=github_ops,
         graphite_ops=graphite_ops,
+        shell_ops=shell_ops,
         dry_run=dry_run,
     )

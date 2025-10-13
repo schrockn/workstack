@@ -9,13 +9,14 @@ from tests.fakes.github_ops import FakeGitHubOps
 from tests.fakes.gitops import FakeGitOps
 from tests.fakes.global_config_ops import FakeGlobalConfigOps
 from tests.fakes.graphite_ops import FakeGraphiteOps
+from tests.fakes.shell_ops import FakeShellOps
 from workstack.cli.cli import cli
 from workstack.core.context import WorkstackContext
 from workstack.core.gitops import WorktreeInfo
 
 
 def setup_graphite_stack(
-    git_dir: Path, branches: dict[str, dict[str, list[str] | str | None]]
+    git_dir: Path, branches: dict[str, dict[str, list[str] | str | bool | None]]
 ) -> None:
     """Set up a fake Graphite cache file with a stack structure.
 
@@ -99,6 +100,7 @@ def test_switch_up_with_existing_worktree() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -164,6 +166,7 @@ def test_switch_up_at_top_of_stack() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -216,6 +219,7 @@ def test_switch_up_child_has_no_worktree() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -275,6 +279,7 @@ def test_switch_down_with_existing_worktree() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -333,6 +338,7 @@ def test_switch_down_to_trunk_root() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -385,6 +391,7 @@ def test_switch_down_at_trunk() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -439,6 +446,7 @@ def test_switch_down_parent_has_no_worktree() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -475,6 +483,7 @@ def test_switch_graphite_not_enabled() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -516,6 +525,7 @@ def test_switch_up_and_down_mutually_exclusive() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -551,6 +561,7 @@ def test_switch_name_with_up_mutually_exclusive() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -587,6 +598,7 @@ def test_switch_detached_head() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 

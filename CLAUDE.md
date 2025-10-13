@@ -29,7 +29,7 @@
 | **Code examples**     | [.agent/docs/PATTERNS.md](.agent/docs/PATTERNS.md)                     |
 | **Exception details** | [.agent/docs/EXCEPTION_HANDLING.md](.agent/docs/EXCEPTION_HANDLING.md) |
 | **Quick lookup**      | [.agent/docs/QUICK_REFERENCE.md](.agent/docs/QUICK_REFERENCE.md)       |
-| **Writing tests**     | [tests/CLAUDE.md](tests/CLAUDE.md)                                     |
+| **Writing tests**     | [.agent/docs/TESTING.md](.agent/docs/TESTING.md)                       |
 
 ---
 

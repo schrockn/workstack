@@ -6,6 +6,7 @@ codebase more testable and maintainable.
 Architecture:
 - GitHubOps: Abstract base class defining the interface
 - RealGitHubOps: Production implementation using gh CLI
+- DryRunGitHubOps: Dry-run wrapper that delegates reads, prints write intentions
 - Standalone functions: Convenience wrappers if needed
 """
 
@@ -244,3 +245,40 @@ class RealGitHubOps(GitHubOps):
                 return False
 
         return True
+
+
+# ============================================================================
+# Dry-Run Wrapper
+# ============================================================================
+
+
+class DryRunGitHubOps(GitHubOps):
+    """Dry-run wrapper for GitHub operations.
+
+    Read operations are delegated to the wrapped implementation.
+    Write operations (when added) will print dry-run messages instead of executing.
+
+    This wrapper currently delegates all operations since GitHubOps only has
+    read operations. It's included for consistency with the three-implementations
+    pattern and to prepare for future write operations (e.g., create PR, update status).
+    """
+
+    def __init__(self, wrapped: GitHubOps) -> None:
+        """Initialize dry-run wrapper with a real implementation.
+
+        Args:
+            wrapped: The real GitHub operations implementation to wrap
+        """
+        self._wrapped = wrapped
+
+    def get_prs_for_repo(
+        self, repo_root: Path, *, include_checks: bool
+    ) -> dict[str, PullRequestInfo]:
+        """Delegate read operation to wrapped implementation."""
+        return self._wrapped.get_prs_for_repo(repo_root, include_checks=include_checks)
+
+    def get_pr_status(
+        self, repo_root: Path, branch: str, *, debug: bool
+    ) -> tuple[str, int | None, str | None]:
+        """Delegate read operation to wrapped implementation."""
+        return self._wrapped.get_pr_status(repo_root, branch, debug=debug)

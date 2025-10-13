@@ -9,6 +9,7 @@ from tests.fakes.github_ops import FakeGitHubOps
 from tests.fakes.gitops import FakeGitOps
 from tests.fakes.global_config_ops import FakeGlobalConfigOps
 from tests.fakes.graphite_ops import FakeGraphiteOps
+from tests.fakes.shell_ops import FakeShellOps
 from workstack.cli.cli import cli
 from workstack.core.context import WorkstackContext
 from workstack.core.gitops import WorktreeInfo
@@ -45,6 +46,7 @@ def test_create_basic_worktree() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -86,6 +88,7 @@ def test_create_with_custom_branch_name() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -131,6 +134,7 @@ def test_create_with_plan_file() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -175,6 +179,7 @@ def test_create_with_plan_file_removes_plan_word() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -235,6 +240,7 @@ def test_create_sanitizes_worktree_name() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -279,6 +285,7 @@ def test_create_sanitizes_branch_name() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -319,6 +326,7 @@ def test_create_detects_default_branch() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -363,6 +371,7 @@ def test_create_fails_if_worktree_exists() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -406,6 +415,7 @@ def test_create_runs_post_create_commands() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -449,6 +459,7 @@ def test_create_sets_env_variables() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -496,6 +507,7 @@ def test_create_uses_graphite_when_enabled() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=graphite_ops,
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -538,6 +550,7 @@ def test_create_uses_git_when_graphite_disabled() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -568,6 +581,7 @@ def test_create_invalid_worktree_name() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -609,6 +623,7 @@ def test_create_plan_file_not_found() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -652,6 +667,7 @@ def test_create_no_post_flag_skips_commands() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -692,6 +708,7 @@ def test_create_from_current_branch() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -730,6 +747,7 @@ def test_create_from_branch() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -762,6 +780,7 @@ def test_create_requires_name_or_flag() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -802,6 +821,7 @@ def test_create_from_current_branch_on_main_fails() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -853,6 +873,7 @@ def test_create_detects_branch_already_checked_out() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -896,6 +917,7 @@ def test_create_from_current_branch_on_master_fails() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 

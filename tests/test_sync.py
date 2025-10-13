@@ -10,6 +10,7 @@ from tests.fakes.github_ops import FakeGitHubOps
 from tests.fakes.gitops import FakeGitOps
 from tests.fakes.global_config_ops import FakeGlobalConfigOps
 from tests.fakes.graphite_ops import FakeGraphiteOps
+from tests.fakes.shell_ops import FakeShellOps
 from workstack.cli.cli import cli
 from workstack.cli.commands.shell_integration import hidden_shell_cmd
 from workstack.cli.commands.sync import sync_cmd
@@ -51,6 +52,7 @@ def test_sync_requires_graphite() -> None:
             global_config_ops=global_config_ops,
             graphite_ops=graphite_ops,
             github_ops=FakeGitHubOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -93,6 +95,7 @@ def test_sync_runs_gt_sync_from_root() -> None:
             global_config_ops=global_config_ops,
             graphite_ops=graphite_ops,
             github_ops=FakeGitHubOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -140,6 +143,7 @@ def test_sync_with_force_flag() -> None:
             global_config_ops=global_config_ops,
             graphite_ops=graphite_ops,
             github_ops=FakeGitHubOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -187,6 +191,7 @@ def test_sync_handles_gt_not_installed() -> None:
             global_config_ops=global_config_ops,
             graphite_ops=graphite_ops,
             github_ops=FakeGitHubOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -232,6 +237,7 @@ def test_sync_handles_gt_sync_failure() -> None:
             global_config_ops=global_config_ops,
             graphite_ops=graphite_ops,
             github_ops=FakeGitHubOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -292,6 +298,7 @@ def test_sync_identifies_deletable_workstacks() -> None:
             global_config_ops=global_config_ops,
             graphite_ops=graphite_ops,
             github_ops=github_ops,
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -339,6 +346,7 @@ def test_sync_no_deletable_workstacks() -> None:
             global_config_ops=global_config_ops,
             graphite_ops=graphite_ops,
             github_ops=FakeGitHubOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -389,6 +397,7 @@ def test_sync_with_confirmation() -> None:
             global_config_ops=global_config_ops,
             graphite_ops=graphite_ops,
             github_ops=github_ops,
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -440,6 +449,7 @@ def test_sync_user_cancels() -> None:
             global_config_ops=global_config_ops,
             graphite_ops=graphite_ops,
             github_ops=github_ops,
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -492,6 +502,7 @@ def test_sync_force_skips_confirmation() -> None:
             global_config_ops=global_config_ops,
             graphite_ops=graphite_ops,
             github_ops=github_ops,
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -543,6 +554,7 @@ def test_sync_dry_run() -> None:
             global_config_ops=global_config_ops,
             graphite_ops=graphite_ops,
             github_ops=github_ops,
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -598,6 +610,7 @@ def test_sync_return_to_original_worktree() -> None:
             global_config_ops=global_config_ops,
             graphite_ops=graphite_ops,
             github_ops=github_ops,
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -650,6 +663,7 @@ def test_sync_original_worktree_deleted() -> None:
             global_config_ops=global_config_ops,
             graphite_ops=graphite_ops,
             github_ops=github_ops,
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -717,6 +731,7 @@ def test_sync_script_mode_when_worktree_deleted() -> None:
             global_config_ops=global_config_ops,
             graphite_ops=graphite_ops,
             github_ops=github_ops,
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -795,6 +810,7 @@ def test_sync_script_mode_when_worktree_exists() -> None:
             global_config_ops=global_config_ops,
             graphite_ops=graphite_ops,
             github_ops=github_ops,
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 

@@ -6,6 +6,7 @@ from tests.fakes.github_ops import FakeGitHubOps
 from tests.fakes.gitops import FakeGitOps
 from tests.fakes.global_config_ops import FakeGlobalConfigOps
 from tests.fakes.graphite_ops import FakeGraphiteOps
+from tests.fakes.shell_ops import FakeShellOps
 from workstack.core.context import WorkstackContext
 
 
@@ -21,6 +22,7 @@ def test_context_initialization() -> None:
         global_config_ops=global_config_ops,
         github_ops=github_ops,
         graphite_ops=graphite_ops,
+        shell_ops=FakeShellOps(),
         dry_run=False,
     )
 
@@ -38,6 +40,7 @@ def test_context_frozen_dataclass() -> None:
         global_config_ops=FakeGlobalConfigOps(workstacks_root=Path("/tmp")),
         github_ops=FakeGitHubOps(),
         graphite_ops=FakeGraphiteOps(),
+        shell_ops=FakeShellOps(),
         dry_run=False,
     )
 
@@ -56,6 +59,7 @@ def test_context_contains_required_fields() -> None:
         global_config_ops=FakeGlobalConfigOps(workstacks_root=Path("/tmp")),
         github_ops=FakeGitHubOps(),
         graphite_ops=FakeGraphiteOps(),
+        shell_ops=FakeShellOps(),
         dry_run=True,
     )
 

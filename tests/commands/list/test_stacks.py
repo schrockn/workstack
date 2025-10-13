@@ -8,6 +8,7 @@ from tests.fakes.github_ops import FakeGitHubOps
 from tests.fakes.gitops import FakeGitOps
 from tests.fakes.global_config_ops import FakeGlobalConfigOps
 from tests.fakes.graphite_ops import FakeGraphiteOps
+from tests.fakes.shell_ops import FakeShellOps
 from workstack.cli.cli import cli
 from workstack.core.context import WorkstackContext
 from workstack.core.gitops import WorktreeInfo
@@ -91,6 +92,7 @@ def test_list_with_stacks_flag() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=graphite_ops,
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -169,6 +171,7 @@ def test_list_with_stacks_graphite_disabled() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=graphite_ops,
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -207,6 +210,7 @@ def test_list_with_stacks_no_graphite_cache() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=graphite_ops,
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -315,6 +319,7 @@ def test_list_with_stacks_highlights_current_branch_not_worktree_branch() -> Non
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=graphite_ops,
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -405,6 +410,7 @@ def test_list_with_stacks_root_repo_does_not_duplicate_branch() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=graphite_ops,
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -496,6 +502,7 @@ def test_list_with_stacks_shows_descendants_with_worktrees() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=graphite_ops,
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -594,6 +601,7 @@ def test_list_with_stacks_hides_descendants_without_worktrees() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=graphite_ops,
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -691,6 +699,7 @@ def test_list_with_stacks_shows_descendants_with_gaps() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=graphite_ops,
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -781,6 +790,7 @@ def test_list_with_stacks_corrupted_cache() -> None:
             global_config_ops=global_config_ops,
             graphite_ops=graphite_ops,
             github_ops=FakeGitHubOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -851,6 +861,7 @@ More content.
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -923,6 +934,7 @@ def test_list_without_stacks_hides_plan_summary() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -981,6 +993,7 @@ def test_list_with_stacks_no_plan_file() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -1043,6 +1056,7 @@ def test_list_with_stacks_plan_without_frontmatter() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
