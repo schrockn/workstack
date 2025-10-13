@@ -11,7 +11,7 @@ version = "0.1.10"
 description = "Add your description here"
 readme = "README.md"
 authors = [
-    { name = "Nick Schrock", email = "schrockn@dagsterlabs.com" }
+    { name = "Dagster Labs", email = "hello@dagsterlabs.com" }
 ]
 requires-python = ">=3.13"
 dependencies = [
