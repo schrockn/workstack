@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
+REPO_ROOT = Path(__file__).resolve().parents[3]
 WRAPPER_DIR = REPO_ROOT / "src" / "workstack" / "cli" / "shell_integration"
 
 
