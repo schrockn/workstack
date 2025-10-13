@@ -149,11 +149,7 @@ Keep user-facing documentation in standard locations. The `.agent` directory isn
 Documentation optimized for AI consumption differs from human-oriented writing. Structure information for rapid scanning and extraction. Use imperative statements and clear hierarchies rather than conversational prose.
 
 ```markdown
-## Exception Handling Rules
 
-Never use try/except for control flow.
-Check conditions with if statements before operations that might fail.
-Catch exceptions only at error boundaries where you can meaningfully handle them.
 ```
 
 This direct style helps agents quickly extract rules and apply them consistently.
@@ -199,7 +195,7 @@ These navigation aids help agents quickly locate relevant guidance without loadi
 
 CLAUDE.md in the root provides quick reference and critical rules, linking to `.agent` for comprehensive details. This two-tier approach gives agents both a fast path for common operations and a deep path for complex scenarios without loading unnecessary context.
 
-For example, CLAUDE.md might contain: "Never use try/except for control flow. Full guide: [.agent/docs/EXCEPTION_HANDLING.md]" while the linked document provides comprehensive examples, edge cases, and rationale.
+For example, CLAUDE.md might contain: "Prefer checking conditions over using try/except for control flow. Full guide: [.agent/docs/EXCEPTION_HANDLING.md]" while the linked document provides comprehensive examples, edge cases, and rationale.
 
 ### Maintenance Guidelines
 
@@ -400,7 +396,7 @@ Parallel agent work requires comprehensive planning. Without detailed plans, age
 
 #### Keep the Root Repository Clean
 
-The root repository should never have direct commits. It serves as the coordination point and planning center. This approach prevents conflicts between planning and execution, maintains a clean workspace for creating new plans, and ensures the root always reflects the main branch state.
+When using this planning workflow in workstack, the root repository should never have direct commits. It serves as the coordination point and planning center. This approach prevents conflicts between planning and execution, maintains a clean workspace for creating new plans, and ensures the root always reflects the main branch state.
 
 ```bash
 # Create plans in root, execute in worktrees
@@ -408,8 +404,8 @@ cd ~/repository/main
 echo "Implementation plan..." > plans/new-feature.md
 workstack create --plan plans/new-feature.md new-feature
 
-# Avoid making changes directly in root
-# Don't checkout branches or edit files in the root directory
+# It's best to avoid making changes directly in root
+# Prefer not to checkout branches or edit files in the root directory
 ```
 
 #### Use Plan Files as Task Manifests
@@ -469,7 +465,7 @@ This lifecycle management prevents accumulation of stale worktrees and maintains
 
 ### Anti-Pattern: Underspecified Parallel Work
 
-Attempting parallel development without comprehensive planning leads to confusion, conflicts, and wasted effort. Without detailed plans, agents cannot work autonomously. They require constant clarification, defeating the purpose of parallel development. Worse, they might make conflicting assumptions, creating integration challenges later.
+Attempting parallel development without comprehensive planning typically leads to confusion, conflicts, and wasted effort. Without detailed plans, agents cannot work autonomously. They require constant clarification, defeating the purpose of parallel development. They might also make conflicting assumptions, creating integration challenges later.
 
 ### Integration with Planning Workflow
 
@@ -802,7 +798,7 @@ def search_content(query: str, filters: dict) -> list:
     return results
 ```
 
-Avoid fragments that lack context or require additional explanation to understand their purpose and integration points.
+Prefer complete examples over fragments that lack context or require additional explanation to understand their purpose and integration points.
 
 #### Language-Agnostic When Possible
 
