@@ -3,6 +3,7 @@ members = ["packages/*"]
 
 [tool.uv.sources]
 devclikit = { workspace = true }
+workstack-dev = { workspace = true }
 
 [project]
 name = "workstack"
@@ -21,10 +22,10 @@ dependencies = [
 
 [project.scripts]
 workstack = "workstack.cli.cli:main"
-workstack-dev = "workstack.dev_cli.__main__:cli"
 
 [dependency-groups]
 dev = [
+    "workstack-dev",
     "ruff>=0.5.0",
     "pytest>=8.0.0",
     "pytest-cov>=5.0.0",
@@ -50,16 +51,16 @@ select = [
 ]
 
 [tool.ruff.lint.isort]
-known-first-party = ["workstack", "devclikit"]
+known-first-party = ["workstack", "devclikit", "workstack_dev"]
 
 [tool.pyright]
 pythonVersion = "3.13"
 typeCheckingMode = "standard"
-include = ["src"]
+include = ["src", "packages/workstack-dev/src"]
 venvPath = "."
 venv = ".venv"
 reportMissingImports = "warning"
 
 [tool.pytest.ini_options]
 addopts = "-q"
-testpaths = ["tests"]
+testpaths = ["tests", "packages/workstack-dev/tests"]

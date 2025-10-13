@@ -446,13 +446,19 @@ This project uses a uv workspace to organize the codebase:
 workstack/                    # Root workspace
 ├── src/workstack/            # Main workstack package
 ├── packages/
-│   └── devclikit/            # Dev CLI framework (extracted from workstack)
-│       ├── src/devclikit/    # Framework source code
+│   ├── devclikit/            # Dev CLI framework
+│   │   ├── src/devclikit/    # Framework source code
+│   │   └── pyproject.toml    # Package metadata
+│   └── workstack-dev/        # Development tools package
+│       ├── src/workstack_dev/ # Development CLI commands
+│       ├── tests/            # Dev CLI tests
 │       └── pyproject.toml    # Package metadata
 └── pyproject.toml            # Workspace configuration
 ```
 
 **devclikit** is an independent package that provides the framework for building development CLIs with PEP 723 script support. It was extracted from workstack's `dev_cli_core` module to enable independent versioning and potential future PyPI publication.
+
+**workstack-dev** is an independent package containing development tools for workstack. It provides commands for publishing to PyPI, code review, cache management, and more. It depends on devclikit and is installed as a dev dependency.
 
 ### For AI Assistants
 

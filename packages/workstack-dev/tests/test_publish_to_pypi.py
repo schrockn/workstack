@@ -12,10 +12,9 @@ from pathlib import Path
 
 # Add src to path for PEP 723 script import
 script_path = (
-    Path(__file__).parent.parent.parent
+    Path(__file__).parent.parent
     / "src"
-    / "workstack"
-    / "dev_cli"
+    / "workstack_dev"
     / "commands"
     / "publish_to_pypi"
     / "script.py"

@@ -5,22 +5,21 @@ from pathlib import Path
 
 from click.testing import CliRunner
 
-from workstack.dev_cli.__main__ import cli
+from workstack_dev.__main__ import cli
 
 # Import the script module dynamically since it's a PEP 723 script
 sys.path.insert(
     0,
     str(
-        Path(__file__).parent.parent.parent
+        Path(__file__).parent.parent
         / "src"
-        / "workstack"
-        / "dev_cli"
+        / "workstack_dev"
         / "commands"
         / "create_agents_symlinks"
     ),
 )
 
-import script
+import script  # pyright: ignore[reportMissingImports]
 
 
 def test_is_git_repo_root_with_git_dir() -> None:
