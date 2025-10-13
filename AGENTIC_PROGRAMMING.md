@@ -32,7 +32,9 @@ Vibe alert: these guidelines have been developed from observed experience, rathe
 
 4. [Planning: Iterative Design Before Implementation](#planning-iterative-design-before-implementation) - Invest in iterative planning with persistent artifacts before implementation to reduce context thrashing and increase the complexity of tasks that can be performed autonomously.
 
-5. [Parallel Development with Worktrees and Workstack](#parallel-development-with-worktrees-and-workstack) - Enable parallel agentic sessions using Git worktrees and plan-based development workflows.
+5. [Advanced: Custom Tooling](#advanced-custom-tooling) - Custom development tools that amplify agentic programming capabilities:
+   - [Dev-Only CLIs: Flat Script Architecture](#dev-only-clis-flat-script-architecture) - Build development CLIs as collections of self-contained PEP 723 scripts for maximum agent compatibility.
+   - [Parallel Development with Worktrees and Workstack](#parallel-development-with-worktrees-and-workstack) - Enable parallel agentic sessions using Git worktrees and plan-based development workflows.
 
 6. [Test Architecture: Coarse-Grained Dependency Injection](#test-architecture-coarse-grained-dependency-injection) - Structure tests using injectable dependencies with stateful fakes for efficient agent test authoring and fast feedback loops.
 
@@ -370,31 +372,335 @@ This separation enables using different tools optimized for each phase, reduces 
 
 ---
 
-## Parallel Development with Worktrees and Workstack
+## Advanced: Custom Tooling
 
-### Core Principle
+This section covers advanced patterns for creating custom development tooling that amplifies agentic programming capabilities. These patterns represent sophisticated approaches that may require additional infrastructure or investment but provide substantial returns in agent effectiveness.
+
+### Dev-Only CLIs: Flat Script Architecture
+
+#### Core Principle
+
+Organize development CLIs as flat collections of self-contained scripts rather than hierarchical command structures. Each command becomes an independent PEP 723 script with inline dependencies, eliminating complex inheritance hierarchies and shared state management. This pattern transforms CLI development from navigating command trees to working with discrete, disposable scripts that align well with agent capabilities.
+
+#### The Problem with Traditional CLI Architectures
+
+Traditional CLI tools often feature deep command hierarchies, shared utilities, and complex dependency injection patterns. A command might inherit from base classes, import shared utilities, and rely on application-wide configuration. Understanding any single command requires loading multiple files and tracing through inheritance chains—expensive operations for agents working within limited context windows.
+
+Consider a traditional structure:
+
+```
+cli/
+├── base.py           # Base command class
+├── utils/            # Shared utilities
+│   ├── auth.py
+│   ├── config.py
+│   └── formatting.py
+├── commands/
+│   ├── deploy/
+│   │   ├── __init__.py
+│   │   ├── base.py     # Deploy base class
+│   │   ├── aws.py      # Inherits from deploy base
+│   │   └── azure.py    # Also inherits from deploy base
+│   └── test/
+│       ├── __init__.py
+│       └── runner.py   # Uses utils.config, utils.formatting
+```
+
+To understand `aws.py`, an agent must load the deploy base class, the global base class, and potentially multiple utility modules. The context requirements compound quickly.
+
+#### Key Pattern: Flat Script Lists
+
+The flat script architecture eliminates hierarchy entirely. Each command lives as a self-contained script with its own dependencies declared inline:
+
+```
+commands/
+├── deploy-aws/
+│   ├── command.py    # Thin Click wrapper
+│   └── script.py     # Self-contained PEP 723 script
+├── deploy-azure/
+│   ├── command.py    # Thin Click wrapper
+│   └── script.py     # Self-contained PEP 723 script
+├── run-tests/
+│   ├── command.py    # Thin Click wrapper
+│   └── script.py     # Self-contained PEP 723 script
+└── clean-cache/
+    ├── command.py    # Thin Click wrapper
+    └── script.py     # Self-contained PEP 723 script
+```
+
+Each `script.py` is a complete, runnable program:
+
+```python
+#!/usr/bin/env python3
+# /// script
+# dependencies = [
+#   "click>=8.1.7",
+#   "boto3>=1.34.0",
+# ]
+# requires-python = ">=3.13"
+# ///
+"""Deploy application to AWS."""
+
+# pyright: reportMissingImports=false
+
+import subprocess
+from pathlib import Path
+
+import boto3
+import click
+
+
+@click.command()
+@click.option("--region", default="us-east-1")
+def main(region: str) -> None:
+    """Complete deployment logic in one file."""
+    # All implementation here - no imports from ../utils
+    # No inheritance from base classes
+    # No shared state or configuration
+    pass
+
+
+if __name__ == "__main__":
+    main()
+```
+
+#### Why This is Agent-Friendly
+
+The flat script pattern aligns perfectly with how agents process and generate code, creating multiple compounding advantages.
+
+##### Complete Context in One File
+
+When an agent needs to understand or modify a command, everything exists in a single file. No inheritance chains to trace, no utility modules to locate, no shared configuration to understand. The agent loads one file and has complete understanding. This approach enables agents to accomplish more within their context limits.
+
+##### Disposability Without Cleanup
+
+Failed experiments or deprecated commands require only deleting a directory. No untangling of shared dependencies, no checking what else might break, no cleanup of orphaned utilities. This disposability encourages rapid experimentation—agents can try bold approaches knowing that failure costs nothing.
+
+##### Parallel Development at Scale
+
+Since scripts share no code, multiple agents can develop commands simultaneously without coordination. Agent A can rewrite `deploy-aws` while Agent B creates `run-benchmarks` and Agent C refactors `clean-cache`. These parallel efforts avoid conflicts because the scripts remain independent. This enables true parallel development without merge conflicts or integration challenges.
+
+##### Dependencies as Documentation
+
+PEP 723 inline dependencies make requirements explicit and visible:
+
+```python
+# /// script
+# dependencies = [
+#   "httpx>=0.24.0",      # For API calls
+#   "rich>=13.0.0",       # For terminal output
+#   "pyyaml>=6.0",        # For config parsing
+# ]
+# ///
+```
+
+An agent immediately sees what external libraries are available without searching through requirements files or understanding virtual environment configurations. The dependencies become part of the script's documentation.
+
+#### Implementation with devclikit
+
+The pattern is implemented using a two-file structure per command:
+
+**command.py** - Thin CLI wrapper:
+
+```python
+"""Deploy to AWS command."""
+
+from pathlib import Path
+
+import click
+
+from devclikit import run_pep723_script
+
+
+@click.command(name="deploy-aws")
+@click.option("--region", default="us-east-1", help="AWS region")
+@click.option("--dry-run", is_flag=True, help="Simulate deployment")
+def command(region: str, dry_run: bool) -> None:
+    """Deploy application to AWS.
+
+    Examples:
+        workstack-dev deploy-aws
+        workstack-dev deploy-aws --region us-west-2
+        workstack-dev deploy-aws --dry-run
+    """
+    script_path = Path(__file__).parent / "script.py"
+
+    args = ["--region", region]
+    if dry_run:
+        args.append("--dry-run")
+
+    run_pep723_script(script_path, args)
+```
+
+**script.py** - Self-contained implementation:
+
+```python
+#!/usr/bin/env python3
+# /// script
+# dependencies = [
+#   "click>=8.1.7",
+#   "boto3>=1.34.0",
+# ]
+# requires-python = ">=3.13"
+# ///
+"""AWS deployment implementation."""
+
+# pyright: reportMissingImports=false
+
+# Complete implementation here
+# No imports from parent package
+# No shared utilities
+# Fully self-contained
+```
+
+The `command.py` file merely defines the CLI interface and delegates to `script.py`. All logic lives in the script, maintaining complete independence.
+
+#### Practical Example: workstack-dev
+
+The `workstack-dev` CLI demonstrates this pattern effectively. Each developer tool is a standalone script:
+
+- **codex-review**: Performs AI-powered code review with Graphite integration
+- **clean-cache**: Removes temporary files and caches
+- **publish-to-pypi**: Handles package publication
+- **create-agents-symlinks**: Manages agent documentation symlinks
+- **completion**: Generates shell completions
+
+Each command can be understood, modified, or replaced without affecting others. An agent working on improving code review never needs to understand package publication. This isolation enables focused, efficient development.
+
+#### When to Apply This Pattern
+
+Use flat script architecture for:
+
+- **Development-only tools** that don't ship to production
+- **Maintenance scripts** and administrative utilities
+- **Build and deployment automation** where each target is independent
+- **Testing utilities** that run different test suites or benchmarks
+- **Code generation tools** that create different types of output
+
+The pattern may not suit:
+
+- **Production CLIs** where code reuse provides user-facing consistency
+- **Complex applications** with genuine shared business logic
+- **Performance-critical tools** where duplication impacts execution
+
+#### Best Practices
+
+##### Embrace Duplication Over Abstraction
+
+If multiple scripts need similar functionality, copy the code rather than creating shared utilities. Ten lines of duplication costs less than one line of inappropriate abstraction. Agents can easily modify duplicated code but struggle with tangled dependencies.
+
+```python
+# In deploy-aws/script.py
+def validate_environment():
+    """Check AWS credentials and configuration."""
+    # 20 lines of validation logic
+
+# In deploy-azure/script.py
+def validate_environment():
+    """Check Azure credentials and configuration."""
+    # Similar 20 lines, adapted for Azure
+    # Avoid creating shared_validation.py
+```
+
+##### Keep Scripts Focused
+
+Each script should do one thing well. If a script grows beyond 500 lines, consider splitting it into multiple commands rather than extracting shared utilities. Two focused 300-line scripts beat one 600-line script with extracted helpers.
+
+##### Document Dependencies
+
+Use inline comments to explain non-obvious dependency choices:
+
+```python
+# /// script
+# dependencies = [
+#   "click>=8.1.7",          # CLI framework
+#   "httpx>=0.24.0",         # Async HTTP client (requests doesn't support HTTP/2)
+#   "structlog>=23.0.0",     # Structured logging for debugging
+# ]
+# ///
+```
+
+##### Test Scripts Independently
+
+Since each script stands alone, test it in isolation:
+
+```python
+def test_deploy_aws_dry_run():
+    """Test AWS deployment in dry-run mode."""
+    result = subprocess.run(
+        ["uv", "run", "commands/deploy-aws/script.py", "--dry-run"],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0
+    assert "Dry run completed" in result.stdout
+```
+
+#### Integration with Other Patterns
+
+The flat script architecture amplifies other agentic programming patterns:
+
+**Coarse-grained Parallel Modules**: Each script embodies the principle of feature isolation. Scripts are the ultimate coarse-grained module—completely independent and safely disposable.
+
+**Agent Documentation**: Script-specific documentation can live directly in the script file as module docstrings and inline comments, eliminating the need for separate documentation that might drift.
+
+**Planning**: Implementation plans can specify exactly which script to create or modify, with confidence that changes won't cascade through shared dependencies.
+
+**Parallel Development**: Multiple agents can work on different scripts simultaneously, using worktrees to isolate their changes without any risk of conflicts.
+
+#### The Compound Effect
+
+The benefits of flat script architecture compound over time. Initial development is faster because agents don't need to understand existing architecture. Maintenance is simpler because each script can be updated independently. Deprecation is clean because removal leaves no orphaned code. The codebase remains approachable even as it grows, since complexity doesn't increase with script count.
+
+Most importantly, this pattern reduces cognitive load for both humans and agents. A developer can understand any command by reading one file. An agent can modify any command within a single context window. This simplicity enables more ambitious automation and more reliable agent assistance.
+
+#### Anti-Pattern: Premature Abstraction
+
+Avoid extracting shared utilities even when patterns emerge:
+
+```python
+# ❌ WRONG - Creating shared utilities too early
+# commands/utils/validation.py
+def validate_cloud_credentials(provider: str): ...
+
+# commands/deploy-aws/script.py
+from ..utils.validation import validate_cloud_credentials
+
+# ✅ CORRECT - Keep validation in each script
+# commands/deploy-aws/script.py
+def validate_aws_credentials(): ...
+
+# commands/deploy-azure/script.py
+def validate_azure_credentials(): ...
+```
+
+The moment you create shared utilities, you couple the scripts together. Future changes must consider all consumers. Agents must load multiple files. The simplicity that makes the pattern valuable disappears. Resist the urge to abstract until the duplication genuinely hurts maintainability—and even then, question whether the pain justifies the complexity.
+
+### Parallel Development with Worktrees and Workstack
+
+#### Core Principle
 
 Git worktrees enable truly parallel agentic development by creating independent working directories from a single repository. When combined with comprehensive planning and proper orchestration tools, agents can work autonomously on separate features without coordination overhead. This pattern transforms sequential development into parallel execution.
 
-### Understanding Git Worktrees
+#### Understanding Git Worktrees
 
 Git worktrees solve a fundamental problem in parallel development: the need for multiple working copies without repository duplication. A worktree is a linked working directory that shares the same Git repository but maintains its own working files, index, and HEAD. This means you can have multiple branches checked out simultaneously in different directories, all connected to the same `.git` repository.
 
 Each worktree provides a complete, independent working directory. Agents operating in different worktrees can work simultaneously without conflicts, check out different branches independently, and maintain separate build states and dependencies. Since agents are stateless between sessions, each worktree becomes a persistent workspace for a specific task. An agent can return to its worktree and resume work without needing to understand the state of other parallel efforts.
 
-### Workstack: Orchestrating Parallel Development
+#### Workstack: Orchestrating Parallel Development
 
 While Git provides worktree functionality natively through commands like `git worktree add`, managing multiple worktrees for parallel development introduces complexity. Workstack provides an orchestration layer that simplifies worktree lifecycle management, standardizes naming and organization conventions, and integrates planning documents with worktrees automatically.
 
 The tool addresses specific pain points in parallel development: tracking which worktree corresponds to which feature, maintaining consistent branch naming across worktrees, and ensuring plan documents are available in the working directory. By providing consistent commands and conventions, Workstack ensures that agents can reliably create, navigate, and manage parallel development environments.
 
-### Key Pattern: Plan-Based Development
+#### Key Pattern: Plan-Based Development
 
 Parallel agent work requires comprehensive planning. Without detailed plans, agents cannot operate autonomously for extended periods. Plan-based development creates a contract between the human architect and the executing agents. When you use `workstack create --plan`, the tool automatically copies your plan document into the worktree as `.PLAN.md`. This file is gitignored but remains accessible to agents and tools, providing immediate context for the task at hand.
 
-### Workstack Best Practices
+#### Workstack Best Practices
 
-#### Keep the Root Repository Clean
+##### Keep the Root Repository Clean
 
 When using this planning workflow in workstack, the root repository should never have direct commits. It serves as the coordination point and planning center. This approach prevents conflicts between planning and execution, maintains a clean workspace for creating new plans, and ensures the root always reflects the main branch state.
 
@@ -408,11 +714,11 @@ workstack create --plan plans/new-feature.md new-feature
 # Prefer not to checkout branches or edit files in the root directory
 ```
 
-#### Use Plan Files as Task Manifests
+##### Use Plan Files as Task Manifests
 
 Plan files serve as executable specifications for agents containing clear success criteria, specific implementation steps, required context and dependencies, and testing requirements. Think of them as detailed instructions that an agent can follow autonomously. The more comprehensive the plan, the longer an agent can work without human intervention.
 
-#### Leverage Plan-Based Worktree Creation
+##### Leverage Plan-Based Worktree Creation
 
 Workstack's `--plan` flag automates the workflow of creating a worktree with embedded context:
 
@@ -422,11 +728,11 @@ workstack create --plan plans/auth-feature.md auth-feature
 
 This command creates a new worktree for the feature, copies the plan to `.PLAN.md` in the worktree, checks out a new branch, and provides agents with immediate context. The `.PLAN.md` file is gitignored but accessible to tools, allowing agents to understand their mission without additional context.
 
-### Enabling Autonomous Agent Operation
+#### Enabling Autonomous Agent Operation
 
 For parallel development to work effectively, agents must operate autonomously for extended periods. This requires comprehensive planning before execution, clear boundaries between features, and well-defined success criteria. The time invested in creating detailed plans reduces coordination overhead and increases development velocity.
 
-### Practical Example: Parallel Feature Development
+#### Practical Example: Parallel Feature Development
 
 Consider developing three independent features simultaneously:
 
@@ -449,7 +755,7 @@ workstack create --plan plans/perf-opt.md perf-opt
 
 Each agent operates independently, following its plan without needing to coordinate with others. When features are complete, they can be reviewed and merged independently.
 
-### Managing Worktree Lifecycle
+#### Managing Worktree Lifecycle
 
 Worktrees should be treated as temporary workspaces. Once a feature is merged, remove its worktree to keep the development environment clean:
 
@@ -463,11 +769,11 @@ workstack list
 
 This lifecycle management prevents accumulation of stale worktrees and maintains clarity about active development efforts.
 
-### Anti-Pattern: Underspecified Parallel Work
+#### Anti-Pattern: Underspecified Parallel Work
 
 Attempting parallel development without comprehensive planning typically leads to confusion, conflicts, and wasted effort. Without detailed plans, agents cannot work autonomously. They require constant clarification, defeating the purpose of parallel development. They might also make conflicting assumptions, creating integration challenges later.
 
-### Integration with Planning Workflow
+#### Integration with Planning Workflow
 
 The worktree pattern integrates seamlessly with the planning practices described earlier. Plans created during the design phase become the execution blueprints for worktrees. This creates a natural flow from conception to completion: planning phase to create detailed plans in the root repository, worktree creation using plan documents to initialize workspaces, parallel execution with multiple agents working autonomously, integration of completed features independently, and cleanup by removing worktrees after successful integration.
 
