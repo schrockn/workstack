@@ -29,12 +29,12 @@ class GraphiteOps(ABC):
         """Get Graphite PR URL for a pull request.
 
         Args:
-            owner: GitHub repository owner (e.g., "schrockn")
+            owner: GitHub repository owner (e.g., "dagster-io")
             repo: GitHub repository name (e.g., "workstack")
             pr_number: GitHub PR number
 
         Returns:
-            Graphite PR URL (e.g., "https://app.graphite.dev/github/pr/schrockn/workstack/23")
+            Graphite PR URL (e.g., "https://app.graphite.dev/github/pr/dagster-io/workstack/23")
         """
         ...
 
@@ -80,12 +80,12 @@ class RealGraphiteOps(GraphiteOps):
         No subprocess calls or external dependencies required.
 
         Args:
-            owner: GitHub repository owner (e.g., "schrockn")
+            owner: GitHub repository owner (e.g., "dagster-io")
             repo: GitHub repository name (e.g., "workstack")
             pr_number: GitHub PR number
 
         Returns:
-            Graphite PR URL (e.g., "https://app.graphite.dev/github/pr/schrockn/workstack/23")
+            Graphite PR URL (e.g., "https://app.graphite.dev/github/pr/dagster-io/workstack/23")
         """
         return f"https://app.graphite.dev/github/pr/{owner}/{repo}/{pr_number}"
 
@@ -156,8 +156,8 @@ class RealGraphiteOps(GraphiteOps):
     def _graphite_url_to_github_url(self, graphite_url: str) -> str:
         """Convert Graphite URL to GitHub URL.
 
-        Input: https://app.graphite.dev/github/pr/schrockn/workstack/42
-        Output: https://github.com/schrockn/workstack/pull/42
+        Input: https://app.graphite.dev/github/pr/dagster-io/workstack/42
+        Output: https://github.com/dagster-io/workstack/pull/42
         """
         parts = graphite_url.split("/")
         if len(parts) >= 8 and parts[2] == "app.graphite.dev":

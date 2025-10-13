@@ -11,7 +11,7 @@ Create, switch, and manage multiple worktrees from a centralized location with a
 uv tool install workstack
 
 # From source
-uv tool install git+https://github.com/schrockn/workstack.git
+uv tool install git+https://github.com/dagster-io/workstack.git
 ```
 
 ## Quick Start
@@ -476,9 +476,11 @@ See [`.agent/README.md`](.agent/README.md) for more details.
 
 ## Links
 
-- **GitHub:** https://github.com/schrockn/workstack
-- **Issues:** https://github.com/schrockn/workstack/issues
+- **GitHub:** https://github.com/dagster-io/workstack
+- **Issues:** https://github.com/dagster-io/workstack/issues
 
 ## License
 
 MIT - Nick Schrock ([@schrockn](https://github.com/schrockn))
+
+Originally developed by [@schrockn](https://github.com/schrockn), now maintained by [Dagster Labs](https://github.com/dagster-io).

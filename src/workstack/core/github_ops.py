@@ -28,8 +28,8 @@ def _parse_github_pr_url(url: str) -> tuple[str, str] | None:
         Tuple of (owner, repo) or None if URL doesn't match expected pattern
 
     Example:
-        >>> _parse_github_pr_url("https://github.com/schrockn/workstack/pull/23")
-        ("schrockn", "workstack")
+        >>> _parse_github_pr_url("https://github.com/dagster-io/workstack/pull/23")
+        ("dagster-io", "workstack")
     """
     match = re.match(r"https://github\.com/([^/]+)/([^/]+)/pull/\d+", url)
     if match:
