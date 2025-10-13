@@ -189,6 +189,43 @@ import ...
 - No default arguments without explanatory comments
 - Use context managers directly in `with` statements
 
+### Planning and Documentation
+
+**NEVER include time-based estimates in planning documents or implementation plans.**
+
+🔴 **FORBIDDEN**: Time estimates (hours, days, weeks)
+🔴 **FORBIDDEN**: Velocity predictions or completion dates
+🔴 **FORBIDDEN**: Effort quantification
+
+Time-based estimates have no basis in reality for AI-assisted development and should be omitted entirely.
+
+**What to include instead:**
+
+- Implementation sequence (what order to do things)
+- Dependencies between tasks (what must happen first)
+- Success criteria (how to know when done)
+- Risk mitigation strategies
+
+```markdown
+# ❌ WRONG
+
+## Estimated Effort
+
+- Phase 1: 12-16 hours
+- Phase 2: 8-10 hours
+  Total: 36-46 hours (approximately 1 week)
+
+# ✅ CORRECT
+
+## Implementation Sequence
+
+### Phase 1: Foundation (do this first)
+
+1. Create abstraction X
+2. Refactor component Y
+   [Clear ordering without time claims]
+```
+
 ---
 
 ## Related Documentation
