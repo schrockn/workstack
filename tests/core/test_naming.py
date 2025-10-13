@@ -80,3 +80,31 @@ def test_strip_plan_from_filename() -> None:
     # Leading/trailing separators after plan removal should be cleaned
     assert strip_plan_from_filename("-plan-feature") == "feature"
     assert strip_plan_from_filename("feature-plan-") == "feature"
+
+    # Implementation plan variations - basic cases
+    assert strip_plan_from_filename("my-feature-implementation-plan") == "my-feature"
+    assert strip_plan_from_filename("implementation-plan-for-auth") == "for-auth"
+    assert strip_plan_from_filename("implementation_plan_feature") == "feature"
+    assert strip_plan_from_filename("feature implementation plan") == "feature"
+
+    # Implementation plan with mixed separators
+    assert strip_plan_from_filename("my-feature_implementation-plan") == "my-feature"
+    assert strip_plan_from_filename("implementation_plan-for-auth") == "for-auth"
+
+    # Implementation plan - case variations
+    assert strip_plan_from_filename("IMPLEMENTATION-PLAN-FEATURE") == "FEATURE"
+    assert strip_plan_from_filename("Implementation-Plan-Feature") == "Feature"
+    assert strip_plan_from_filename("my-IMPLEMENTATION-plan") == "my"
+
+    # Implementation plan in middle
+    assert strip_plan_from_filename("my-implementation-plan-feature") == "my-feature"
+
+    # Edge case: just "implementation-plan" becomes "implementation"
+    # (Similar to how we would strip "plan" if there was other text)
+    assert strip_plan_from_filename("implementation-plan") == "implementation"
+    assert strip_plan_from_filename("implementation_plan") == "implementation"
+    assert strip_plan_from_filename("IMPLEMENTATION-PLAN") == "IMPLEMENTATION"
+
+    # Should not match "implementation" or "plan" separately when part of other words
+    assert strip_plan_from_filename("reimplementation-feature") == "reimplementation-feature"
+    assert strip_plan_from_filename("implantation-system") == "implantation-system"

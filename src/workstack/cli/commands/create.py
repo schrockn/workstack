@@ -33,21 +33,43 @@ def sanitize_branch_component(name: str) -> str:
 
 
 def strip_plan_from_filename(filename: str) -> str:
-    """Remove the word 'plan' from a filename stem intelligently.
+    """Remove 'plan' or 'implementation plan' from a filename stem intelligently.
 
-    Handles case-insensitive matching and common separators.
+    Handles case-insensitive matching and common separators (-, _, space).
     If removal would leave empty string, returns original unchanged.
 
     Examples:
         "devclikit-extraction-plan" → "devclikit-extraction"
         "my-feature-plan" → "my-feature"
-        "plan-for-auth" → "for-auth"
+        "implementation-plan-for-auth" → "for-auth"
+        "feature_implementation_plan" → "feature"
         "plan" → "plan" (preserved - would be empty)
     """
 
-    # Pattern matches "plan" as a complete word surrounded by separators or boundaries
-    # We capture the surrounding context to handle it properly
-    pattern = r"(^|[-_\s])(plan)([-_\s]|$)"
+    # First, handle "implementation plan" with various separators
+    # Pattern matches "implementation" + separator + "plan" as complete words
+    impl_pattern = r"(^|[-_\s])(implementation)([-_\s])(plan)([-_\s]|$)"
+
+    def replace_impl_plan(match: re.Match[str]) -> str:
+        prefix = match.group(1)
+        implementation_word = match.group(2)  # Preserves original case
+        suffix = match.group(5)
+
+        # If entire string is "implementation-plan", keep just "implementation"
+        if not prefix and not suffix:
+            return implementation_word
+
+        # If in the middle, preserve one separator
+        if prefix and suffix:
+            return prefix if prefix.strip() else suffix
+
+        # At start or end: remove it and the adjacent separator
+        return ""
+
+    cleaned = re.sub(impl_pattern, replace_impl_plan, filename, flags=re.IGNORECASE)
+
+    # Then handle standalone "plan" as a complete word
+    plan_pattern = r"(^|[-_\s])(plan)([-_\s]|$)"
 
     def replace_plan(match: re.Match[str]) -> str:
         prefix = match.group(1)
@@ -65,7 +87,7 @@ def strip_plan_from_filename(filename: str) -> str:
         # Plan at start or end: remove it and the adjacent separator
         return ""
 
-    cleaned = re.sub(pattern, replace_plan, filename, flags=re.IGNORECASE)
+    cleaned = re.sub(plan_pattern, replace_plan, cleaned, flags=re.IGNORECASE)
 
     # Clean up any leading/trailing separators
     cleaned = cleaned.strip("-_ \t\n\r")
