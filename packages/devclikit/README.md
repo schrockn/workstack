@@ -143,24 +143,93 @@ if validate_pep723_script(Path("script.py")):
 
 ### completion
 
-Shell completion support:
+Shell completion support with automatic installation and lazy-loading for virtual environments:
 
 ```python
 from dev_cli_core.completion import add_completion_commands
 
-# Adds 'completion bash/zsh/fish' commands
+# Adds completion commands: bash/zsh/fish/wrapper/install/status
 add_completion_commands(cli, "my-cli")
 ```
 
-**Usage:**
+#### Quick Start
+
+For most users, one-command installation:
 
 ```bash
-# Generate and load completion
-source <(my-cli completion bash)
+# Auto-detect shell and install with lazy loading
+my-cli completion install
 
-# Install permanently
-echo 'source <(my-cli completion bash)' >> ~/.bashrc
+# Then activate
+source ~/.zshrc  # or ~/.bashrc, ~/.config/fish/config.fish
 ```
+
+#### Virtual Environment CLIs
+
+For CLIs installed in virtual environments (the common case for development tools), use **lazy-loading mode** (default). This creates a wrapper function that:
+
+- Loads completion on first command invocation
+- Works before virtual environment activation
+- Avoids "command not found" errors during shell startup
+
+```bash
+# Lazy-loading wrapper (default)
+my-cli completion install
+
+# Direct loading (requires CLI always in PATH)
+my-cli completion install --no-lazy
+```
+
+#### Manual Installation
+
+Generate wrapper script for manual installation:
+
+```bash
+# Output wrapper for review
+my-cli completion wrapper zsh
+
+# Append to config
+my-cli completion wrapper zsh >> ~/.zshrc
+```
+
+Or use the direct completion commands:
+
+```bash
+# Direct completion (CLI must be in PATH)
+source <(my-cli completion bash)  # bash
+source <(my-cli completion zsh)   # zsh
+my-cli completion fish | source   # fish
+```
+
+#### Troubleshooting
+
+Check installation status:
+
+```bash
+my-cli completion status
+```
+
+Output shows:
+
+- Detected shell and config file location
+- Whether CLI is in PATH
+- Whether completion is installed
+- Next steps if issues found
+
+**Common issues:**
+
+1. **"Command not found" during shell startup**
+   - Use lazy-loading mode: `my-cli completion install` (default)
+   - Lazy loading delays completion until first command use
+
+2. **Completion not working after installation**
+   - Source your shell config: `source ~/.zshrc`
+   - Check status: `my-cli completion status`
+   - Ensure virtual environment is activated
+
+3. **Already installed**
+   - Remove existing completion block from shell config
+   - Or use `--force` to reinstall (coming soon)
 
 ### exceptions
 
