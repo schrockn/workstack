@@ -2,7 +2,7 @@
 
 from click.testing import CliRunner
 
-from workstack_dev.__main__ import cli
+from workstack_dev.cli import cli
 
 
 def test_completion_help() -> None:

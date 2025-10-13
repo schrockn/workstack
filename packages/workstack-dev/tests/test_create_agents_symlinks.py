@@ -5,7 +5,7 @@ from pathlib import Path
 
 from click.testing import CliRunner
 
-from workstack_dev.__main__ import cli
+from workstack_dev.cli import cli
 
 # Import the script module dynamically since it's a PEP 723 script
 sys.path.insert(
