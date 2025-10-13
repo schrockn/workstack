@@ -85,7 +85,7 @@ wheels = [
 
 [[package]]
 name = "devclikit"
-version = "0.1.10"
+version = "0.1.11"
 source = { editable = "packages/devclikit" }
 dependencies = [
     { name = "click" },
@@ -267,7 +267,7 @@ wheels = [
 
 [[package]]
 name = "workstack"
-version = "0.1.10"
+version = "0.1.11"
 source = { editable = "." }
 dependencies = [
     { name = "click" },

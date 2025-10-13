@@ -1,6 +1,6 @@
 [project]
 name = "devclikit"
-version = "0.1.10"
+version = "0.1.11"
 description = "Framework for building development CLIs with PEP 723 script support"
 requires-python = ">=3.13"
 dependencies = [
