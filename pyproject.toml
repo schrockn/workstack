@@ -18,6 +18,7 @@ dependencies = [
     "click>=8.1.7",
     "devclikit",
     "python-frontmatter>=1.0.0",
+    "rich>=13.7.0",
 ]
 
 [project.scripts]
@@ -30,6 +31,7 @@ dev = [
     "pytest>=8.0.0",
     "pytest-cov>=5.0.0",
     "pyright>=1.1.406",
+    "pytest-asyncio>=0.23.0",
 ]
 
 [build-system]
@@ -64,3 +66,12 @@ reportMissingImports = "warning"
 [tool.pytest.ini_options]
 addopts = "-q"
 testpaths = ["tests", "packages/workstack-dev/tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+filterwarnings = [
+    # Ignore asyncio subprocess transport cleanup warning
+    # This is a known issue when subprocess.run() is called during tests
+    # and the event loop is closed before subprocess transport cleanup completes
+    # See: https://github.com/python/cpython/issues/114177
+    "ignore::pytest.PytestUnraisableExceptionWarning:_pytest.unraisableexception",
+]
