@@ -6,6 +6,7 @@ from tests.fakes.github_ops import FakeGitHubOps
 from tests.fakes.gitops import FakeGitOps
 from tests.fakes.global_config_ops import FakeGlobalConfigOps
 from tests.fakes.graphite_ops import FakeGraphiteOps
+from tests.fakes.shell_ops import FakeShellOps
 from workstack.cli.cli import cli
 from workstack.core.context import WorkstackContext
 from workstack.core.gitops import DryRunGitOps
@@ -45,6 +46,7 @@ def test_rename_successful() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=graphite_ops,
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -84,6 +86,7 @@ def test_rename_old_worktree_not_found() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=graphite_ops,
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -125,6 +128,7 @@ def test_rename_new_name_already_exists() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=graphite_ops,
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -165,6 +169,7 @@ def test_rename_sanitizes_new_name() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=graphite_ops,
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -208,6 +213,7 @@ def test_rename_regenerates_env_file() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=graphite_ops,
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -257,6 +263,7 @@ def test_rename_dry_run_does_not_move() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=graphite_ops,
+            shell_ops=FakeShellOps(),
             dry_run=True,
         )
 

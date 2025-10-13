@@ -94,10 +94,14 @@ def test_load_global_config_use_graphite_defaults_false(tmp_path: Path) -> None:
 
 
 def test_create_global_config_creates_file(tmp_path: Path) -> None:
+    from tests.fakes.shell_ops import FakeShellOps
+
     global_config_ops = FakeGlobalConfigOps(exists=False)
 
     with mock.patch("workstack.cli.commands.init.detect_graphite", return_value=False):
-        create_global_config(global_config_ops, Path("/tmp/workstacks"), shell_setup_complete=False)
+        create_global_config(
+            global_config_ops, FakeShellOps(), Path("/tmp/workstacks"), shell_setup_complete=False
+        )
 
     # Verify config was saved
     assert global_config_ops.get_workstacks_root() == Path("/tmp/workstacks")
@@ -106,6 +110,7 @@ def test_create_global_config_creates_file(tmp_path: Path) -> None:
 
 def test_create_global_config_creates_parent_directory(tmp_path: Path) -> None:
     # Test Real implementation's filesystem behavior
+    from tests.fakes.shell_ops import FakeShellOps
     from workstack.core.global_config_ops import RealGlobalConfigOps
 
     config_file = tmp_path / ".workstack" / "config.toml"
@@ -115,17 +120,23 @@ def test_create_global_config_creates_parent_directory(tmp_path: Path) -> None:
     real_ops._path = config_file
 
     with mock.patch("workstack.cli.commands.init.detect_graphite", return_value=False):
-        create_global_config(real_ops, Path("/tmp/workstacks"), shell_setup_complete=False)
+        create_global_config(
+            real_ops, FakeShellOps(), Path("/tmp/workstacks"), shell_setup_complete=False
+        )
 
     assert config_file.parent.exists()
     assert config_file.exists()
 
 
 def test_create_global_config_detects_graphite(tmp_path: Path) -> None:
+    from tests.fakes.shell_ops import FakeShellOps
+
     global_config_ops = FakeGlobalConfigOps(exists=False)
 
     with mock.patch("workstack.cli.commands.init.detect_graphite", return_value=True):
-        create_global_config(global_config_ops, Path("/tmp/workstacks"), shell_setup_complete=False)
+        create_global_config(
+            global_config_ops, FakeShellOps(), Path("/tmp/workstacks"), shell_setup_complete=False
+        )
 
     assert global_config_ops.get_use_graphite() is True
 

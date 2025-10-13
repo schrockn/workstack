@@ -7,6 +7,7 @@ from tests.fakes.github_ops import FakeGitHubOps
 from tests.fakes.gitops import FakeGitOps
 from tests.fakes.global_config_ops import FakeGlobalConfigOps
 from tests.fakes.graphite_ops import FakeGraphiteOps
+from tests.fakes.shell_ops import FakeShellOps
 from workstack.cli.cli import cli
 from workstack.core.context import WorkstackContext
 from workstack.core.gitops import WorktreeInfo
@@ -53,6 +54,7 @@ def test_list_outputs_names_not_paths() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=graphite_ops,
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 

@@ -8,6 +8,7 @@ from tests.fakes.github_ops import FakeGitHubOps
 from tests.fakes.gitops import FakeGitOps
 from tests.fakes.global_config_ops import FakeGlobalConfigOps
 from tests.fakes.graphite_ops import FakeGraphiteOps
+from tests.fakes.shell_ops import FakeShellOps
 from workstack.cli.cli import cli
 from workstack.core.context import WorkstackContext
 
@@ -36,6 +37,7 @@ def test_config_list_displays_global_config() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -79,6 +81,7 @@ def test_config_list_displays_repo_config() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -107,6 +110,7 @@ def test_config_list_handles_missing_global_config() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -138,6 +142,7 @@ def test_config_list_handles_missing_repo_config() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -161,6 +166,7 @@ def test_config_list_not_in_git_repo() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -191,6 +197,7 @@ def test_config_get_workstacks_root() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -222,6 +229,7 @@ def test_config_get_use_graphite() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -253,6 +261,7 @@ def test_config_get_show_pr_info() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -284,6 +293,7 @@ def test_config_get_show_pr_checks() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -309,6 +319,7 @@ def test_config_get_global_key_missing_config_fails() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -345,6 +356,7 @@ def test_config_get_env_key() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -381,6 +393,7 @@ def test_config_get_post_create_shell() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -420,6 +433,7 @@ def test_config_get_post_create_commands() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -457,6 +471,7 @@ def test_config_get_env_key_not_found() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -487,6 +502,7 @@ def test_config_get_invalid_key_format() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -518,6 +534,7 @@ def test_config_set_workstacks_root() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -552,6 +569,7 @@ def test_config_set_use_graphite_true() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -584,6 +602,7 @@ def test_config_set_use_graphite_false() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -616,6 +635,7 @@ def test_config_set_show_pr_info() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -648,6 +668,7 @@ def test_config_set_show_pr_checks() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -679,6 +700,7 @@ def test_config_set_invalid_boolean_fails() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -704,6 +726,7 @@ def test_config_set_without_global_config_fails() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -741,6 +764,7 @@ def test_config_get_invalid_key() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -771,6 +795,7 @@ def test_config_set_repo_keys_not_implemented() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
@@ -807,6 +832,7 @@ def test_config_key_with_multiple_dots() -> None:
             global_config_ops=global_config_ops,
             github_ops=FakeGitHubOps(),
             graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 

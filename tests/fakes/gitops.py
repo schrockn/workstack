@@ -14,8 +14,53 @@ from workstack.core.gitops import GitOps, WorktreeInfo
 class FakeGitOps(GitOps):
     """In-memory fake implementation of git operations.
 
-    This class has NO public setup methods. All state is provided via constructor
-    using keyword arguments with sensible defaults (empty dicts).
+    State Management:
+    -----------------
+    This fake maintains mutable state to simulate git's stateful behavior.
+    Operations like add_worktree, checkout_branch modify internal state.
+    State changes are visible to subsequent method calls within the same test.
+
+    When to Use Mutation:
+    --------------------
+    - Operations that simulate stateful external systems (git, databases)
+    - When tests need to verify sequences of operations
+    - When simulating side effects visible to production code
+
+    Constructor Injection:
+    ---------------------
+    All INITIAL state is provided via constructor (immutable after construction).
+    Runtime mutations occur through operation methods.
+    Tests should construct fakes with complete initial state.
+
+    Mutation Tracking:
+    -----------------
+    This fake tracks mutations for test assertions via read-only properties:
+    - deleted_branches: Branches deleted via delete_branch_with_graphite()
+    - added_worktrees: Worktrees added via add_worktree()
+    - removed_worktrees: Worktrees removed via remove_worktree()
+    - checked_out_branches: Branches checked out via checkout_branch()
+
+    Examples:
+    ---------
+        # Initial state via constructor
+        git_ops = FakeGitOps(
+            worktrees={repo: [WorktreeInfo(path=wt1, branch="main")]},
+            current_branches={wt1: "main"},
+            git_common_dirs={repo: repo / ".git"},
+        )
+
+        # Mutation through operation
+        git_ops.add_worktree(repo, wt2, branch="feature")
+
+        # Verify mutation
+        assert len(git_ops.list_worktrees(repo)) == 2
+        assert (wt2, "feature") in git_ops.added_worktrees
+
+        # Verify sequence of operations
+        git_ops.checkout_branch(repo, "feature")
+        git_ops.delete_branch_with_graphite(repo, "old-feature", force=True)
+        assert (repo, "feature") in git_ops.checked_out_branches
+        assert "old-feature" in git_ops.deleted_branches
     """
 
     def __init__(
@@ -38,7 +83,12 @@ class FakeGitOps(GitOps):
         self._current_branches = current_branches or {}
         self._default_branches = default_branches or {}
         self._git_common_dirs = git_common_dirs or {}
+
+        # Mutation tracking
         self._deleted_branches: list[str] = []
+        self._added_worktrees: list[tuple[Path, str | None]] = []
+        self._removed_worktrees: list[Path] = []
+        self._checked_out_branches: list[tuple[Path, str]] = []
 
     def list_worktrees(self, repo_root: Path) -> list[WorktreeInfo]:
         """List all worktrees in the repository."""
@@ -74,6 +124,8 @@ class FakeGitOps(GitOps):
         self._worktrees[repo_root].append(WorktreeInfo(path=path, branch=branch))
         # Create the worktree directory to simulate git worktree add behavior
         path.mkdir(parents=True, exist_ok=True)
+        # Track the addition
+        self._added_worktrees.append((path, branch))
 
     def move_worktree(self, repo_root: Path, old_path: Path, new_path: Path) -> None:
         """Move a worktree (mutates internal state and simulates filesystem move)."""
@@ -92,6 +144,8 @@ class FakeGitOps(GitOps):
             self._worktrees[repo_root] = [
                 wt for wt in self._worktrees[repo_root] if wt.path != path
             ]
+        # Track the removal
+        self._removed_worktrees.append(path)
 
     def checkout_branch(self, cwd: Path, branch: str) -> None:
         """Checkout a branch (mutates internal state)."""
@@ -102,6 +156,8 @@ class FakeGitOps(GitOps):
                 if wt.path.resolve() == cwd.resolve():
                     self._worktrees[repo_root][i] = WorktreeInfo(path=wt.path, branch=branch)
                     break
+        # Track the checkout
+        self._checked_out_branches.append((cwd, branch))
 
     def delete_branch_with_graphite(self, repo_root: Path, branch: str, *, force: bool) -> None:
         """Track which branches were deleted (mutates internal state)."""
@@ -125,4 +181,30 @@ class FakeGitOps(GitOps):
 
         This property is for test assertions only.
         """
-        return self._deleted_branches
+        return self._deleted_branches.copy()
+
+    @property
+    def added_worktrees(self) -> list[tuple[Path, str | None]]:
+        """Get list of worktrees added during test.
+
+        Returns list of (path, branch) tuples.
+        This property is for test assertions only.
+        """
+        return self._added_worktrees.copy()
+
+    @property
+    def removed_worktrees(self) -> list[Path]:
+        """Get list of worktrees removed during test.
+
+        This property is for test assertions only.
+        """
+        return self._removed_worktrees.copy()
+
+    @property
+    def checked_out_branches(self) -> list[tuple[Path, str]]:
+        """Get list of branches checked out during test.
+
+        Returns list of (cwd, branch) tuples.
+        This property is for test assertions only.
+        """
+        return self._checked_out_branches.copy()
