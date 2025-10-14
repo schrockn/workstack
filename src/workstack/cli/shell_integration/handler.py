@@ -7,6 +7,7 @@ from typing import Final
 from click.testing import CliRunner
 
 from workstack.cli.commands.create import create
+from workstack.cli.commands.jump import jump_cmd
 from workstack.cli.commands.prepare_cwd_recovery import generate_recovery_script
 from workstack.cli.commands.switch import switch_cmd
 from workstack.cli.debug import debug_log
@@ -44,6 +45,7 @@ def _invoke_hidden_command(command_name: str, args: tuple[str, ...]) -> ShellInt
     command_map = {
         "switch": switch_cmd,
         "create": create,
+        "jump": jump_cmd,
     }
 
     command = command_map.get(command_name)
