@@ -148,7 +148,18 @@ class FakeGitOps(GitOps):
         self._removed_worktrees.append(path)
 
     def checkout_branch(self, cwd: Path, branch: str) -> None:
-        """Checkout a branch (mutates internal state)."""
+        """Checkout a branch (mutates internal state).
+
+        Validates that the branch is not already checked out in another worktree,
+        matching Git's behavior.
+        """
+        # Check if branch is already checked out in a different worktree
+        for repo_root, worktrees in self._worktrees.items():
+            for wt in worktrees:
+                if wt.branch == branch and wt.path.resolve() != cwd.resolve():
+                    msg = f"fatal: '{branch}' is already checked out at '{wt.path}'"
+                    raise RuntimeError(msg)
+
         self._current_branches[cwd] = branch
         # Update worktree branch in the worktrees list
         for repo_root, worktrees in self._worktrees.items():
@@ -158,6 +169,17 @@ class FakeGitOps(GitOps):
                     break
         # Track the checkout
         self._checked_out_branches.append((cwd, branch))
+
+    def checkout_detached(self, cwd: Path, ref: str) -> None:
+        """Checkout a detached HEAD (mutates internal state)."""
+        # Detached HEAD means no branch is checked out (branch=None)
+        self._current_branches[cwd] = None
+        # Update worktree to show detached HEAD state
+        for repo_root, worktrees in self._worktrees.items():
+            for i, wt in enumerate(worktrees):
+                if wt.path.resolve() == cwd.resolve():
+                    self._worktrees[repo_root][i] = WorktreeInfo(path=wt.path, branch=None)
+                    break
 
     def delete_branch_with_graphite(self, repo_root: Path, branch: str, *, force: bool) -> None:
         """Track which branches were deleted (mutates internal state)."""
