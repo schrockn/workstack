@@ -573,7 +573,9 @@ def test_move_to_root() -> None:
         test_ctx = create_test_context(git_ops=git_ops, global_config_ops=global_config_ops)
 
         # Move from feature-wt to root (should swap branches)
-        result = runner.invoke(cli, ["move", "--worktree", "feature-wt", "root", "--force"], obj=test_ctx)
+        result = runner.invoke(
+            cli, ["move", "--worktree", "feature-wt", "root", "--force"], obj=test_ctx
+        )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
         assert "Swapping branches" in result.output
@@ -595,6 +597,7 @@ def test_move_to_root_with_explicit_current() -> None:
 
         # Simulate current directory being source_wt
         import os
+
         os.chdir(source_wt)
         # Get the resolved current directory after chdir
         current_dir = Path.cwd().resolve()

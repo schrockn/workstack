@@ -349,7 +349,12 @@ def move_cmd(
 
     # Resolve source worktree
     source_wt = resolve_source_worktree(
-        ctx, repo.root, current=current, branch=branch, worktree=worktree, workstacks_dir=workstacks_dir
+        ctx,
+        repo.root,
+        current=current,
+        branch=branch,
+        worktree=worktree,
+        workstacks_dir=workstacks_dir,
     )
 
     # Resolve target worktree path

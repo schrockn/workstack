@@ -188,7 +188,9 @@ def sync_cmd(ctx: WorkstackContext, force: bool, dry_run: bool, script: bool) ->
                 f"Remove {len(deletable)} worktree(s)?", default=False, err=script
             ):
                 _emit("Cleanup cancelled.", script_mode=script)
-                _return_to_original_worktree(workstacks_dir, current_worktree_name, script_mode=script)
+                _return_to_original_worktree(
+                    workstacks_dir, current_worktree_name, script_mode=script
+                )
                 return
 
         # Remove each worktree
