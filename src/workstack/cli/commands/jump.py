@@ -5,6 +5,7 @@ from pathlib import Path
 
 import click
 
+from workstack.cli.activation import render_activation_script
 from workstack.cli.core import (
     discover_repo_context,
 )
@@ -14,45 +15,23 @@ from workstack.core.context import WorkstackContext
 from workstack.core.gitops import WorktreeInfo
 
 
-def render_activation_script(
-    *, worktree_path: Path, final_message: str = 'echo "Activated worktree: $(pwd)"'
-) -> str:
-    """Return shell code that activates a worktree's venv and .env.
-
-    The script:
-      - cds into the worktree
-      - creates .venv with `uv sync` if not present
-      - sources `.venv/bin/activate` if present
-      - exports variables from `.env` if present
-    Works in bash and zsh.
+def _format_worktree_info(wt: WorktreeInfo, repo_root: Path) -> str:
+    """Format worktree information for display.
 
     Args:
-        worktree_path: Path to the worktree directory
-        final_message: Shell command for final echo message (default shows activation)
+        wt: WorktreeInfo to format
+        repo_root: Path to repository root (used to identify root worktree)
+
+    Returns:
+        Formatted string like "root (currently on 'main')" or "wt-name (currently on 'feature')"
     """
-    wt = str(worktree_path)
-    venv_activate = worktree_path / ".venv" / "bin" / "activate"
-    lines: list[str] = [
-        "# work activate-script",  # comment for visibility
-        f"cd '{wt}'",
-        "# Unset VIRTUAL_ENV to avoid conflicts with previous activations",
-        "unset VIRTUAL_ENV",
-        "# Create venv if it doesn't exist",
-        f"if [ ! -d '{str(worktree_path / '.venv')}' ]; then",
-        "  echo 'Creating virtual environment with uv sync...'",
-        "  uv sync",
-        "fi",
-        f"if [ -f '{str(venv_activate)}' ]; then",
-        f"  . '{str(venv_activate)}'",
-        "fi",
-        "# Load .env into the environment (allexport)",
-        "set -a",
-        "if [ -f ./.env ]; then . ./.env; fi",
-        "set +a",
-        "# Optional: show where we are",
-        final_message,
-    ]
-    return "\n".join(lines) + "\n"
+    current = wt.branch or "(detached HEAD)"
+    if wt.path == repo_root:
+        return f"  - root (currently on '{current}')"
+    else:
+        # Get worktree name from path
+        wt_name = wt.path.name
+        return f"  - {wt_name} (currently on '{current}')"
 
 
 def _perform_jump(
@@ -203,13 +182,7 @@ def jump_cmd(ctx: WorkstackContext, branch: str, script: bool) -> None:
             # Show error message listing all options
             click.echo(f"Branch '{branch}' exists in multiple worktrees:", err=True)
             for wt in matching_worktrees:
-                current = wt.branch or "(detached HEAD)"
-                if wt.path == repo.root:
-                    click.echo(f"  - root (currently on '{current}')", err=True)
-                else:
-                    # Get worktree name from path
-                    wt_name = wt.path.name
-                    click.echo(f"  - {wt_name} (currently on '{current}')", err=True)
+                click.echo(_format_worktree_info(wt, repo.root), err=True)
 
             click.echo("\nUse 'workstack switch' to choose a specific worktree first.", err=True)
             raise SystemExit(1)
