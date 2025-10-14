@@ -214,22 +214,8 @@ def sync_cmd(ctx: WorkstackContext, force: bool, dry_run: bool, script: bool) ->
         # Step 6.5: Automatically run second gt sync -f to delete branches (when force=True)
         if force and not dry_run and deletable:
             _emit("\nDeleting merged branches...", script_mode=script)
-            try:
-                ctx.graphite_ops.sync(repo.root, force=True)
-                _emit("✓ Merged branches deleted.", script_mode=script)
-            except subprocess.CalledProcessError as e:
-                _emit(
-                    f"Warning: gt sync -f failed with exit code {e.returncode}",
-                    script_mode=script,
-                    error=True,
-                )
-                # Non-fatal: worktrees already cleaned up
-            except FileNotFoundError:
-                _emit(
-                    "Warning: 'gt' command not found for branch cleanup",
-                    script_mode=script,
-                    error=True,
-                )
+            ctx.graphite_ops.sync(repo.root, force=True)
+            _emit("✓ Merged branches deleted.", script_mode=script)
 
         # Only show manual instruction if force was not used
         if not force:
