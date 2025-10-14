@@ -48,7 +48,7 @@ def test_move_from_current_to_new_worktree() -> None:
         result = runner.invoke(cli, ["move", "target-wt"], obj=test_ctx)
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
-        assert "Creating worktree 'target-wt' with branch 'feature-x'" in result.output
+        assert "Moving 'feature-x'" in result.output
         assert "✓ Moved 'feature-x'" in result.output
 
         worktrees = git_ops.list_worktrees(repo_root)
@@ -93,7 +93,7 @@ def test_move_with_explicit_current_flag() -> None:
         result = runner.invoke(cli, ["move", "--current", "new-wt"], obj=test_ctx)
 
         assert result.exit_code == 0
-        assert "Creating worktree 'new-wt' with branch 'feature-y'" in result.output
+        assert "Moving 'feature-y'" in result.output
 
 
 def test_move_with_branch_flag_auto_detect() -> None:
@@ -134,7 +134,7 @@ def test_move_with_branch_flag_auto_detect() -> None:
         result = runner.invoke(cli, ["move", "--branch", "feature-auth", "new-wt"], obj=test_ctx)
 
         assert result.exit_code == 0
-        assert "Creating worktree 'new-wt' with branch 'feature-auth'" in result.output
+        assert "Moving 'feature-auth'" in result.output
 
 
 def test_move_with_worktree_flag() -> None:
@@ -175,7 +175,7 @@ def test_move_with_worktree_flag() -> None:
         result = runner.invoke(cli, ["move", "--worktree", "source-wt", "target-wt"], obj=test_ctx)
 
         assert result.exit_code == 0
-        assert "Creating worktree 'target-wt' with branch 'feature-db'" in result.output
+        assert "Moving 'feature-db'" in result.output
 
 
 def test_move_swap_between_two_worktrees() -> None:
@@ -300,7 +300,7 @@ def test_move_with_custom_ref() -> None:
         result = runner.invoke(cli, ["move", "new-wt", "--ref", "develop"], obj=test_ctx)
 
         assert result.exit_code == 0
-        assert "Checking out 'develop'" in result.output
+        assert "Moving 'feature-x'" in result.output
 
 
 def test_move_error_multiple_source_flags() -> None:
@@ -532,7 +532,7 @@ def test_move_to_existing_worktree_in_detached_head() -> None:
         result = runner.invoke(cli, ["move", "--worktree", "source", "target"], obj=test_ctx)
 
         assert result.exit_code == 0
-        assert "Checking out 'feature-x' in 'target'" in result.output
+        assert "Moving 'feature-x'" in result.output
         assert "✓ Moved 'feature-x'" in result.output
 
 
@@ -628,6 +628,50 @@ def test_move_to_root_with_explicit_current() -> None:
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
         assert "Swapping branches" in result.output or "Moved" in result.output
+
+
+def test_move_to_root_when_root_is_detached_head() -> None:
+    """Test moving to root when root is in detached HEAD state (move operation)."""
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        cwd = Path.cwd()
+        repo_root = cwd
+        workstacks_root = cwd / "workstacks"
+        workstacks_dir = workstacks_root / repo_root.name
+        workstacks_dir.mkdir(parents=True)
+        (repo_root / ".git").mkdir()
+
+        source_wt = workstacks_dir / "feature-wt"
+        source_wt.mkdir(parents=True)
+
+        git_ops = FakeGitOps(
+            worktrees={
+                repo_root: [
+                    WorktreeInfo(path=repo_root, branch=None),  # Detached HEAD at root
+                    WorktreeInfo(path=source_wt, branch="feature-x"),
+                ],
+            },
+            git_common_dirs={
+                cwd: repo_root / ".git",
+                source_wt: repo_root / ".git",
+                repo_root: repo_root / ".git",
+            },
+            default_branches={repo_root: "main"},
+        )
+
+        global_config_ops = FakeGlobalConfigOps(
+            workstacks_root=workstacks_root,
+            use_graphite=False,
+        )
+
+        test_ctx = create_test_context(git_ops=git_ops, global_config_ops=global_config_ops)
+
+        # Move from feature-wt to root (should be a move, not swap, since root is detached)
+        result = runner.invoke(cli, ["move", "--worktree", "feature-wt", "root"], obj=test_ctx)
+
+        assert result.exit_code == 0, f"Command failed: {result.output}"
+        assert "Moving 'feature-x'" in result.output
+        assert "✓ Moved 'feature-x'" in result.output
 
 
 def test_move_error_source_is_root_target_is_root() -> None:

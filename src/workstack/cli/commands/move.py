@@ -211,6 +211,14 @@ def execute_move(
 
     target_exists = target_wt.exists()
 
+    # To move branch from source to target, we need to avoid having the same branch
+    # checked out in two places simultaneously. Strategy:
+    # 1. Detach HEAD in source worktree (frees up source_branch)
+    # 2. Create/checkout source_branch in target worktree
+    # 3. Checkout fallback_ref in source worktree
+    click.echo(f"Moving '{source_branch}' from '{source_wt.name}' to '{target_wt.name}'")
+    ctx.git_ops.checkout_detached(source_wt, source_branch)
+
     if target_exists:
         # Target exists - check for uncommitted changes
         if _has_uncommitted_changes(target_wt) and not force:
@@ -221,18 +229,21 @@ def execute_move(
             )
             raise SystemExit(1)
 
-        # Checkout branch in target
-        click.echo(f"Checking out '{source_branch}' in '{target_wt.name}'")
+        # Checkout branch in existing target
         ctx.git_ops.checkout_branch(target_wt, source_branch)
     else:
         # Create new worktree with branch
-        click.echo(f"Creating worktree '{target_wt.name}' with branch '{source_branch}'")
         ctx.git_ops.add_worktree(
             repo_root, target_wt, branch=source_branch, ref=None, create_branch=False
         )
 
+    # Check if fallback_ref is already checked out elsewhere, and detach it if needed
+    fallback_wt = ctx.git_ops.is_branch_checked_out(repo_root, fallback_ref)
+    if fallback_wt is not None and fallback_wt.resolve() != source_wt.resolve():
+        # Fallback branch is checked out in another worktree, detach it first
+        ctx.git_ops.checkout_detached(fallback_wt, fallback_ref)
+
     # Switch source to fallback branch
-    click.echo(f"Checking out '{fallback_ref}' in '{source_wt.name}'")
     ctx.git_ops.checkout_branch(source_wt, fallback_ref)
 
     click.echo(f"✓ Moved '{source_branch}' from '{source_wt.name}' to '{target_wt.name}'")
@@ -278,11 +289,14 @@ def execute_swap(
 
     click.echo(f"Swapping branches between '{source_wt.name}' and '{target_wt.name}'")
 
-    # Git allows checking out a branch in one worktree even if it's checked out in another,
-    # as long as we do it in the right order. First checkout target's branch in source,
-    # then source's original branch becomes available for target.
-    ctx.git_ops.checkout_branch(source_wt, target_branch)
+    # To swap branches between worktrees, we need to avoid having the same branch
+    # checked out in two places simultaneously. Strategy:
+    # 1. Detach HEAD in source worktree (frees up source_branch)
+    # 2. Checkout source_branch in target worktree
+    # 3. Checkout target_branch in source worktree
+    ctx.git_ops.checkout_detached(source_wt, source_branch)
     ctx.git_ops.checkout_branch(target_wt, source_branch)
+    ctx.git_ops.checkout_branch(source_wt, target_branch)
 
     click.echo(f"✓ Swapped '{source_branch}' ↔ '{target_branch}'")
 

@@ -100,6 +100,11 @@ class GitOps(ABC):
         ...
 
     @abstractmethod
+    def checkout_detached(self, cwd: Path, ref: str) -> None:
+        """Checkout a detached HEAD at the given ref (commit SHA, branch, etc)."""
+        ...
+
+    @abstractmethod
     def delete_branch_with_graphite(self, repo_root: Path, branch: str, *, force: bool) -> None:
         """Delete a branch using Graphite's gt delete command."""
         ...
@@ -277,6 +282,16 @@ class RealGitOps(GitOps):
             text=True,
         )
 
+    def checkout_detached(self, cwd: Path, ref: str) -> None:
+        """Checkout a detached HEAD at the given ref."""
+        subprocess.run(
+            ["git", "checkout", "--detach", ref],
+            cwd=cwd,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
     def delete_branch_with_graphite(self, repo_root: Path, branch: str, *, force: bool) -> None:
         """Delete a branch using Graphite's gt delete command."""
         cmd = ["gt", "delete", branch]
@@ -345,6 +360,10 @@ class DryRunGitOps(GitOps):
     def checkout_branch(self, cwd: Path, branch: str) -> None:
         """Checkout branch (delegates to wrapped - considered read-only for dry-run)."""
         return self._wrapped.checkout_branch(cwd, branch)
+
+    def checkout_detached(self, cwd: Path, ref: str) -> None:
+        """Checkout detached HEAD (delegates to wrapped - considered read-only for dry-run)."""
+        return self._wrapped.checkout_detached(cwd, ref)
 
     # Destructive operations: print dry-run message instead of executing
 

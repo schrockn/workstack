@@ -332,11 +332,12 @@ def switch_cmd(ctx: WorkstackContext, name: str | None, script: bool, up: bool, 
             )
             click.echo(str(script_path), nl=False)
         else:
+            click.echo(f"Switched to root repo: {root_path}")
             click.echo(
-                "Shell integration not detected. "
+                "\nShell integration not detected. "
                 "Run 'workstack init --shell' to set up automatic activation."
             )
-            click.echo("\nOr use: source <(workstack switch root --script)")
+            click.echo("Or use: source <(workstack switch root --script)")
         return
 
     workstacks_dir = ensure_workstacks_dir(repo)
