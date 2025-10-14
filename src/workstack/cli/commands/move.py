@@ -89,6 +89,30 @@ def _find_worktree_with_branch(ctx: WorkstackContext, repo_root: Path, branch: s
     return None
 
 
+def _resolve_current_worktree(ctx: WorkstackContext, repo_root: Path) -> Path:
+    """Find worktree containing current directory.
+
+    Raises SystemExit if not in a git repository or not in any worktree.
+    """
+    git_common_dir = ctx.git_ops.get_git_common_dir(Path.cwd())
+    if git_common_dir is None:
+        click.echo("Error: Not in a git repository", err=True)
+        raise SystemExit(1)
+
+    cwd = Path.cwd().resolve()
+    worktrees = ctx.git_ops.list_worktrees(repo_root)
+    wt_path = _find_worktree_containing_path(worktrees, cwd)
+    if wt_path is None:
+        click.echo(
+            f"Error: Current directory ({cwd}) is not in any worktree.\n"
+            f"Either run this from within a worktree, or use --worktree or "
+            f"--branch to specify the source.",
+            err=True,
+        )
+        raise SystemExit(1)
+    return wt_path
+
+
 def resolve_source_worktree(
     ctx: WorkstackContext,
     repo_root: Path,
@@ -112,36 +136,9 @@ def resolve_source_worktree(
         )
         raise SystemExit(1)
 
-    if flag_count == 0:
-        # Default to current worktree
-        git_common_dir = ctx.git_ops.get_git_common_dir(Path.cwd())
-        if git_common_dir is None:
-            click.echo("Error: Not in a git repository", err=True)
-            raise SystemExit(1)
-
-        # Find which worktree contains current directory
-        cwd = Path.cwd().resolve()
-        worktrees = ctx.git_ops.list_worktrees(repo_root)
-        wt_path = _find_worktree_containing_path(worktrees, cwd)
-        if wt_path is None:
-            click.echo("Error: Current directory is not in any worktree", err=True)
-            raise SystemExit(1)
-        return wt_path
-
-    if current:
-        git_common_dir = ctx.git_ops.get_git_common_dir(Path.cwd())
-        if git_common_dir is None:
-            click.echo("Error: Not in a git repository", err=True)
-            raise SystemExit(1)
-
-        # Find which worktree contains current directory
-        cwd = Path.cwd().resolve()
-        worktrees = ctx.git_ops.list_worktrees(repo_root)
-        wt_path = _find_worktree_containing_path(worktrees, cwd)
-        if wt_path is None:
-            click.echo("Error: Current directory is not in any worktree", err=True)
-            raise SystemExit(1)
-        return wt_path
+    if flag_count == 0 or current:
+        # Default to current worktree (either no flags or --current explicitly set)
+        return _resolve_current_worktree(ctx, repo_root)
 
     if branch:
         # Find worktree containing this branch
