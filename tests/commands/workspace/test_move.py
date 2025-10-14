@@ -630,6 +630,50 @@ def test_move_to_root_with_explicit_current() -> None:
         assert "Swapping branches" in result.output or "Moved" in result.output
 
 
+def test_move_to_root_when_root_is_detached_head() -> None:
+    """Test moving to root when root is in detached HEAD state (move operation)."""
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        cwd = Path.cwd()
+        repo_root = cwd
+        workstacks_root = cwd / "workstacks"
+        workstacks_dir = workstacks_root / repo_root.name
+        workstacks_dir.mkdir(parents=True)
+        (repo_root / ".git").mkdir()
+
+        source_wt = workstacks_dir / "feature-wt"
+        source_wt.mkdir(parents=True)
+
+        git_ops = FakeGitOps(
+            worktrees={
+                repo_root: [
+                    WorktreeInfo(path=repo_root, branch=None),  # Detached HEAD at root
+                    WorktreeInfo(path=source_wt, branch="feature-x"),
+                ],
+            },
+            git_common_dirs={
+                cwd: repo_root / ".git",
+                source_wt: repo_root / ".git",
+                repo_root: repo_root / ".git",
+            },
+            default_branches={repo_root: "main"},
+        )
+
+        global_config_ops = FakeGlobalConfigOps(
+            workstacks_root=workstacks_root,
+            use_graphite=False,
+        )
+
+        test_ctx = create_test_context(git_ops=git_ops, global_config_ops=global_config_ops)
+
+        # Move from feature-wt to root (should be a move, not swap, since root is detached)
+        result = runner.invoke(cli, ["move", "--worktree", "feature-wt", "root"], obj=test_ctx)
+
+        assert result.exit_code == 0, f"Command failed: {result.output}"
+        assert "Moving 'feature-x'" in result.output
+        assert "✓ Moved 'feature-x'" in result.output
+
+
 def test_move_error_source_is_root_target_is_root() -> None:
     """Test error when trying to move root to root."""
     runner = CliRunner()
