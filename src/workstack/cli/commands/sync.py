@@ -211,7 +211,18 @@ def sync_cmd(ctx: WorkstackContext, force: bool, dry_run: bool, script: bool) ->
                     dry_run=False,
                 )
 
-        _emit("\nNext step: Run 'gt sync -f' to delete the merged branches.", script_mode=script)
+        # Step 6.5: Automatically run second gt sync -f to delete branches (when force=True)
+        if force and not dry_run and deletable:
+            _emit("\nDeleting merged branches...", script_mode=script)
+            ctx.graphite_ops.sync(repo.root, force=True)
+            _emit("✓ Merged branches deleted.", script_mode=script)
+
+        # Only show manual instruction if force was not used
+        if not force:
+            _emit(
+                "\nNext step: Run 'workstack sync -f' to automatically delete the merged branches.",
+                script_mode=script,
+            )
 
     # Step 7: Return to original worktree
     script_output_path: Path | None = None
