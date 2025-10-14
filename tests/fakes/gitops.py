@@ -154,7 +154,7 @@ class FakeGitOps(GitOps):
         matching Git's behavior.
         """
         # Check if branch is already checked out in a different worktree
-        for repo_root, worktrees in self._worktrees.items():
+        for _repo_root, worktrees in self._worktrees.items():
             for wt in worktrees:
                 if wt.branch == branch and wt.path.resolve() != cwd.resolve():
                     msg = f"fatal: '{branch}' is already checked out at '{wt.path}'"
