@@ -48,13 +48,13 @@ The main git repository directory containing `.git/` directory.
 
 **Note**: In a worktree, `git rev-parse --git-common-dir` points back to the repo root's `.git` directory.
 
-### Work Dir
+### Workstacks Dir
 
 The directory containing all workstacks for a specific repository.
 
 **Path structure**: `{workstacks_root}/{repo_name}/`
 
-**Example**: If `workstacks_root = ~/worktrees` and repo is named `workstack`, then `work_dir = ~/worktrees/workstack/`
+**Example**: If `workstacks_root = ~/worktrees` and repo is named `workstack`, then `workstacks_dir = ~/worktrees/workstack/`
 
 **Contents**:
 
@@ -75,11 +75,11 @@ workstacks_root = "/Users/you/worktrees"
 
 ```
 ~/worktrees/                    ← workstacks root
-  ├── workstack/                ← work dir for "workstack" repo
+  ├── workstack/                ← workstacks dir for "workstack" repo
   │   ├── feature-a/           ← individual workstack
   │   ├── feature-b/           ← individual workstack
   │   └── config.toml
-  ├── other-project/            ← work dir for another repo
+  ├── other-project/            ← workstacks dir for another repo
   │   └── ...
 ```
 
@@ -87,11 +87,11 @@ workstacks_root = "/Users/you/worktrees"
 
 The absolute path to a specific workstack directory.
 
-**Construction**: `{work_dir}/{worktree_name}`
+**Construction**: `{workstacks_dir}/{worktree_name}`
 
 **Example**: `~/worktrees/workstack/my-feature/`
 
-**Code**: `worktree_path_for(repo.work_dir, "my-feature")`
+**Code**: `worktree_path_for(repo.workstacks_dir, "my-feature")`
 
 ---
 
@@ -151,7 +151,7 @@ shell_setup_complete = true
 
 ### Repo Config
 
-Configuration stored in `{work_dir}/config.toml`.
+Configuration stored in `{workstacks_dir}/config.toml`.
 
 **Scope**: Applies to all workstacks for a specific repository.
 
@@ -169,7 +169,7 @@ command = ["uv", "sync"]
 working_dir = "."
 ```
 
-**Access**: Via `load_config(work_dir)` function.
+**Access**: Via `load_config(workstacks_dir)` function.
 
 ---
 
@@ -186,7 +186,7 @@ A frozen dataclass containing repository information.
 class RepoContext:
     root: Path        # Repo root directory
     repo_name: str    # Repository name
-    work_dir: Path    # Workstacks directory for this repo
+    workstacks_dir: Path    # Workstacks directory for this repo
 ```
 
 **Creation**: `discover_repo_context(ctx, Path.cwd())`

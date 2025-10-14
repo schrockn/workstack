@@ -3,7 +3,7 @@ from pathlib import Path
 import click
 
 from workstack.cli.config import LoadedConfig, load_config
-from workstack.cli.core import discover_repo_context, ensure_work_dir
+from workstack.cli.core import discover_repo_context, ensure_workstacks_dir
 from workstack.core.context import WorkstackContext
 
 
@@ -78,8 +78,8 @@ def config_list(ctx: WorkstackContext) -> None:
     # Try to load repo config
     try:
         repo = discover_repo_context(ctx, Path.cwd())
-        work_dir = ensure_work_dir(repo)
-        cfg = load_config(work_dir)
+        workstacks_dir = ensure_workstacks_dir(repo)
+        cfg = load_config(workstacks_dir)
 
         click.echo(click.style("\nRepository configuration:", bold=True))
         if cfg.env:
@@ -123,8 +123,8 @@ def config_get(ctx: WorkstackContext, key: str) -> None:
     # Handle repo config keys
     try:
         repo = discover_repo_context(ctx, Path.cwd())
-        work_dir = ensure_work_dir(repo)
-        cfg = load_config(work_dir)
+        workstacks_dir = ensure_workstacks_dir(repo)
+        cfg = load_config(workstacks_dir)
 
         if parts[0] == "env":
             _get_env_value(cfg, parts, key)

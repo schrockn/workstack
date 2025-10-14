@@ -25,17 +25,17 @@ def test_list_outputs_names_not_paths() -> None:
 
         # Create worktrees in the location determined by global config
         repo_name = cwd.name
-        work_dir = workstacks_root / repo_name
-        (work_dir / "foo").mkdir(parents=True)
-        (work_dir / "bar").mkdir(parents=True)
+        workstacks_dir = workstacks_root / repo_name
+        (workstacks_dir / "foo").mkdir(parents=True)
+        (workstacks_dir / "bar").mkdir(parents=True)
 
         # Build fake git ops with worktree info
         git_ops = FakeGitOps(
             worktrees={
                 cwd: [
                     WorktreeInfo(path=cwd, branch="main"),
-                    WorktreeInfo(path=work_dir / "foo", branch="foo"),
-                    WorktreeInfo(path=work_dir / "bar", branch="feature/bar"),
+                    WorktreeInfo(path=workstacks_dir / "foo", branch="foo"),
+                    WorktreeInfo(path=workstacks_dir / "bar", branch="feature/bar"),
                 ],
             },
             git_common_dirs={cwd: cwd / ".git"},
@@ -72,6 +72,6 @@ def test_list_outputs_names_not_paths() -> None:
         # Remaining lines should be worktrees with paths, sorted
         worktree_lines = sorted(lines[1:])
         assert worktree_lines == [
-            f"bar [{work_dir / 'bar'}]",
-            f"foo [{work_dir / 'foo'}]",
+            f"bar [{workstacks_dir / 'bar'}]",
+            f"foo [{workstacks_dir / 'foo'}]",
         ]

@@ -2,7 +2,7 @@ from pathlib import Path
 
 import click
 
-from workstack.cli.core import discover_repo_context, ensure_work_dir
+from workstack.cli.core import discover_repo_context, ensure_workstacks_dir
 from workstack.core.context import WorkstackContext
 
 
@@ -29,7 +29,7 @@ def gc_cmd(ctx: WorkstackContext, debug: bool) -> None:
             click.echo(click.style(msg, fg="bright_black"))
 
     repo = discover_repo_context(ctx, Path.cwd())
-    work_dir = ensure_work_dir(repo)
+    workstacks_dir = ensure_workstacks_dir(repo)
 
     # Get all worktree branches
     debug_print("$ git worktree list --porcelain")
@@ -54,10 +54,10 @@ def gc_cmd(ctx: WorkstackContext, debug: bool) -> None:
             continue
 
         # Check if this is a managed workstack
-        if not wt_path.parent == work_dir:
+        if not wt_path.parent == workstacks_dir:
             debug_print(
                 f"Skipping non-managed worktree: {wt_path} "
-                f"(parent: {wt_path.parent}, expected: {work_dir})"
+                f"(parent: {wt_path.parent}, expected: {workstacks_dir})"
             )
             continue
 

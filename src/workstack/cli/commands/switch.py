@@ -5,7 +5,7 @@ import click
 from workstack.cli.core import (
     RepoContext,
     discover_repo_context,
-    ensure_work_dir,
+    ensure_workstacks_dir,
     worktree_path_for,
 )
 from workstack.cli.debug import debug_log
@@ -196,10 +196,10 @@ def complete_worktree_names(
 
         names = ["root"] if "root".startswith(incomplete) else []
 
-        if repo.work_dir.exists():
+        if repo.workstacks_dir.exists():
             names.extend(
                 p.name
-                for p in repo.work_dir.iterdir()
+                for p in repo.workstacks_dir.iterdir()
                 if p.is_dir() and p.name.startswith(incomplete)
             )
 
@@ -339,8 +339,8 @@ def switch_cmd(ctx: WorkstackContext, name: str | None, script: bool, up: bool, 
             click.echo("\nOr use: source <(workstack switch root --script)")
         return
 
-    work_dir = ensure_work_dir(repo)
-    wt_path = worktree_path_for(work_dir, target_name)
+    workstacks_dir = ensure_workstacks_dir(repo)
+    wt_path = worktree_path_for(workstacks_dir, target_name)
 
     if not wt_path.exists():
         click.echo(f"Worktree not found: {wt_path}", err=True)

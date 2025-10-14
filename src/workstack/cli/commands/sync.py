@@ -5,7 +5,7 @@ from pathlib import Path
 import click
 
 from workstack.cli.commands.remove import _remove_worktree
-from workstack.cli.core import discover_repo_context, ensure_work_dir, worktree_path_for
+from workstack.cli.core import discover_repo_context, ensure_workstacks_dir, worktree_path_for
 from workstack.cli.shell_utils import render_cd_script, write_script_to_temp
 from workstack.core.context import WorkstackContext
 
@@ -28,7 +28,7 @@ def _emit(message: str, *, script_mode: bool, error: bool = False) -> None:
 
 
 def _return_to_original_worktree(
-    work_dir: Path, current_worktree_name: str | None, *, script_mode: bool
+    workstacks_dir: Path, current_worktree_name: str | None, *, script_mode: bool
 ) -> None:
     """Return to original worktree if it exists.
 
@@ -38,7 +38,7 @@ def _return_to_original_worktree(
     if current_worktree_name is None:
         return
 
-    wt_path = worktree_path_for(work_dir, current_worktree_name)
+    wt_path = worktree_path_for(workstacks_dir, current_worktree_name)
     if not wt_path.exists():
         return
 
@@ -98,13 +98,13 @@ def sync_cmd(ctx: WorkstackContext, force: bool, dry_run: bool, script: bool) ->
 
     # Step 2: Save current location
     repo = discover_repo_context(ctx, Path.cwd())
-    work_dir = ensure_work_dir(repo)
+    workstacks_dir = ensure_workstacks_dir(repo)
 
     # Determine current worktree (if any)
     current_wt_path = Path.cwd().resolve()
     current_worktree_name: str | None = None
 
-    if current_wt_path.parent == work_dir:
+    if current_wt_path.parent == workstacks_dir:
         current_worktree_name = current_wt_path.name
 
     # Step 3: Switch to root (only if not already at root)
@@ -155,7 +155,7 @@ def sync_cmd(ctx: WorkstackContext, force: bool, dry_run: bool, script: bool) ->
             continue
 
         # Skip non-managed worktrees
-        if wt.path.parent != work_dir:
+        if wt.path.parent != workstacks_dir:
             continue
 
         # Check PR status
@@ -188,7 +188,9 @@ def sync_cmd(ctx: WorkstackContext, force: bool, dry_run: bool, script: bool) ->
                 f"Remove {len(deletable)} worktree(s)?", default=False, err=script
             ):
                 _emit("Cleanup cancelled.", script_mode=script)
-                _return_to_original_worktree(work_dir, current_worktree_name, script_mode=script)
+                _return_to_original_worktree(
+                    workstacks_dir, current_worktree_name, script_mode=script
+                )
                 return
 
         # Remove each worktree
@@ -215,7 +217,7 @@ def sync_cmd(ctx: WorkstackContext, force: bool, dry_run: bool, script: bool) ->
     script_output_path: Path | None = None
 
     if current_worktree_name:
-        wt_path = worktree_path_for(work_dir, current_worktree_name)
+        wt_path = worktree_path_for(workstacks_dir, current_worktree_name)
 
         # Check if worktree still exists
         if wt_path.exists():

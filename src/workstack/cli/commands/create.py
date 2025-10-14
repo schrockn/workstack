@@ -8,7 +8,7 @@ from pathlib import Path
 import click
 
 from workstack.cli.config import LoadedConfig, load_config
-from workstack.cli.core import discover_repo_context, ensure_work_dir, worktree_path_for
+from workstack.cli.core import discover_repo_context, ensure_workstacks_dir, worktree_path_for
 from workstack.cli.shell_utils import render_cd_script, write_script_to_temp
 from workstack.core.context import WorkstackContext
 
@@ -397,9 +397,9 @@ def create(
         raise SystemExit(1)
 
     repo = discover_repo_context(ctx, Path.cwd())
-    work_dir = ensure_work_dir(repo)
-    cfg = load_config(work_dir)
-    wt_path = worktree_path_for(work_dir, name)
+    workstacks_dir = ensure_workstacks_dir(repo)
+    cfg = load_config(workstacks_dir)
+    wt_path = worktree_path_for(workstacks_dir, name)
 
     if wt_path.exists():
         click.echo(f"Worktree path already exists: {wt_path}")

@@ -52,8 +52,8 @@ def test_switch_up_with_existing_worktree() -> None:
     with runner.isolated_filesystem():
         cwd = Path.cwd()
         # Work dir is constructed as workstacks_root / repo_name, where repo_name = cwd.name
-        work_dir = cwd / "workstacks" / cwd.name
-        work_dir.mkdir(parents=True)
+        workstacks_dir = cwd / "workstacks" / cwd.name
+        workstacks_dir.mkdir(parents=True)
         git_dir = cwd / ".git"
         git_dir.mkdir()
 
@@ -68,7 +68,7 @@ def test_switch_up_with_existing_worktree() -> None:
         )
 
         # Set up worktrees
-        feature_1_path = work_dir / "feature-1"
+        feature_1_path = workstacks_dir / "feature-1"
         feature_1_path.mkdir(parents=True, exist_ok=True)
 
         # The test runs from cwd, so we simulate being in feature-1 by setting
@@ -77,8 +77,8 @@ def test_switch_up_with_existing_worktree() -> None:
             worktrees={
                 cwd: [
                     WorktreeInfo(path=cwd, branch="main"),
-                    WorktreeInfo(path=work_dir / "feature-1", branch="feature-1"),
-                    WorktreeInfo(path=work_dir / "feature-2", branch="feature-2"),
+                    WorktreeInfo(path=workstacks_dir / "feature-1", branch="feature-1"),
+                    WorktreeInfo(path=workstacks_dir / "feature-2", branch="feature-2"),
                 ]
             },
             current_branches={
@@ -106,8 +106,8 @@ def test_switch_up_with_existing_worktree() -> None:
 
         # Switch up from feature-1 to feature-2
         # Run from feature-1 worktree
-        (work_dir / "feature-1").mkdir(parents=True, exist_ok=True)
-        (work_dir / "feature-2").mkdir(parents=True, exist_ok=True)
+        (workstacks_dir / "feature-1").mkdir(parents=True, exist_ok=True)
+        (workstacks_dir / "feature-2").mkdir(parents=True, exist_ok=True)
 
         result = runner.invoke(
             cli, ["switch", "--up", "--script"], obj=test_ctx, catch_exceptions=False
@@ -121,7 +121,7 @@ def test_switch_up_with_existing_worktree() -> None:
         script_path = Path(result.stdout.strip())
         assert script_path.exists()
         script_content = script_path.read_text()
-        assert str(work_dir / "feature-2") in script_content
+        assert str(workstacks_dir / "feature-2") in script_content
 
 
 def test_switch_up_at_top_of_stack() -> None:
@@ -130,8 +130,8 @@ def test_switch_up_at_top_of_stack() -> None:
     with runner.isolated_filesystem():
         cwd = Path.cwd()
         # Work dir is constructed as workstacks_root / repo_name, where repo_name = cwd.name
-        work_dir = cwd / "workstacks" / cwd.name
-        work_dir.mkdir(parents=True)
+        workstacks_dir = cwd / "workstacks" / cwd.name
+        workstacks_dir.mkdir(parents=True)
         git_dir = cwd / ".git"
         git_dir.mkdir()
 
@@ -149,7 +149,7 @@ def test_switch_up_at_top_of_stack() -> None:
             worktrees={
                 cwd: [
                     WorktreeInfo(path=cwd, branch="main"),
-                    WorktreeInfo(path=work_dir / "feature-2", branch="feature-2"),
+                    WorktreeInfo(path=workstacks_dir / "feature-2", branch="feature-2"),
                 ]
             },
             current_branches={cwd: "feature-2"},  # Simulate being in feature-2 worktree
@@ -182,8 +182,8 @@ def test_switch_up_child_has_no_worktree() -> None:
     with runner.isolated_filesystem():
         cwd = Path.cwd()
         # Work dir is constructed as workstacks_root / repo_name, where repo_name = cwd.name
-        work_dir = cwd / "workstacks" / cwd.name
-        work_dir.mkdir(parents=True)
+        workstacks_dir = cwd / "workstacks" / cwd.name
+        workstacks_dir.mkdir(parents=True)
         git_dir = cwd / ".git"
         git_dir.mkdir()
 
@@ -202,7 +202,7 @@ def test_switch_up_child_has_no_worktree() -> None:
             worktrees={
                 cwd: [
                     WorktreeInfo(path=cwd, branch="main"),
-                    WorktreeInfo(path=work_dir / "feature-1", branch="feature-1"),
+                    WorktreeInfo(path=workstacks_dir / "feature-1", branch="feature-1"),
                 ]
             },
             current_branches={cwd: "feature-1"},  # Simulate being in feature-1 worktree
@@ -237,8 +237,8 @@ def test_switch_down_with_existing_worktree() -> None:
     with runner.isolated_filesystem():
         cwd = Path.cwd()
         # Work dir is constructed as workstacks_root / repo_name, where repo_name = cwd.name
-        work_dir = cwd / "workstacks" / cwd.name
-        work_dir.mkdir(parents=True)
+        workstacks_dir = cwd / "workstacks" / cwd.name
+        workstacks_dir.mkdir(parents=True)
         git_dir = cwd / ".git"
         git_dir.mkdir()
 
@@ -253,15 +253,15 @@ def test_switch_down_with_existing_worktree() -> None:
         )
 
         # Set up worktrees
-        (work_dir / "feature-1").mkdir(parents=True, exist_ok=True)
-        (work_dir / "feature-2").mkdir(parents=True, exist_ok=True)
+        (workstacks_dir / "feature-1").mkdir(parents=True, exist_ok=True)
+        (workstacks_dir / "feature-2").mkdir(parents=True, exist_ok=True)
 
         git_ops = FakeGitOps(
             worktrees={
                 cwd: [
                     WorktreeInfo(path=cwd, branch="main"),
-                    WorktreeInfo(path=work_dir / "feature-1", branch="feature-1"),
-                    WorktreeInfo(path=work_dir / "feature-2", branch="feature-2"),
+                    WorktreeInfo(path=workstacks_dir / "feature-1", branch="feature-1"),
+                    WorktreeInfo(path=workstacks_dir / "feature-2", branch="feature-2"),
                 ]
             },
             current_branches={cwd: "feature-2"},  # Simulate being in feature-2 worktree
@@ -292,7 +292,7 @@ def test_switch_down_with_existing_worktree() -> None:
         script_path = Path(result.stdout.strip())
         assert script_path.exists()
         script_content = script_path.read_text()
-        assert str(work_dir / "feature-1") in script_content
+        assert str(workstacks_dir / "feature-1") in script_content
 
 
 def test_switch_down_to_trunk_root() -> None:
@@ -301,8 +301,8 @@ def test_switch_down_to_trunk_root() -> None:
     with runner.isolated_filesystem():
         cwd = Path.cwd()
         # Work dir is constructed as workstacks_root / repo_name, where repo_name = cwd.name
-        work_dir = cwd / "workstacks" / cwd.name
-        work_dir.mkdir(parents=True)
+        workstacks_dir = cwd / "workstacks" / cwd.name
+        workstacks_dir.mkdir(parents=True)
         git_dir = cwd / ".git"
         git_dir.mkdir()
 
@@ -320,7 +320,7 @@ def test_switch_down_to_trunk_root() -> None:
             worktrees={
                 cwd: [
                     WorktreeInfo(path=cwd, branch="main"),
-                    WorktreeInfo(path=work_dir / "feature-1", branch="feature-1"),
+                    WorktreeInfo(path=workstacks_dir / "feature-1", branch="feature-1"),
                 ]
             },
             current_branches={cwd: "feature-1"},  # Simulate being in feature-1 worktree
@@ -343,7 +343,7 @@ def test_switch_down_to_trunk_root() -> None:
         )
 
         # Switch down from feature-1 to root (main)
-        (work_dir / "feature-1").mkdir(parents=True, exist_ok=True)
+        (workstacks_dir / "feature-1").mkdir(parents=True, exist_ok=True)
 
         result = runner.invoke(
             cli, ["switch", "--down", "--script"], obj=test_ctx, catch_exceptions=False
@@ -408,8 +408,8 @@ def test_switch_down_parent_has_no_worktree() -> None:
     with runner.isolated_filesystem():
         cwd = Path.cwd()
         # Work dir is constructed as workstacks_root / repo_name, where repo_name = cwd.name
-        work_dir = cwd / "workstacks" / cwd.name
-        work_dir.mkdir(parents=True)
+        workstacks_dir = cwd / "workstacks" / cwd.name
+        workstacks_dir.mkdir(parents=True)
         git_dir = cwd / ".git"
         git_dir.mkdir()
 
@@ -428,7 +428,7 @@ def test_switch_down_parent_has_no_worktree() -> None:
             worktrees={
                 cwd: [
                     WorktreeInfo(path=cwd, branch="main"),
-                    WorktreeInfo(path=work_dir / "feature-2", branch="feature-2"),
+                    WorktreeInfo(path=workstacks_dir / "feature-2", branch="feature-2"),
                 ]
             },
             current_branches={cwd: "feature-2"},  # Simulate being in feature-2 worktree

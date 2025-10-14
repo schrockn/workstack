@@ -242,9 +242,9 @@ def test_init_auto_preset_detects_dagster() -> None:
         result = runner.invoke(cli, ["init"], obj=test_ctx)
 
         assert result.exit_code == 0, result.output
-        # Config should be created in work_dir
-        work_dir = workstacks_root / cwd.name
-        config_path = work_dir / "config.toml"
+        # Config should be created in workstacks_dir
+        workstacks_dir = workstacks_root / cwd.name
+        config_path = workstacks_dir / "config.toml"
         assert config_path.exists()
 
 
@@ -277,8 +277,8 @@ def test_init_auto_preset_uses_generic_fallback() -> None:
         result = runner.invoke(cli, ["init"], obj=test_ctx)
 
         assert result.exit_code == 0, result.output
-        work_dir = workstacks_root / cwd.name
-        config_path = work_dir / "config.toml"
+        workstacks_dir = workstacks_root / cwd.name
+        config_path = workstacks_dir / "config.toml"
         assert config_path.exists()
 
 
@@ -307,8 +307,8 @@ def test_init_explicit_preset_dagster() -> None:
         result = runner.invoke(cli, ["init", "--preset", "dagster"], obj=test_ctx)
 
         assert result.exit_code == 0, result.output
-        work_dir = workstacks_root / cwd.name
-        config_path = work_dir / "config.toml"
+        workstacks_dir = workstacks_root / cwd.name
+        config_path = workstacks_dir / "config.toml"
         assert config_path.exists()
 
 
@@ -337,8 +337,8 @@ def test_init_explicit_preset_generic() -> None:
         result = runner.invoke(cli, ["init", "--preset", "generic"], obj=test_ctx)
 
         assert result.exit_code == 0, result.output
-        work_dir = workstacks_root / cwd.name
-        config_path = work_dir / "config.toml"
+        workstacks_dir = workstacks_root / cwd.name
+        config_path = workstacks_dir / "config.toml"
         assert config_path.exists()
 
 
@@ -398,8 +398,8 @@ def test_init_invalid_preset_fails() -> None:
         assert "Invalid preset 'nonexistent'" in result.output
 
 
-def test_init_creates_config_at_work_dir() -> None:
-    """Test that init creates config.toml in work_dir by default."""
+def test_init_creates_config_at_workstacks_dir() -> None:
+    """Test that init creates config.toml in workstacks_dir by default."""
     runner = CliRunner()
     with runner.isolated_filesystem():
         cwd = Path.cwd()
@@ -423,9 +423,9 @@ def test_init_creates_config_at_work_dir() -> None:
         result = runner.invoke(cli, ["init"], obj=test_ctx)
 
         assert result.exit_code == 0, result.output
-        # Config should be in work_dir, not repo root
-        work_dir = workstacks_root / cwd.name
-        config_path = work_dir / "config.toml"
+        # Config should be in workstacks_dir, not repo root
+        workstacks_dir = workstacks_root / cwd.name
+        config_path = workstacks_dir / "config.toml"
         assert config_path.exists()
         assert not (cwd / "config.toml").exists()
 
@@ -469,11 +469,11 @@ def test_init_force_overwrites_existing_config() -> None:
         git_dir.mkdir()
 
         workstacks_root = cwd / "workstacks"
-        work_dir = workstacks_root / cwd.name
-        work_dir.mkdir(parents=True)
+        workstacks_dir = workstacks_root / cwd.name
+        workstacks_dir.mkdir(parents=True)
 
         # Create existing config
-        config_path = work_dir / "config.toml"
+        config_path = workstacks_dir / "config.toml"
         config_path.write_text("# Old config\n", encoding="utf-8")
 
         git_ops = FakeGitOps(git_common_dirs={cwd: git_dir})
@@ -506,11 +506,11 @@ def test_init_fails_without_force_when_exists() -> None:
         git_dir.mkdir()
 
         workstacks_root = cwd / "workstacks"
-        work_dir = workstacks_root / cwd.name
-        work_dir.mkdir(parents=True)
+        workstacks_dir = workstacks_root / cwd.name
+        workstacks_dir.mkdir(parents=True)
 
         # Create existing config
-        config_path = work_dir / "config.toml"
+        config_path = workstacks_dir / "config.toml"
         config_path.write_text("# Existing config\n", encoding="utf-8")
 
         git_ops = FakeGitOps(git_common_dirs={cwd: git_dir})
@@ -768,8 +768,8 @@ def test_init_shell_flag_only_setup() -> None:
 
         assert result.exit_code == 0, result.output
         # Should mention shell but not create config
-        work_dir = workstacks_root / cwd.name
-        config_path = work_dir / "config.toml"
+        workstacks_dir = workstacks_root / cwd.name
+        config_path = workstacks_dir / "config.toml"
         assert not config_path.exists()
 
 

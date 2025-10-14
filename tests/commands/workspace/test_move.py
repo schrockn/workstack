@@ -18,12 +18,12 @@ def test_move_from_current_to_new_worktree() -> None:
         cwd = Path.cwd()
         repo_root = cwd
         workstacks_root = cwd / "workstacks"
-        work_dir = workstacks_root / repo_root.name
-        work_dir.mkdir(parents=True)
+        workstacks_dir = workstacks_root / repo_root.name
+        workstacks_dir.mkdir(parents=True)
         (repo_root / ".git").mkdir()
 
         source_wt = repo_root
-        target_wt = work_dir / "target-wt"
+        target_wt = workstacks_dir / "target-wt"
 
         git_ops = FakeGitOps(
             worktrees={
@@ -66,8 +66,8 @@ def test_move_with_explicit_current_flag() -> None:
         cwd = Path.cwd()
         repo_root = cwd
         workstacks_root = cwd / "workstacks"
-        work_dir = workstacks_root / repo_root.name
-        work_dir.mkdir(parents=True)
+        workstacks_dir = workstacks_root / repo_root.name
+        workstacks_dir.mkdir(parents=True)
         (repo_root / ".git").mkdir()
 
         git_ops = FakeGitOps(
@@ -103,11 +103,11 @@ def test_move_with_branch_flag_auto_detect() -> None:
         cwd = Path.cwd()
         repo_root = cwd
         workstacks_root = cwd / "workstacks"
-        work_dir = workstacks_root / repo_root.name
-        work_dir.mkdir(parents=True)
+        workstacks_dir = workstacks_root / repo_root.name
+        workstacks_dir.mkdir(parents=True)
         (repo_root / ".git").mkdir()
 
-        source_wt = work_dir / "old-wt"
+        source_wt = workstacks_dir / "old-wt"
         source_wt.mkdir(parents=True)
 
         git_ops = FakeGitOps(
@@ -144,11 +144,11 @@ def test_move_with_worktree_flag() -> None:
         cwd = Path.cwd()
         repo_root = cwd
         workstacks_root = cwd / "workstacks"
-        work_dir = workstacks_root / repo_root.name
-        work_dir.mkdir(parents=True)
+        workstacks_dir = workstacks_root / repo_root.name
+        workstacks_dir.mkdir(parents=True)
         (repo_root / ".git").mkdir()
 
-        source_wt = work_dir / "source-wt"
+        source_wt = workstacks_dir / "source-wt"
         source_wt.mkdir(parents=True)
 
         git_ops = FakeGitOps(
@@ -185,13 +185,13 @@ def test_move_swap_between_two_worktrees() -> None:
         cwd = Path.cwd()
         repo_root = cwd
         workstacks_root = cwd / "workstacks"
-        work_dir = workstacks_root / repo_root.name
-        work_dir.mkdir(parents=True)
+        workstacks_dir = workstacks_root / repo_root.name
+        workstacks_dir.mkdir(parents=True)
         (repo_root / ".git").mkdir()
 
-        source_wt = work_dir / "wt1"
+        source_wt = workstacks_dir / "wt1"
         source_wt.mkdir(parents=True)
-        target_wt = work_dir / "wt2"
+        target_wt = workstacks_dir / "wt2"
         target_wt.mkdir(parents=True)
 
         git_ops = FakeGitOps(
@@ -229,13 +229,13 @@ def test_move_swap_requires_confirmation() -> None:
         cwd = Path.cwd()
         repo_root = cwd
         workstacks_root = cwd / "workstacks"
-        work_dir = workstacks_root / repo_root.name
-        work_dir.mkdir(parents=True)
+        workstacks_dir = workstacks_root / repo_root.name
+        workstacks_dir.mkdir(parents=True)
         (repo_root / ".git").mkdir()
 
-        source_wt = work_dir / "wt1"
+        source_wt = workstacks_dir / "wt1"
         source_wt.mkdir(parents=True)
-        target_wt = work_dir / "wt2"
+        target_wt = workstacks_dir / "wt2"
         target_wt.mkdir(parents=True)
 
         git_ops = FakeGitOps(
@@ -273,8 +273,8 @@ def test_move_with_custom_ref() -> None:
         cwd = Path.cwd()
         repo_root = cwd
         workstacks_root = cwd / "workstacks"
-        work_dir = workstacks_root / repo_root.name
-        work_dir.mkdir(parents=True)
+        workstacks_dir = workstacks_root / repo_root.name
+        workstacks_dir.mkdir(parents=True)
         (repo_root / ".git").mkdir()
 
         git_ops = FakeGitOps(
@@ -381,8 +381,8 @@ def test_move_error_worktree_not_found() -> None:
         cwd = Path.cwd()
         repo_root = cwd
         workstacks_root = cwd / "workstacks"
-        work_dir = workstacks_root / repo_root.name
-        work_dir.mkdir(parents=True)
+        workstacks_dir = workstacks_root / repo_root.name
+        workstacks_dir.mkdir(parents=True)
         (repo_root / ".git").mkdir()
 
         git_ops = FakeGitOps(
@@ -417,11 +417,11 @@ def test_move_error_source_and_target_same() -> None:
         cwd = Path.cwd()
         repo_root = cwd
         workstacks_root = cwd / "workstacks"
-        work_dir = workstacks_root / repo_root.name
-        work_dir.mkdir(parents=True)
+        workstacks_dir = workstacks_root / repo_root.name
+        workstacks_dir.mkdir(parents=True)
         (repo_root / ".git").mkdir()
 
-        wt = work_dir / "same-wt"
+        wt = workstacks_dir / "same-wt"
         wt.mkdir(parents=True)
 
         git_ops = FakeGitOps(
@@ -461,8 +461,8 @@ def test_move_error_source_in_detached_head() -> None:
         cwd = Path.cwd()
         repo_root = cwd
         workstacks_root = cwd / "workstacks"
-        work_dir = workstacks_root / repo_root.name
-        work_dir.mkdir(parents=True)
+        workstacks_dir = workstacks_root / repo_root.name
+        workstacks_dir.mkdir(parents=True)
         (repo_root / ".git").mkdir()
 
         git_ops = FakeGitOps(
@@ -498,13 +498,13 @@ def test_move_to_existing_worktree_in_detached_head() -> None:
         cwd = Path.cwd()
         repo_root = cwd
         workstacks_root = cwd / "workstacks"
-        work_dir = workstacks_root / repo_root.name
-        work_dir.mkdir(parents=True)
+        workstacks_dir = workstacks_root / repo_root.name
+        workstacks_dir.mkdir(parents=True)
         (repo_root / ".git").mkdir()
 
-        source_wt = work_dir / "source"
+        source_wt = workstacks_dir / "source"
         source_wt.mkdir(parents=True)
-        target_wt = work_dir / "target"
+        target_wt = workstacks_dir / "target"
         target_wt.mkdir(parents=True)
 
         git_ops = FakeGitOps(
@@ -534,3 +534,135 @@ def test_move_to_existing_worktree_in_detached_head() -> None:
         assert result.exit_code == 0
         assert "Checking out 'feature-x' in 'target'" in result.output
         assert "✓ Moved 'feature-x'" in result.output
+
+
+def test_move_to_root() -> None:
+    """Test moving branch from current worktree to root."""
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        cwd = Path.cwd()
+        repo_root = cwd
+        workstacks_root = cwd / "workstacks"
+        workstacks_dir = workstacks_root / repo_root.name
+        workstacks_dir.mkdir(parents=True)
+        (repo_root / ".git").mkdir()
+
+        source_wt = workstacks_dir / "feature-wt"
+        source_wt.mkdir(parents=True)
+
+        git_ops = FakeGitOps(
+            worktrees={
+                repo_root: [
+                    WorktreeInfo(path=repo_root, branch="main"),
+                    WorktreeInfo(path=source_wt, branch="feature-x"),
+                ],
+            },
+            git_common_dirs={
+                cwd: repo_root / ".git",
+                source_wt: repo_root / ".git",
+                repo_root: repo_root / ".git",
+            },
+            default_branches={repo_root: "main"},
+        )
+
+        global_config_ops = FakeGlobalConfigOps(
+            workstacks_root=workstacks_root,
+            use_graphite=False,
+        )
+
+        test_ctx = create_test_context(git_ops=git_ops, global_config_ops=global_config_ops)
+
+        # Move from feature-wt to root (should swap branches)
+        result = runner.invoke(
+            cli, ["move", "--worktree", "feature-wt", "root", "--force"], obj=test_ctx
+        )
+
+        assert result.exit_code == 0, f"Command failed: {result.output}"
+        assert "Swapping branches" in result.output
+        assert "✓ Swapped 'feature-x' ↔ 'main'" in result.output
+
+
+def test_move_to_root_with_explicit_current() -> None:
+    """Test moving from current worktree to root with --current flag."""
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        repo_root = Path.cwd()
+        workstacks_root = repo_root / "workstacks"
+        workstacks_dir = workstacks_root / repo_root.name
+        workstacks_dir.mkdir(parents=True)
+        (repo_root / ".git").mkdir()
+
+        source_wt = workstacks_dir / "feature-wt"
+        source_wt.mkdir(parents=True)
+
+        # Simulate current directory being source_wt
+        import os
+
+        os.chdir(source_wt)
+        # Get the resolved current directory after chdir
+        current_dir = Path.cwd().resolve()
+
+        git_ops = FakeGitOps(
+            worktrees={
+                repo_root: [
+                    WorktreeInfo(path=repo_root, branch="main"),
+                    WorktreeInfo(path=current_dir, branch="feature-y"),  # Use resolved current_dir
+                ],
+            },
+            git_common_dirs={
+                current_dir: repo_root / ".git",
+                repo_root: repo_root / ".git",
+            },
+            default_branches={repo_root: "main"},
+        )
+
+        global_config_ops = FakeGlobalConfigOps(
+            workstacks_root=workstacks_root,
+            use_graphite=False,
+        )
+
+        test_ctx = create_test_context(git_ops=git_ops, global_config_ops=global_config_ops)
+
+        # Execute from within source_wt (now we're already there due to os.chdir)
+        result = runner.invoke(cli, ["move", "root", "--force"], obj=test_ctx)
+
+        assert result.exit_code == 0, f"Command failed: {result.output}"
+        assert "Swapping branches" in result.output or "Moved" in result.output
+
+
+def test_move_error_source_is_root_target_is_root() -> None:
+    """Test error when trying to move root to root."""
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        cwd = Path.cwd()
+        repo_root = cwd
+        workstacks_root = cwd / "workstacks"
+        workstacks_dir = workstacks_root / repo_root.name
+        workstacks_dir.mkdir(parents=True)
+        (repo_root / ".git").mkdir()
+
+        git_ops = FakeGitOps(
+            worktrees={
+                repo_root: [
+                    WorktreeInfo(path=repo_root, branch="main"),
+                ],
+            },
+            git_common_dirs={
+                cwd: repo_root / ".git",
+                repo_root: repo_root / ".git",
+            },
+            default_branches={repo_root: "main"},
+        )
+
+        global_config_ops = FakeGlobalConfigOps(
+            workstacks_root=workstacks_root,
+            use_graphite=False,
+        )
+
+        test_ctx = create_test_context(git_ops=git_ops, global_config_ops=global_config_ops)
+
+        # Try to move root to root (should fail)
+        result = runner.invoke(cli, ["move", "root"], obj=test_ctx)
+
+        assert result.exit_code == 1
+        assert "Source and target worktrees are the same" in result.output

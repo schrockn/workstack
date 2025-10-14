@@ -7,7 +7,7 @@ import click
 from workstack.cli.commands.switch import complete_worktree_names
 from workstack.cli.core import (
     discover_repo_context,
-    ensure_work_dir,
+    ensure_workstacks_dir,
     validate_worktree_name_for_removal,
     worktree_path_for,
 )
@@ -141,8 +141,8 @@ def _remove_worktree(
     validate_worktree_name_for_removal(name)
 
     repo = discover_repo_context(ctx, Path.cwd())
-    work_dir = ensure_work_dir(repo)
-    wt_path = worktree_path_for(work_dir, name)
+    workstacks_dir = ensure_workstacks_dir(repo)
+    wt_path = worktree_path_for(workstacks_dir, name)
 
     if not wt_path.exists() or not wt_path.is_dir():
         click.echo(f"Worktree not found: {wt_path}")

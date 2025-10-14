@@ -23,11 +23,11 @@ def test_gc_lists_merged_pr_worktrees() -> None:
         git_dir.mkdir()
 
         workstacks_root = cwd / "workstacks"
-        work_dir = workstacks_root / cwd.name
-        work_dir.mkdir(parents=True)
+        workstacks_dir = workstacks_root / cwd.name
+        workstacks_dir.mkdir(parents=True)
 
         # Create worktree directories
-        wt1 = work_dir / "feature-1"
+        wt1 = workstacks_dir / "feature-1"
         wt1.mkdir()
 
         git_ops = FakeGitOps(
@@ -75,10 +75,10 @@ def test_gc_lists_closed_pr_worktrees() -> None:
         git_dir.mkdir()
 
         workstacks_root = cwd / "workstacks"
-        work_dir = workstacks_root / cwd.name
-        work_dir.mkdir(parents=True)
+        workstacks_dir = workstacks_root / cwd.name
+        workstacks_dir.mkdir(parents=True)
 
-        wt1 = work_dir / "feature-2"
+        wt1 = workstacks_dir / "feature-2"
         wt1.mkdir()
 
         git_ops = FakeGitOps(
@@ -170,10 +170,10 @@ def test_gc_skips_detached_head() -> None:
         git_dir.mkdir()
 
         workstacks_root = cwd / "workstacks"
-        work_dir = workstacks_root / cwd.name
-        work_dir.mkdir(parents=True)
+        workstacks_dir = workstacks_root / cwd.name
+        workstacks_dir.mkdir(parents=True)
 
-        wt1 = work_dir / "detached"
+        wt1 = workstacks_dir / "detached"
         wt1.mkdir()
 
         git_ops = FakeGitOps(
@@ -206,7 +206,7 @@ def test_gc_skips_detached_head() -> None:
 
 
 def test_gc_skips_non_managed_worktrees() -> None:
-    """Test that gc skips worktrees outside the work_dir."""
+    """Test that gc skips worktrees outside the workstacks_dir."""
     runner = CliRunner()
     with runner.isolated_filesystem():
         cwd = Path.cwd()
@@ -263,10 +263,10 @@ def test_gc_displays_deletion_suggestions() -> None:
         git_dir.mkdir()
 
         workstacks_root = cwd / "workstacks"
-        work_dir = workstacks_root / cwd.name
-        work_dir.mkdir(parents=True)
+        workstacks_dir = workstacks_root / cwd.name
+        workstacks_dir.mkdir(parents=True)
 
-        wt1 = work_dir / "old-feature"
+        wt1 = workstacks_dir / "old-feature"
         wt1.mkdir()
 
         git_ops = FakeGitOps(
@@ -312,11 +312,11 @@ def test_gc_queries_pr_status_for_each_branch() -> None:
         git_dir.mkdir()
 
         workstacks_root = cwd / "workstacks"
-        work_dir = workstacks_root / cwd.name
-        work_dir.mkdir(parents=True)
+        workstacks_dir = workstacks_root / cwd.name
+        workstacks_dir.mkdir(parents=True)
 
-        wt1 = work_dir / "feature-1"
-        wt2 = work_dir / "feature-2"
+        wt1 = workstacks_dir / "feature-1"
+        wt2 = workstacks_dir / "feature-2"
         wt1.mkdir()
         wt2.mkdir()
 
@@ -369,10 +369,10 @@ def test_gc_handles_branches_without_prs() -> None:
         git_dir.mkdir()
 
         workstacks_root = cwd / "workstacks"
-        work_dir = workstacks_root / cwd.name
-        work_dir.mkdir(parents=True)
+        workstacks_dir = workstacks_root / cwd.name
+        workstacks_dir.mkdir(parents=True)
 
-        wt1 = work_dir / "no-pr-branch"
+        wt1 = workstacks_dir / "no-pr-branch"
         wt1.mkdir()
 
         git_ops = FakeGitOps(
@@ -415,10 +415,10 @@ def test_gc_handles_open_prs() -> None:
         git_dir.mkdir()
 
         workstacks_root = cwd / "workstacks"
-        work_dir = workstacks_root / cwd.name
-        work_dir.mkdir(parents=True)
+        workstacks_dir = workstacks_root / cwd.name
+        workstacks_dir.mkdir(parents=True)
 
-        wt1 = work_dir / "active-feature"
+        wt1 = workstacks_dir / "active-feature"
         wt1.mkdir()
 
         git_ops = FakeGitOps(

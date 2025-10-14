@@ -6,7 +6,7 @@ from pathlib import Path
 import click
 
 from workstack.cli.commands.switch import complete_worktree_names
-from workstack.cli.core import discover_repo_context, ensure_work_dir, worktree_path_for
+from workstack.cli.core import discover_repo_context, ensure_workstacks_dir, worktree_path_for
 from workstack.core.context import WorkstackContext
 
 
@@ -42,6 +42,41 @@ def _has_uncommitted_changes(cwd: Path) -> bool:
     return bool(result.stdout.strip())
 
 
+def _find_worktree_containing_path(worktrees: list, target_path: Path) -> Path | None:
+    """Find which worktree contains the given path.
+
+    Args:
+        worktrees: List of WorktreeInfo objects
+        target_path: Path to check (should be resolved)
+
+    Returns:
+        Path to the worktree that contains target_path, or None if not found
+
+    Note:
+        Uses is_relative_to() to check path containment. This is the LBYL approach
+        (vs catching ValueError from relative_to()).
+
+        Returns the most specific (longest) match to handle nested worktrees.
+        For example, if target_path is /a/b/c and we have worktrees at /a and /a/b,
+        this returns /a/b (the more specific match).
+    """
+    best_match: Path | None = None
+    best_match_depth = -1
+
+    for wt in worktrees:
+        wt_path = wt.path.resolve()
+        # Check if target_path is within this worktree
+        # is_relative_to() returns True if target_path is under wt_path
+        if target_path.is_relative_to(wt_path):
+            # Count path depth to find most specific match
+            depth = len(wt_path.parts)
+            if depth > best_match_depth:
+                best_match = wt_path
+                best_match_depth = depth
+
+    return best_match
+
+
 def _find_worktree_with_branch(ctx: WorkstackContext, repo_root: Path, branch: str) -> Path | None:
     """Find the worktree path containing the specified branch.
 
@@ -54,6 +89,30 @@ def _find_worktree_with_branch(ctx: WorkstackContext, repo_root: Path, branch: s
     return None
 
 
+def _resolve_current_worktree(ctx: WorkstackContext, repo_root: Path) -> Path:
+    """Find worktree containing current directory.
+
+    Raises SystemExit if not in a git repository or not in any worktree.
+    """
+    git_common_dir = ctx.git_ops.get_git_common_dir(Path.cwd())
+    if git_common_dir is None:
+        click.echo("Error: Not in a git repository", err=True)
+        raise SystemExit(1)
+
+    cwd = Path.cwd().resolve()
+    worktrees = ctx.git_ops.list_worktrees(repo_root)
+    wt_path = _find_worktree_containing_path(worktrees, cwd)
+    if wt_path is None:
+        click.echo(
+            f"Error: Current directory ({cwd}) is not in any worktree.\n"
+            f"Either run this from within a worktree, or use --worktree or "
+            f"--branch to specify the source.",
+            err=True,
+        )
+        raise SystemExit(1)
+    return wt_path
+
+
 def resolve_source_worktree(
     ctx: WorkstackContext,
     repo_root: Path,
@@ -61,7 +120,7 @@ def resolve_source_worktree(
     current: bool,
     branch: str | None,
     worktree: str | None,
-    work_dir: Path,
+    workstacks_dir: Path,
 ) -> Path:
     """Determine source worktree from flags.
 
@@ -77,26 +136,9 @@ def resolve_source_worktree(
         )
         raise SystemExit(1)
 
-    if flag_count == 0:
-        # Default to current worktree
-        current_wt = ctx.git_ops.get_git_common_dir(Path.cwd())
-        if current_wt is None:
-            click.echo("Error: Not in a git repository", err=True)
-            raise SystemExit(1)
-
-        # Resolve to actual worktree path
-        resolved = current_wt.parent.resolve()
-        return resolved
-
-    if current:
-        current_wt = ctx.git_ops.get_git_common_dir(Path.cwd())
-        if current_wt is None:
-            click.echo("Error: Not in a git repository", err=True)
-            raise SystemExit(1)
-
-        # Resolve to actual worktree path
-        resolved = current_wt.parent.resolve()
-        return resolved
+    if flag_count == 0 or current:
+        # Default to current worktree (either no flags or --current explicitly set)
+        return _resolve_current_worktree(ctx, repo_root)
 
     if branch:
         # Find worktree containing this branch
@@ -108,7 +150,7 @@ def resolve_source_worktree(
 
     if worktree:
         # Resolve worktree name to path
-        wt_path = worktree_path_for(work_dir, worktree)
+        wt_path = worktree_path_for(workstacks_dir, worktree)
         # Validate that the worktree exists
         if not wt_path.exists():
             click.echo(f"Error: Worktree '{worktree}' does not exist", err=True)
@@ -267,6 +309,10 @@ def move_cmd(
     Examples:
 
         \b
+        # Move current branch back to repository root
+        workstack move root
+
+        \b
         # Move from current worktree to new worktree
         workstack move target-wt
 
@@ -296,15 +342,24 @@ def move_cmd(
     """
     # Discover repository context
     repo = discover_repo_context(ctx, Path.cwd())
-    work_dir = ensure_work_dir(repo)
+    workstacks_dir = ensure_workstacks_dir(repo)
 
     # Resolve source worktree
     source_wt = resolve_source_worktree(
-        ctx, repo.root, current=current, branch=branch, worktree=worktree, work_dir=work_dir
+        ctx,
+        repo.root,
+        current=current,
+        branch=branch,
+        worktree=worktree,
+        workstacks_dir=workstacks_dir,
     )
 
     # Resolve target worktree path
-    target_wt = worktree_path_for(work_dir, target)
+    # Special case: "root" refers to the repository root
+    if target == "root":
+        target_wt = repo.root
+    else:
+        target_wt = worktree_path_for(workstacks_dir, target)
 
     # Validate source and target are different
     if source_wt.resolve() == target_wt.resolve():
