@@ -6,9 +6,7 @@ from pathlib import Path
 import click
 
 from workstack.cli.activation import render_activation_script
-from workstack.cli.core import (
-    discover_repo_context,
-)
+from workstack.cli.core import discover_repo_context
 from workstack.cli.graphite import find_worktrees_containing_branch, get_branch_stack
 from workstack.cli.shell_utils import write_script_to_temp
 from workstack.core.context import WorkstackContext
@@ -53,6 +51,14 @@ def _perform_jump(
     target_path = target_worktree.path
     current_branch_in_worktree = target_worktree.branch
 
+    # Defensive check: verify path exists before any operations
+    if not target_path.exists():
+        click.echo(
+            f"Error: Worktree path does not exist: {target_path}",
+            err=True,
+        )
+        raise SystemExit(1)
+
     # Check if we're already on the target branch in the target worktree
     current_cwd = Path.cwd()
     if current_cwd == target_path and current_branch_in_worktree == branch:
@@ -65,14 +71,6 @@ def _perform_jump(
 
     # If we need to checkout, do it before generating the activation script
     if need_checkout:
-        # Defensive check: verify path exists before checkout
-        if not target_path.exists():
-            click.echo(
-                f"Error: Worktree path does not exist: {target_path}",
-                err=True,
-            )
-            raise SystemExit(1)
-
         # Checkout the branch in the target worktree
         ctx.git_ops.checkout_branch(target_path, branch)
 
