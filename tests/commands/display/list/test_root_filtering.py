@@ -75,8 +75,8 @@ def test_root_on_trunk_shows_only_trunk() -> None:
 
         # Create feature-b worktree
         repo_name = cwd.name
-        work_dir = workstacks_root / repo_name
-        feature_b_dir = work_dir / "feature-b"
+        workstacks_dir = workstacks_root / repo_name
+        feature_b_dir = workstacks_dir / "feature-b"
         feature_b_dir.mkdir(parents=True)
 
         # Build fake git ops - root on main, feature-b worktree
@@ -190,8 +190,8 @@ def test_root_on_non_trunk_shows_ancestors_only() -> None:
 
         # Create feature-c worktree
         repo_name = cwd.name
-        work_dir = workstacks_root / repo_name
-        feature_c_dir = work_dir / "feature-c"
+        workstacks_dir = workstacks_root / repo_name
+        feature_c_dir = workstacks_dir / "feature-c"
         feature_c_dir.mkdir(parents=True)
 
         # Build fake git ops - root on feature-b, feature-c worktree
@@ -311,9 +311,9 @@ def test_non_root_worktree_shows_descendants_with_worktrees() -> None:
 
         # Create worktrees
         repo_name = cwd.name
-        work_dir = workstacks_root / repo_name
-        feature_a_dir = work_dir / "worktree-a"
-        feature_c_dir = work_dir / "worktree-c"
+        workstacks_dir = workstacks_root / repo_name
+        feature_a_dir = workstacks_dir / "worktree-a"
+        feature_c_dir = workstacks_dir / "worktree-c"
         feature_a_dir.mkdir(parents=True)
         feature_c_dir.mkdir(parents=True)
 

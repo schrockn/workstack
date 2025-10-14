@@ -220,7 +220,7 @@ def test_render_tree_nested_hierarchy() -> None:
 def test_get_worktree_mapping(monkeypatch) -> None:
     """Test worktree mapping creation from git worktrees."""
     repo_root = Path("/repo")
-    work_dir = Path("/repo/work")
+    workstacks_dir = Path("/repo/work")
 
     # Mock Path.cwd() to return repo_root so it detects as current worktree
     monkeypatch.setattr("pathlib.Path.cwd", lambda: repo_root)
@@ -229,8 +229,8 @@ def test_get_worktree_mapping(monkeypatch) -> None:
         worktrees={
             repo_root: [
                 WorktreeInfo(path=repo_root, branch="main"),
-                WorktreeInfo(path=work_dir / "feature-a", branch="feature-a"),
-                WorktreeInfo(path=work_dir / "feature-b", branch="feature-b"),
+                WorktreeInfo(path=workstacks_dir / "feature-a", branch="feature-a"),
+                WorktreeInfo(path=workstacks_dir / "feature-b", branch="feature-b"),
             ]
         },
         current_branches={repo_root: "main"},

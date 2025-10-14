@@ -4,7 +4,7 @@ from pathlib import Path
 
 import click
 
-from workstack.cli.core import discover_repo_context, ensure_work_dir
+from workstack.cli.core import discover_repo_context, ensure_workstacks_dir
 from workstack.core.context import WorkstackContext
 from workstack.core.file_utils import atomic_write
 from workstack.core.global_config_ops import GlobalConfigOps
@@ -301,9 +301,9 @@ def init_cmd(
         # Repository-level config goes in repo root
         cfg_path = repo_context.root / "config.toml"
     else:
-        # Worktree-level config goes in work_dir
-        work_dir = ensure_work_dir(repo_context)
-        cfg_path = work_dir / "config.toml"
+        # Worktree-level config goes in workstacks_dir
+        workstacks_dir = ensure_workstacks_dir(repo_context)
+        cfg_path = workstacks_dir / "config.toml"
 
     if cfg_path.exists() and not force:
         click.echo(f"Config already exists: {cfg_path}. Use --force to overwrite.")

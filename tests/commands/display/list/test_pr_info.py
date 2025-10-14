@@ -46,8 +46,8 @@ def _setup_test_with_pr(
 
     # Create worktree directory for branch so it appears in the stack
     repo_name = cwd.name
-    work_dir = workstacks_root / repo_name
-    feature_worktree = work_dir / branch_name
+    workstacks_dir = workstacks_root / repo_name
+    feature_worktree = workstacks_dir / branch_name
     feature_worktree.mkdir(parents=True)
 
     # Build fake git ops with worktree for branch

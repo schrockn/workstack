@@ -223,7 +223,7 @@ Subprocess / Filesystem / External APIs
 6. Calls discover_repo_context(ctx, Path.cwd())
    - Walks up directory tree to find .git
    - Gets workstacks root from ctx.global_config_ops
-   - Returns RepoContext(root, repo_name, work_dir)
+   - Returns RepoContext(root, repo_name, workstacks_dir)
    ↓
 7. Validates worktree name doesn't already exist
    - Calls ctx.git_ops.list_worktrees(repo.root)
@@ -234,7 +234,7 @@ Subprocess / Filesystem / External APIs
    - RealGitOps runs: git worktree add -b branch path
    ↓
 9. Sets up environment
-   - Loads config from work_dir/config.toml
+   - Loads config from workstacks_dir/config.toml
    - Writes .env file to worktree
    ↓
 10. Runs post-create commands

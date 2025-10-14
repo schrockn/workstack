@@ -60,11 +60,11 @@ def test_config_list_displays_repo_config() -> None:
         git_dir.mkdir()
 
         workstacks_root = cwd / "workstacks"
-        work_dir = workstacks_root / cwd.name
-        work_dir.mkdir(parents=True)
+        workstacks_dir = workstacks_root / cwd.name
+        workstacks_dir.mkdir(parents=True)
 
         # Create a config.toml with env vars
-        config_toml = work_dir / "config.toml"
+        config_toml = workstacks_dir / "config.toml"
         config_toml.write_text(
             '[env]\nFOO = "bar"\n\n[post_create]\nshell = "/bin/bash"\ncommands = ["echo hello"]\n',
             encoding="utf-8",
@@ -338,11 +338,11 @@ def test_config_get_env_key() -> None:
         git_dir.mkdir()
 
         workstacks_root = cwd / "workstacks"
-        work_dir = workstacks_root / cwd.name
-        work_dir.mkdir(parents=True)
+        workstacks_dir = workstacks_root / cwd.name
+        workstacks_dir.mkdir(parents=True)
 
         # Create config.toml with env var
-        config_toml = work_dir / "config.toml"
+        config_toml = workstacks_dir / "config.toml"
         config_toml.write_text('[env]\nMY_VAR = "my_value"\n', encoding="utf-8")
 
         git_ops = FakeGitOps(git_common_dirs={cwd: git_dir})
@@ -375,11 +375,11 @@ def test_config_get_post_create_shell() -> None:
         git_dir.mkdir()
 
         workstacks_root = cwd / "workstacks"
-        work_dir = workstacks_root / cwd.name
-        work_dir.mkdir(parents=True)
+        workstacks_dir = workstacks_root / cwd.name
+        workstacks_dir.mkdir(parents=True)
 
         # Create config.toml with post_create.shell
-        config_toml = work_dir / "config.toml"
+        config_toml = workstacks_dir / "config.toml"
         config_toml.write_text('[post_create]\nshell = "/bin/zsh"\n', encoding="utf-8")
 
         git_ops = FakeGitOps(git_common_dirs={cwd: git_dir})
@@ -412,11 +412,11 @@ def test_config_get_post_create_commands() -> None:
         git_dir.mkdir()
 
         workstacks_root = cwd / "workstacks"
-        work_dir = workstacks_root / cwd.name
-        work_dir.mkdir(parents=True)
+        workstacks_dir = workstacks_root / cwd.name
+        workstacks_dir.mkdir(parents=True)
 
         # Create config.toml with post_create.commands
-        config_toml = work_dir / "config.toml"
+        config_toml = workstacks_dir / "config.toml"
         config_toml.write_text(
             '[post_create]\ncommands = ["echo hello", "echo world"]\n',
             encoding="utf-8",
@@ -453,11 +453,11 @@ def test_config_get_env_key_not_found() -> None:
         git_dir.mkdir()
 
         workstacks_root = cwd / "workstacks"
-        work_dir = workstacks_root / cwd.name
-        work_dir.mkdir(parents=True)
+        workstacks_dir = workstacks_root / cwd.name
+        workstacks_dir.mkdir(parents=True)
 
         # Create empty config.toml
-        config_toml = work_dir / "config.toml"
+        config_toml = workstacks_dir / "config.toml"
         config_toml.write_text("", encoding="utf-8")
 
         git_ops = FakeGitOps(git_common_dirs={cwd: git_dir})
@@ -746,11 +746,11 @@ def test_config_get_invalid_key() -> None:
         git_dir.mkdir()
 
         workstacks_root = cwd / "workstacks"
-        work_dir = workstacks_root / cwd.name
-        work_dir.mkdir(parents=True)
+        workstacks_dir = workstacks_root / cwd.name
+        workstacks_dir.mkdir(parents=True)
 
         # Create empty config
-        config_toml = work_dir / "config.toml"
+        config_toml = workstacks_dir / "config.toml"
         config_toml.write_text("", encoding="utf-8")
 
         git_ops = FakeGitOps(git_common_dirs={cwd: git_dir})
@@ -814,11 +814,11 @@ def test_config_key_with_multiple_dots() -> None:
         git_dir.mkdir()
 
         workstacks_root = cwd / "workstacks"
-        work_dir = workstacks_root / cwd.name
-        work_dir.mkdir(parents=True)
+        workstacks_dir = workstacks_root / cwd.name
+        workstacks_dir.mkdir(parents=True)
 
         # Create empty config
-        config_toml = work_dir / "config.toml"
+        config_toml = workstacks_dir / "config.toml"
         config_toml.write_text("", encoding="utf-8")
 
         git_ops = FakeGitOps(git_common_dirs={cwd: git_dir})

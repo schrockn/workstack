@@ -12,7 +12,7 @@ class RepoContext:
 
     root: Path
     repo_name: str
-    work_dir: Path
+    workstacks_dir: Path
 
 
 def discover_repo_context(ctx: WorkstackContext, start: Path) -> RepoContext:
@@ -48,20 +48,31 @@ def discover_repo_context(ctx: WorkstackContext, start: Path) -> RepoContext:
         raise FileNotFoundError("Not inside a git repository (no .git found up the tree).")
 
     repo_name = root.name
-    work_dir = ctx.global_config_ops.get_workstacks_root() / repo_name
+    workstacks_dir = ctx.global_config_ops.get_workstacks_root() / repo_name
 
-    return RepoContext(root=root, repo_name=repo_name, work_dir=work_dir)
-
-
-def ensure_work_dir(repo: RepoContext) -> Path:
-    """Ensure the worktrees directory exists and return it."""
-    repo.work_dir.mkdir(parents=True, exist_ok=True)
-    return repo.work_dir
+    return RepoContext(root=root, repo_name=repo_name, workstacks_dir=workstacks_dir)
 
 
-def worktree_path_for(work_dir: Path, name: str) -> Path:
-    """Return the absolute path for a named worktree."""
-    return (work_dir / name).resolve()
+def ensure_workstacks_dir(repo: RepoContext) -> Path:
+    """Ensure the workstacks directory exists and return it."""
+    repo.workstacks_dir.mkdir(parents=True, exist_ok=True)
+    return repo.workstacks_dir
+
+
+def worktree_path_for(workstacks_dir: Path, name: str) -> Path:
+    """Return the absolute path for a named worktree within workstacks_dir.
+
+    Note: Does not handle 'root' as a special case. Commands that support
+    'root' must check for it explicitly and use repo.root directly.
+
+    Args:
+        workstacks_dir: The directory containing all workstacks for this repo
+        name: The worktree name (e.g., 'feature-a')
+
+    Returns:
+        Absolute path to the worktree (e.g., ~/worktrees/myrepo/feature-a/)
+    """
+    return (workstacks_dir / name).resolve()
 
 
 def validate_worktree_name_for_removal(name: str) -> None:

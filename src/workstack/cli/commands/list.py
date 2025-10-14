@@ -2,7 +2,7 @@ from pathlib import Path
 
 import click
 
-from workstack.cli.core import discover_repo_context, ensure_work_dir
+from workstack.cli.core import discover_repo_context, ensure_workstacks_dir
 from workstack.cli.graphite import _load_graphite_cache, get_branch_stack
 from workstack.core.context import WorkstackContext
 from workstack.core.github_ops import PullRequestInfo
@@ -383,10 +383,10 @@ def _list_worktrees(ctx: WorkstackContext, show_stacks: bool, show_checks: bool)
         )
 
     # Show worktrees
-    work_dir = ensure_work_dir(repo)
-    if not work_dir.exists():
+    workstacks_dir = ensure_workstacks_dir(repo)
+    if not workstacks_dir.exists():
         return
-    entries = sorted(p for p in work_dir.iterdir() if p.is_dir())
+    entries = sorted(p for p in workstacks_dir.iterdir() if p.is_dir())
     for p in entries:
         name = p.name
         # Find the actual worktree path from git worktree list

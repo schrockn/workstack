@@ -58,24 +58,24 @@ def test_list_with_stacks_flag() -> None:
 
         # Create worktrees
         repo_name = cwd.name
-        work_dir = workstacks_root / repo_name
-        (work_dir / "ts").mkdir(parents=True)
+        workstacks_dir = workstacks_root / repo_name
+        (workstacks_dir / "ts").mkdir(parents=True)
 
         # Build fake git ops
         git_ops = FakeGitOps(
             worktrees={
                 cwd: [
                     WorktreeInfo(path=cwd, branch="main"),
-                    WorktreeInfo(path=work_dir / "ts", branch="schrockn/ts-phase-2"),
+                    WorktreeInfo(path=workstacks_dir / "ts", branch="schrockn/ts-phase-2"),
                 ],
             },
             git_common_dirs={
                 cwd: git_dir,
-                work_dir / "ts": git_dir,
+                workstacks_dir / "ts": git_dir,
             },
             current_branches={
                 cwd: "main",
-                work_dir / "ts": "schrockn/ts-phase-2",
+                workstacks_dir / "ts": "schrockn/ts-phase-2",
             },
         )
 
@@ -282,8 +282,8 @@ def test_list_with_stacks_highlights_current_branch_not_worktree_branch() -> Non
 
         # Create worktree
         repo_name = cwd.name
-        work_dir = workstacks_root / repo_name
-        temporal_stack_dir = work_dir / "temporal-stack"
+        workstacks_dir = workstacks_root / repo_name
+        temporal_stack_dir = workstacks_dir / "temporal-stack"
         temporal_stack_dir.mkdir(parents=True)
 
         # Build fake git ops
@@ -467,8 +467,8 @@ def test_list_with_stacks_shows_descendants_with_worktrees() -> None:
 
         # Create foo worktree
         repo_name = cwd.name
-        work_dir = workstacks_root / repo_name
-        foo_worktree_dir = work_dir / "foo"
+        workstacks_dir = workstacks_root / repo_name
+        foo_worktree_dir = workstacks_dir / "foo"
         foo_worktree_dir.mkdir(parents=True)
 
         # Build fake git ops - root on master, foo worktree on foo branch
@@ -664,8 +664,8 @@ def test_list_with_stacks_shows_descendants_with_gaps() -> None:
 
         # Create f3 worktree
         repo_name = cwd.name
-        work_dir = workstacks_root / repo_name
-        f3_worktree_dir = work_dir / "f3"
+        workstacks_dir = workstacks_root / repo_name
+        f3_worktree_dir = workstacks_dir / "f3"
         f3_worktree_dir.mkdir(parents=True)
 
         # Build fake git ops - root on main, f3 worktree on f3
@@ -820,8 +820,8 @@ def test_list_with_stacks_shows_plan_summary() -> None:
 
         # Create worktree with .PLAN.md
         repo_name = cwd.name
-        work_dir = workstacks_root / repo_name
-        feature_wt = work_dir / "feature"
+        workstacks_dir = workstacks_root / repo_name
+        feature_wt = workstacks_dir / "feature"
         feature_wt.mkdir(parents=True)
 
         # Create .PLAN.md with frontmatter and heading
@@ -906,8 +906,8 @@ def test_list_without_stacks_hides_plan_summary() -> None:
 
         # Create worktree with .PLAN.md
         repo_name = cwd.name
-        work_dir = workstacks_root / repo_name
-        feature_wt = work_dir / "feature"
+        workstacks_dir = workstacks_root / repo_name
+        feature_wt = workstacks_dir / "feature"
         feature_wt.mkdir(parents=True)
 
         # Create .PLAN.md
@@ -967,8 +967,8 @@ def test_list_with_stacks_no_plan_file() -> None:
 
         # Create worktree WITHOUT .PLAN.md
         repo_name = cwd.name
-        work_dir = workstacks_root / repo_name
-        feature_wt = work_dir / "feature"
+        workstacks_dir = workstacks_root / repo_name
+        feature_wt = workstacks_dir / "feature"
         feature_wt.mkdir(parents=True)
 
         # Set up fakes
@@ -1027,8 +1027,8 @@ def test_list_with_stacks_plan_without_frontmatter() -> None:
 
         # Create worktree with .PLAN.md (no frontmatter)
         repo_name = cwd.name
-        work_dir = workstacks_root / repo_name
-        feature_wt = work_dir / "feature"
+        workstacks_dir = workstacks_root / repo_name
+        feature_wt = workstacks_dir / "feature"
         feature_wt.mkdir(parents=True)
 
         plan_content = "# Simple feature implementation\n\nContent here."

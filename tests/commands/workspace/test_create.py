@@ -24,11 +24,11 @@ def test_create_basic_worktree() -> None:
         git_dir.mkdir()
 
         workstacks_root = cwd / "workstacks"
-        work_dir = workstacks_root / cwd.name
-        work_dir.mkdir(parents=True)
+        workstacks_dir = workstacks_root / cwd.name
+        workstacks_dir.mkdir(parents=True)
 
         # Create minimal config
-        config_toml = work_dir / "config.toml"
+        config_toml = workstacks_dir / "config.toml"
         config_toml.write_text("", encoding="utf-8")
 
         git_ops = FakeGitOps(
@@ -53,7 +53,7 @@ def test_create_basic_worktree() -> None:
         result = runner.invoke(cli, ["create", "test-feature"], obj=test_ctx)
 
         assert result.exit_code == 0, result.output
-        wt_path = work_dir / "test-feature"
+        wt_path = workstacks_dir / "test-feature"
         assert wt_path.exists()
         assert (wt_path / ".env").exists()
 
@@ -67,10 +67,10 @@ def test_create_with_custom_branch_name() -> None:
         git_dir.mkdir()
 
         workstacks_root = cwd / "workstacks"
-        work_dir = workstacks_root / cwd.name
-        work_dir.mkdir(parents=True)
+        workstacks_dir = workstacks_root / cwd.name
+        workstacks_dir.mkdir(parents=True)
 
-        config_toml = work_dir / "config.toml"
+        config_toml = workstacks_dir / "config.toml"
         config_toml.write_text("", encoding="utf-8")
 
         git_ops = FakeGitOps(
@@ -113,10 +113,10 @@ def test_create_with_plan_file() -> None:
         plan_file.write_text("# My Feature Plan\n", encoding="utf-8")
 
         workstacks_root = cwd / "workstacks"
-        work_dir = workstacks_root / cwd.name
-        work_dir.mkdir(parents=True)
+        workstacks_dir = workstacks_root / cwd.name
+        workstacks_dir.mkdir(parents=True)
 
-        config_toml = work_dir / "config.toml"
+        config_toml = workstacks_dir / "config.toml"
         config_toml.write_text("", encoding="utf-8")
 
         git_ops = FakeGitOps(
@@ -142,7 +142,7 @@ def test_create_with_plan_file() -> None:
 
         assert result.exit_code == 0, result.output
         # Should create worktree with "plan" stripped from filename
-        wt_path = work_dir / "my-feature"
+        wt_path = workstacks_dir / "my-feature"
         assert wt_path.exists()
         # Plan file should be moved to .PLAN.md
         assert (wt_path / ".PLAN.md").exists()
@@ -158,10 +158,10 @@ def test_create_with_plan_file_removes_plan_word() -> None:
         git_dir.mkdir()
 
         workstacks_root = cwd / "workstacks"
-        work_dir = workstacks_root / cwd.name
-        work_dir.mkdir(parents=True)
+        workstacks_dir = workstacks_root / cwd.name
+        workstacks_dir.mkdir(parents=True)
 
-        config_toml = work_dir / "config.toml"
+        config_toml = workstacks_dir / "config.toml"
         config_toml.write_text("", encoding="utf-8")
 
         git_ops = FakeGitOps(
@@ -199,7 +199,7 @@ def test_create_with_plan_file_removes_plan_word() -> None:
             result = runner.invoke(cli, ["create", "--plan", str(plan_file)], obj=test_ctx)
 
             assert result.exit_code == 0, f"Failed for {plan_filename}: {result.output}"
-            wt_path = work_dir / expected_worktree_name
+            wt_path = workstacks_dir / expected_worktree_name
             assert wt_path.exists(), f"Expected worktree at {wt_path} for {plan_filename}"
             assert (wt_path / ".PLAN.md").exists()
             assert not plan_file.exists()
@@ -219,10 +219,10 @@ def test_create_sanitizes_worktree_name() -> None:
         git_dir.mkdir()
 
         workstacks_root = cwd / "workstacks"
-        work_dir = workstacks_root / cwd.name
-        work_dir.mkdir(parents=True)
+        workstacks_dir = workstacks_root / cwd.name
+        workstacks_dir.mkdir(parents=True)
 
-        config_toml = work_dir / "config.toml"
+        config_toml = workstacks_dir / "config.toml"
         config_toml.write_text("", encoding="utf-8")
 
         git_ops = FakeGitOps(
@@ -249,10 +249,10 @@ def test_create_sanitizes_worktree_name() -> None:
         assert result.exit_code == 0, result.output
         # The test verifies the command succeeds - the actual sanitization
         # is tested in test_naming.py. Here we just verify the worktree was created.
-        assert work_dir.exists()
+        assert workstacks_dir.exists()
         # Check that some worktree directory was created
-        created_dirs = [d for d in work_dir.iterdir() if d.is_dir()]
-        assert len(created_dirs) > 0, f"No worktree directories created in {work_dir}"
+        created_dirs = [d for d in workstacks_dir.iterdir() if d.is_dir()]
+        assert len(created_dirs) > 0, f"No worktree directories created in {workstacks_dir}"
 
 
 def test_create_sanitizes_branch_name() -> None:
@@ -264,10 +264,10 @@ def test_create_sanitizes_branch_name() -> None:
         git_dir.mkdir()
 
         workstacks_root = cwd / "workstacks"
-        work_dir = workstacks_root / cwd.name
-        work_dir.mkdir(parents=True)
+        workstacks_dir = workstacks_root / cwd.name
+        workstacks_dir.mkdir(parents=True)
 
-        config_toml = work_dir / "config.toml"
+        config_toml = workstacks_dir / "config.toml"
         config_toml.write_text("", encoding="utf-8")
 
         git_ops = FakeGitOps(
@@ -304,10 +304,10 @@ def test_create_detects_default_branch() -> None:
         git_dir.mkdir()
 
         workstacks_root = cwd / "workstacks"
-        work_dir = workstacks_root / cwd.name
-        work_dir.mkdir(parents=True)
+        workstacks_dir = workstacks_root / cwd.name
+        workstacks_dir.mkdir(parents=True)
 
-        config_toml = work_dir / "config.toml"
+        config_toml = workstacks_dir / "config.toml"
         config_toml.write_text("", encoding="utf-8")
 
         git_ops = FakeGitOps(
@@ -346,14 +346,14 @@ def test_create_fails_if_worktree_exists() -> None:
         git_dir.mkdir()
 
         workstacks_root = cwd / "workstacks"
-        work_dir = workstacks_root / cwd.name
-        work_dir.mkdir(parents=True)
+        workstacks_dir = workstacks_root / cwd.name
+        workstacks_dir.mkdir(parents=True)
 
-        config_toml = work_dir / "config.toml"
+        config_toml = workstacks_dir / "config.toml"
         config_toml.write_text("", encoding="utf-8")
 
         # Create existing worktree directory
-        wt_path = work_dir / "test-feature"
+        wt_path = workstacks_dir / "test-feature"
         wt_path.mkdir(parents=True)
 
         git_ops = FakeGitOps(
@@ -390,11 +390,11 @@ def test_create_runs_post_create_commands() -> None:
         git_dir.mkdir()
 
         workstacks_root = cwd / "workstacks"
-        work_dir = workstacks_root / cwd.name
-        work_dir.mkdir(parents=True)
+        workstacks_dir = workstacks_root / cwd.name
+        workstacks_dir.mkdir(parents=True)
 
         # Create config with post_create commands
-        config_toml = work_dir / "config.toml"
+        config_toml = workstacks_dir / "config.toml"
         config_toml.write_text(
             '[post_create]\ncommands = ["echo hello > test.txt"]\n',
             encoding="utf-8",
@@ -434,11 +434,11 @@ def test_create_sets_env_variables() -> None:
         git_dir.mkdir()
 
         workstacks_root = cwd / "workstacks"
-        work_dir = workstacks_root / cwd.name
-        work_dir.mkdir(parents=True)
+        workstacks_dir = workstacks_root / cwd.name
+        workstacks_dir.mkdir(parents=True)
 
         # Create config with env vars
-        config_toml = work_dir / "config.toml"
+        config_toml = workstacks_dir / "config.toml"
         config_toml.write_text(
             '[env]\nMY_VAR = "my_value"\n',
             encoding="utf-8",
@@ -466,7 +466,7 @@ def test_create_sets_env_variables() -> None:
         result = runner.invoke(cli, ["create", "test-feature"], obj=test_ctx)
 
         assert result.exit_code == 0, result.output
-        wt_path = work_dir / "test-feature"
+        wt_path = workstacks_dir / "test-feature"
         env_file = wt_path / ".env"
         assert env_file.exists()
         env_content = env_file.read_text(encoding="utf-8")
@@ -484,10 +484,10 @@ def test_create_uses_graphite_when_enabled() -> None:
         git_dir.mkdir()
 
         workstacks_root = cwd / "workstacks"
-        work_dir = workstacks_root / cwd.name
-        work_dir.mkdir(parents=True)
+        workstacks_dir = workstacks_root / cwd.name
+        workstacks_dir.mkdir(parents=True)
 
-        config_toml = work_dir / "config.toml"
+        config_toml = workstacks_dir / "config.toml"
         config_toml.write_text("", encoding="utf-8")
 
         git_ops = FakeGitOps(
@@ -529,10 +529,10 @@ def test_create_uses_git_when_graphite_disabled() -> None:
         git_dir.mkdir()
 
         workstacks_root = cwd / "workstacks"
-        work_dir = workstacks_root / cwd.name
-        work_dir.mkdir(parents=True)
+        workstacks_dir = workstacks_root / cwd.name
+        workstacks_dir.mkdir(parents=True)
 
-        config_toml = work_dir / "config.toml"
+        config_toml = workstacks_dir / "config.toml"
         config_toml.write_text("", encoding="utf-8")
 
         git_ops = FakeGitOps(
@@ -642,11 +642,11 @@ def test_create_no_post_flag_skips_commands() -> None:
         git_dir.mkdir()
 
         workstacks_root = cwd / "workstacks"
-        work_dir = workstacks_root / cwd.name
-        work_dir.mkdir(parents=True)
+        workstacks_dir = workstacks_root / cwd.name
+        workstacks_dir.mkdir(parents=True)
 
         # Create config with post_create commands
-        config_toml = work_dir / "config.toml"
+        config_toml = workstacks_dir / "config.toml"
         config_toml.write_text(
             '[post_create]\ncommands = ["echo hello"]\n',
             encoding="utf-8",
@@ -686,10 +686,10 @@ def test_create_from_current_branch() -> None:
         git_dir.mkdir()
 
         workstacks_root = cwd / "workstacks"
-        work_dir = workstacks_root / cwd.name
-        work_dir.mkdir(parents=True)
+        workstacks_dir = workstacks_root / cwd.name
+        workstacks_dir.mkdir(parents=True)
 
-        config_toml = work_dir / "config.toml"
+        config_toml = workstacks_dir / "config.toml"
         config_toml.write_text("", encoding="utf-8")
 
         git_ops = FakeGitOps(
@@ -726,10 +726,10 @@ def test_create_from_branch() -> None:
         git_dir.mkdir()
 
         workstacks_root = cwd / "workstacks"
-        work_dir = workstacks_root / cwd.name
-        work_dir.mkdir(parents=True)
+        workstacks_dir = workstacks_root / cwd.name
+        workstacks_dir.mkdir(parents=True)
 
-        config_toml = work_dir / "config.toml"
+        config_toml = workstacks_dir / "config.toml"
         config_toml.write_text("", encoding="utf-8")
 
         git_ops = FakeGitOps(
@@ -799,10 +799,10 @@ def test_create_from_current_branch_on_main_fails() -> None:
         git_dir.mkdir()
 
         workstacks_root = cwd / "workstacks"
-        work_dir = workstacks_root / cwd.name
-        work_dir.mkdir(parents=True)
+        workstacks_dir = workstacks_root / cwd.name
+        workstacks_dir.mkdir(parents=True)
 
-        config_toml = work_dir / "config.toml"
+        config_toml = workstacks_dir / "config.toml"
         config_toml.write_text("", encoding="utf-8")
 
         git_ops = FakeGitOps(
@@ -841,14 +841,14 @@ def test_create_detects_branch_already_checked_out() -> None:
         git_dir.mkdir()
 
         workstacks_root = cwd / "workstacks"
-        work_dir = workstacks_root / cwd.name
-        work_dir.mkdir(parents=True)
+        workstacks_dir = workstacks_root / cwd.name
+        workstacks_dir.mkdir(parents=True)
 
-        config_toml = work_dir / "config.toml"
+        config_toml = workstacks_dir / "config.toml"
         config_toml.write_text("", encoding="utf-8")
 
         # Setup: feature-branch is already checked out in an existing worktree
-        existing_wt_path = work_dir / "existing-feature"
+        existing_wt_path = workstacks_dir / "existing-feature"
         existing_wt_path.mkdir(parents=True)
 
         git_ops = FakeGitOps(
@@ -895,10 +895,10 @@ def test_create_from_current_branch_on_master_fails() -> None:
         git_dir.mkdir()
 
         workstacks_root = cwd / "workstacks"
-        work_dir = workstacks_root / cwd.name
-        work_dir.mkdir(parents=True)
+        workstacks_dir = workstacks_root / cwd.name
+        workstacks_dir.mkdir(parents=True)
 
-        config_toml = work_dir / "config.toml"
+        config_toml = workstacks_dir / "config.toml"
         config_toml.write_text("", encoding="utf-8")
 
         git_ops = FakeGitOps(

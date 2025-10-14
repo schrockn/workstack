@@ -254,15 +254,15 @@ def test_sync_identifies_deletable_workstacks() -> None:
         cwd = Path.cwd()
         workstacks_root = cwd / "workstacks"
         repo_name = cwd.name
-        work_dir = workstacks_root / repo_name
-        work_dir.mkdir(parents=True)
+        workstacks_dir = workstacks_root / repo_name
+        workstacks_dir.mkdir(parents=True)
 
         repo_root = cwd
         (repo_root / ".git").mkdir()
 
-        # Create worktree directories under work_dir
-        wt1 = work_dir / "feature-1"
-        wt2 = work_dir / "feature-2"
+        # Create worktree directories under workstacks_dir
+        wt1 = workstacks_dir / "feature-1"
+        wt2 = workstacks_dir / "feature-2"
         wt1.mkdir()
         wt2.mkdir()
 
@@ -363,14 +363,14 @@ def test_sync_with_confirmation() -> None:
         cwd = Path.cwd()
         workstacks_root = cwd / "workstacks"
         repo_name = cwd.name
-        work_dir = workstacks_root / repo_name
-        work_dir.mkdir(parents=True)
+        workstacks_dir = workstacks_root / repo_name
+        workstacks_dir.mkdir(parents=True)
 
         repo_root = cwd
         (repo_root / ".git").mkdir()
 
-        # Create worktree directory under work_dir
-        wt1 = work_dir / "feature-1"
+        # Create worktree directory under workstacks_dir
+        wt1 = workstacks_dir / "feature-1"
         wt1.mkdir()
 
         git_ops = FakeGitOps(
@@ -416,13 +416,13 @@ def test_sync_user_cancels() -> None:
         cwd = Path.cwd()
         workstacks_root = cwd / "workstacks"
         repo_name = cwd.name
-        work_dir = workstacks_root / repo_name
-        work_dir.mkdir(parents=True)
+        workstacks_dir = workstacks_root / repo_name
+        workstacks_dir.mkdir(parents=True)
 
         repo_root = cwd
         (repo_root / ".git").mkdir()
 
-        wt1 = work_dir / "feature-1"
+        wt1 = workstacks_dir / "feature-1"
         wt1.mkdir()
 
         git_ops = FakeGitOps(
@@ -469,13 +469,13 @@ def test_sync_force_skips_confirmation() -> None:
         cwd = Path.cwd()
         workstacks_root = cwd / "workstacks"
         repo_name = cwd.name
-        work_dir = workstacks_root / repo_name
-        work_dir.mkdir(parents=True)
+        workstacks_dir = workstacks_root / repo_name
+        workstacks_dir.mkdir(parents=True)
 
         repo_root = cwd
         (repo_root / ".git").mkdir()
 
-        wt1 = work_dir / "feature-1"
+        wt1 = workstacks_dir / "feature-1"
         wt1.mkdir()
 
         git_ops = FakeGitOps(
@@ -521,13 +521,13 @@ def test_sync_dry_run() -> None:
         cwd = Path.cwd()
         workstacks_root = cwd / "workstacks"
         repo_name = cwd.name
-        work_dir = workstacks_root / repo_name
-        work_dir.mkdir(parents=True)
+        workstacks_dir = workstacks_root / repo_name
+        workstacks_dir.mkdir(parents=True)
 
         repo_root = cwd
         (repo_root / ".git").mkdir()
 
-        wt1 = work_dir / "feature-1"
+        wt1 = workstacks_dir / "feature-1"
         wt1.mkdir()
 
         git_ops = FakeGitOps(
@@ -629,14 +629,14 @@ def test_sync_original_worktree_deleted() -> None:
         cwd = Path.cwd()
         workstacks_root = cwd / "workstacks"
         repo_name = cwd.name
-        work_dir = workstacks_root / repo_name
-        work_dir.mkdir(parents=True)
+        workstacks_dir = workstacks_root / repo_name
+        workstacks_dir.mkdir(parents=True)
 
         repo_root = cwd
         (repo_root / ".git").mkdir()
 
         # Create worktree directory that we'll start in
-        wt1 = work_dir / "feature-1"
+        wt1 = workstacks_dir / "feature-1"
         wt1.mkdir()
 
         git_ops = FakeGitOps(
@@ -699,13 +699,13 @@ def test_sync_script_mode_when_worktree_deleted() -> None:
         cwd = Path.cwd()
         workstacks_root = cwd / "workstacks"
         repo_name = cwd.name
-        work_dir = workstacks_root / repo_name
-        work_dir.mkdir(parents=True)
+        workstacks_dir = workstacks_root / repo_name
+        workstacks_dir.mkdir(parents=True)
 
         repo_root = cwd
         (repo_root / ".git").mkdir()
 
-        wt1 = work_dir / "feature-1"
+        wt1 = workstacks_dir / "feature-1"
         wt1.mkdir()
 
         git_ops = FakeGitOps(
@@ -778,13 +778,13 @@ def test_sync_script_mode_when_worktree_exists() -> None:
         cwd = Path.cwd()
         workstacks_root = cwd / "workstacks"
         repo_name = cwd.name
-        work_dir = workstacks_root / repo_name
-        work_dir.mkdir(parents=True)
+        workstacks_dir = workstacks_root / repo_name
+        workstacks_dir.mkdir(parents=True)
 
         repo_root = cwd
         (repo_root / ".git").mkdir()
 
-        wt1 = work_dir / "feature-1"
+        wt1 = workstacks_dir / "feature-1"
         wt1.mkdir()
 
         git_ops = FakeGitOps(
