@@ -60,9 +60,9 @@ fake.add_state()                            # ❌ Pass via constructor
 **Detection:**
 
 ```bash
-grep -r "try:" src/workstack/commands/      # Should find ~0
+grep -r "try:" src/workstack/cli/commands/      # Should find ~0
 grep -r "\.resolve()" src/ | grep -v exists # Should find ~0
-grep -r "subprocess" src/workstack/commands # Should find ~1-2
+grep -r "subprocess" src/workstack/cli/commands # Should find ~1-2 (script mode only)
 ```
 
 ---
@@ -71,19 +71,19 @@ grep -r "subprocess" src/workstack/commands # Should find ~1-2
 
 ### Add Command
 
-1. `src/workstack/commands/my_cmd.py`
+1. `src/workstack/cli/commands/my_cmd.py`
 2. `@click.command()` + `@click.pass_obj`
 3. `repo = discover_repo_context(ctx, Path.cwd())`
 4. Use `ctx.git_ops`, `ctx.github_ops`, etc.
-5. Register in `cli.py`: `cli.add_command(my_cmd)`
+5. Register in `cli/cli.py`: `cli.add_command(my_cmd)`
 
 ### Add Ops
 
-1. ABC in `src/workstack/my_ops.py`
+1. ABC in `src/workstack/core/my_ops.py`
 2. `RealMyOps(MyOps)` + `DryRunMyOps(MyOps)`
 3. `FakeMyOps(MyOps)` in `tests/fakes/`
 4. Add to `WorkstackContext`
-5. Update `create_context()` in `cli.py`
+5. Update `create_context()` in `core/context.py`
 
 ### Test
 
@@ -99,15 +99,20 @@ grep -r "subprocess" src/workstack/commands # Should find ~1-2
 
 ```
 src/workstack/
-├── cli.py          # Entry, creates context
-├── context.py      # WorkstackContext (DI)
-├── core.py         # Pure business logic
-├── *_ops.py        # Operations (ABC interfaces)
-└── commands/*.py   # CLI commands (@click.pass_obj)
+├── cli/
+│   ├── cli.py              # Click entry point
+│   ├── core.py             # Repo discovery / path helpers
+│   ├── config.py           # Repo config loader
+│   ├── commands/*.py       # CLI commands (@click.pass_obj)
+│   └── shell_integration/  # Wrapper scripts + handler
+├── core/
+│   ├── context.py          # WorkstackContext factory
+│   └── *_ops.py            # External operations (ABC + Real)
+└── status/                 # Status collectors + renderers
 
 tests/
-├── fakes/*.py      # In-memory fakes (state via constructor)
-└── commands/       # Command tests (use fakes)
+├── fakes/*.py              # In-memory fakes (state via constructor)
+└── commands/               # Command tests (use fakes)
 ```
 
 ---

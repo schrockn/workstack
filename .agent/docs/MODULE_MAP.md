@@ -25,42 +25,50 @@ See [ARCHITECTURE.md](../ARCHITECTURE.md) for high-level design overview.
 ```
 workstack (CLI tool)
 │
-├─── CLI Layer (User Interface)
-│    ├─ cli.py ..................... Entry point, command registration
-│    └─ commands/ .................. Individual command implementations
-│        ├─ create.py .............. Create worktrees
-│        ├─ switch.py .............. Switch between worktrees
-│        ├─ list.py ................ List worktrees
-│        ├─ remove.py .............. Remove worktrees
-│        ├─ sync.py ................ Sync with graphite
-│        ├─ tree.py ................ Show worktree tree
-│        ├─ init.py ................ Initialize configuration
-│        ├─ config.py .............. Manage configuration
-│        ├─ gc.py .................. Garbage collection
-│        ├─ rename.py .............. Rename worktrees
-│        ├─ completion.py .......... Shell completion
-│        └─ shell_integration.py ... Hidden __shell command for wrappers
+├── cli/ .......................... User-facing CLI package
+│   ├─ cli.py ..................... Entry point, Click group registration
+│   ├─ core.py .................... Repo discovery + worktree path helpers
+│   ├─ config.py .................. Repository config loader
+│   ├─ tree.py .................... Tree rendering helpers
+│   ├─ graphite.py ................ Graphite stack helpers
+│   ├─ shell_utils.py ............. Shared shell helpers
+│   ├─ commands/ .................. Individual Click commands
+│   │   ├─ create.py .............. Create worktrees
+│   │   ├─ move.py ................ Move/swap branches across worktrees
+│   │   ├─ switch.py .............. Switch between worktrees
+│   │   ├─ list.py ................ List worktrees
+│   │   ├─ status.py .............. Aggregate worktree status
+│   │   ├─ remove.py .............. Remove worktrees
+│   │   ├─ rename.py .............. Rename worktrees
+│   │   ├─ init.py ................ Initialize configuration
+│   │   ├─ config.py .............. Manage configuration
+│   │   ├─ prepare_cwd_recovery.py  Print shell snippet for dir recovery
+│   │   ├─ gc.py .................. Garbage collection
+│   │   ├─ sync.py ................ Sync with graphite
+│   │   ├─ tree.py ................ Tree visualization command
+│   │   ├─ completion.py .......... Shell completion
+│   │   └─ shell_integration.py ... Hidden __shell command for wrappers
+│   └─ shell_integration/ ......... Shell wrapper scripts + handler
+│       ├─ bash_wrapper.sh ........ Bash shell function wrapper
+│       ├─ zsh_wrapper.sh ......... Zsh shell function wrapper
+│       ├─ fish_wrapper.fish ...... Fish shell function wrapper
+│       └─ handler.py ............. Unified shell integration handler
 │
-├─── Core Layer (Business Logic)
-│    ├─ context.py ................. Dependency injection container
-│    ├─ core.py .................... Core business logic
-│    ├─ config.py .................. Configuration loading
-│    ├─ tree.py .................... Tree visualization logic
-│    └─ graphite.py ................ Graphite integration logic
+├── core/ ........................ External operations + DI
+│   ├─ context.py ................. Dependency injection container + factory
+│   ├─ gitops.py .................. Git operations (ABC + Real + DryRun)
+│   ├─ global_config_ops.py ....... Global config operations (ABC + Real)
+│   ├─ github_ops.py .............. GitHub operations (ABC + Real)
+│   ├─ graphite_ops.py ............ Graphite operations (ABC + Real + DryRun)
+│   └─ file_utils.py .............. Shared filesystem helpers
 │
-├─── Operations Layer (External Integrations)
-│    ├─ gitops.py .................. Git operations (ABC + Real + DryRun)
-│    ├─ github_ops.py .............. GitHub operations (ABC + Real)
-│    ├─ graphite_ops.py ............ Graphite operations (ABC + Real + DryRun)
-│    └─ global_config_ops.py ....... Global config operations (ABC + Real)
+├── status/ ...................... Aggregated status system
+│   ├─ orchestrator.py ............ Coordinates collectors and renderers
+│   ├─ collectors/ ................ Git, Graphite, GitHub, plan file collectors
+│   └─ renderers/ ................. Rendering strategies (SimpleRenderer, etc.)
 │
-└─── Support
-     ├─ presets/ ................... Configuration presets (dagster, generic, etc.)
-     └─ shell_integration/ ......... Shell integration system
-         ├─ bash_wrapper.sh ........ Bash shell function wrapper
-         ├─ zsh_wrapper.sh ......... Zsh shell function wrapper
-         ├─ fish_wrapper.fish ...... Fish shell function wrapper
-         └─ handler.py ............. Unified shell integration handler
+└── dev_cli/ ..................... Developer PEP 723 scripts
+    └─ commands/ ................. Maintenance scripts invoked via `workstack-dev`
 ```
 
 ---
@@ -69,7 +77,7 @@ workstack (CLI tool)
 
 ### CLI Layer
 
-#### `cli.py`
+#### `cli/cli.py`
 
 **Purpose**: Application entry point and command registration.
 
@@ -87,8 +95,8 @@ workstack (CLI tool)
 
 **Dependencies**:
 
-- `context.py` - For `create_context()`
-- `commands/*` - All command modules
+- `core/context.py` - For `create_context()`
+- `cli/commands/*` - All command modules
 
 **Example**:
 
@@ -102,7 +110,7 @@ def cli(click_ctx, dry_run):
 
 ---
 
-#### `commands/create.py`
+#### `cli/commands/create.py`
 
 **Purpose**: Implements `workstack create` command.
 
@@ -126,8 +134,8 @@ def cli(click_ctx, dry_run):
 
 **Dependencies**:
 
-- `core.py` - For `discover_repo_context()`, `ensure_work_dir()`, `worktree_path_for()`
-- `config.py` - For `load_config()`
+- `cli/core.py` - For `discover_repo_context()`, `ensure_work_dir()`, `worktree_path_for()`
+- `cli/config.py` - For `load_config()`
 - Context ops: `git_ops`, `global_config_ops`
 
 **Usage**:
@@ -140,7 +148,7 @@ workstack create --branch existing-branch my-worktree
 
 ---
 
-#### `commands/switch.py`
+#### `cli/commands/switch.py`
 
 **Purpose**: Implements `workstack switch` command.
 
@@ -159,7 +167,7 @@ workstack create --branch existing-branch my-worktree
 
 **Dependencies**:
 
-- `core.py` - For `discover_repo_context()`, `worktree_path_for()`
+- `cli/core.py` - For `discover_repo_context()`, `worktree_path_for()`
 - Context ops: `git_ops`, `global_config_ops`
 
 **Usage**:
@@ -171,7 +179,7 @@ workstack switch my-feature
 
 ---
 
-#### `commands/list.py`
+#### `cli/commands/list.py`
 
 **Purpose**: Implements `workstack list` and `workstack ls` commands.
 
@@ -191,8 +199,8 @@ workstack switch my-feature
 
 **Dependencies**:
 
-- `core.py` - For `discover_repo_context()`
-- `graphite.py` - For `get_branch_stack()`
+- `cli/core.py` - For `discover_repo_context()`
+- `cli/graphite.py` - For `get_branch_stack()`
 - Context ops: `git_ops`, `github_ops`, `global_config_ops`, `graphite_ops`
 
 **Usage**:
@@ -204,7 +212,40 @@ workstack ls  # alias
 
 ---
 
-#### `commands/remove.py`
+#### `cli/commands/status.py`
+
+**Purpose**: Implements `workstack status` command.
+
+**Responsibilities**:
+
+- Discover current repository and active worktree
+- Collect git status, graphite stack data, GitHub PR info, and local plan file details
+- Present aggregated status via renderer (currently `SimpleRenderer`)
+- Exit with friendly error if not inside a managed worktree
+
+**Key Functions**:
+
+- `status_cmd()` - Click command entry point
+- `StatusOrchestrator.collect_status()` - Orchestrator invoked by command
+
+**Dependencies**:
+
+- `cli/core.py` - For `discover_repo_context()`
+- `status/orchestrator.py` - Collector orchestration
+- `status/collectors/*` - Git, Graphite, GitHub, plan collectors
+- Context ops: `git_ops`, `github_ops`, `graphite_ops`
+
+**Usage**:
+
+```bash
+workstack status
+```
+
+**Notes**: Integration-level behavior covered by `tests/commands/test_status.py`.
+
+---
+
+#### `cli/commands/remove.py`
 
 **Purpose**: Implements `workstack rm` and `workstack remove` commands.
 
@@ -224,7 +265,7 @@ workstack ls  # alias
 
 **Dependencies**:
 
-- `core.py` - For `discover_repo_context()`, `validate_worktree_name_for_removal()`, `worktree_path_for()`
+- `cli/core.py` - For `discover_repo_context()`, `validate_worktree_name_for_removal()`, `worktree_path_for()`
 - Context ops: `git_ops`, `global_config_ops`
 
 **Usage**:
@@ -237,7 +278,7 @@ workstack rm my-feature --force
 
 ---
 
-#### `commands/rename.py`
+#### `cli/commands/rename.py`
 
 **Purpose**: Implements `workstack rename` command.
 
@@ -253,7 +294,7 @@ workstack rm my-feature --force
 
 **Dependencies**:
 
-- `core.py` - For `discover_repo_context()`, `worktree_path_for()`
+- `cli/core.py` - For `discover_repo_context()`, `worktree_path_for()`
 - Context ops: `git_ops`, `global_config_ops`
 
 **Usage**:
@@ -266,7 +307,42 @@ workstack rename old-name new-name
 
 ---
 
-#### `commands/tree.py`
+#### `cli/commands/move.py`
+
+**Purpose**: Implements `workstack move` command.
+
+**Responsibilities**:
+
+- Resolve source worktree via `--current`, `--branch`, or `--worktree`
+- Detect whether to create, move, or swap based on target state
+- Enforce clean working state unless `--force` is provided
+- Print human-friendly progress for each operation (checkout, creation, swap)
+
+**Key Functions**:
+
+- `resolve_source_worktree()` - Flag resolution helper
+- `detect_operation_type()` - Determine move vs swap vs create
+- `execute_move()/execute_swap()` - Perform git operations and messaging
+
+**Dependencies**:
+
+- `cli/core.py` - For repo discovery, ensuring work dir, path helpers
+- Context ops: `git_ops` (list, add, checkout worktrees)
+- Uses `subprocess.run` only for read-only `git status --porcelain`
+
+**Usage**:
+
+```bash
+workstack move target-wt            # Move current worktree branch into target
+workstack move --branch feature-x wt-new
+workstack move --worktree wt-old wt-new --force
+```
+
+**Notes**: Tested via `tests/test_move.py` covering move, swap, and branch detection flows.
+
+---
+
+#### `cli/commands/tree.py`
 
 **Purpose**: Implements `workstack tree` command.
 
@@ -282,8 +358,8 @@ workstack rename old-name new-name
 
 **Dependencies**:
 
-- `tree.py` - For `build_worktree_tree()`
-- `core.py` - For `discover_repo_context()`
+- `cli/tree.py` - For `build_worktree_tree()`
+- `cli/core.py` - For `discover_repo_context()`
 - Context ops: `git_ops`, `global_config_ops`, `graphite_ops`
 
 **Usage**:
@@ -294,7 +370,7 @@ workstack tree
 
 ---
 
-#### `commands/sync.py`
+#### `cli/commands/sync.py`
 
 **Purpose**: Implements `workstack sync` command.
 
@@ -316,7 +392,7 @@ workstack tree
 
 **Dependencies**:
 
-- `core.py` - For `discover_repo_context()`
+- `cli/core.py` - For `discover_repo_context()`
 - Context ops: `git_ops`, `github_ops`, `graphite_ops`, `global_config_ops`
 
 **Usage**:
@@ -328,7 +404,7 @@ workstack sync --yes  # auto-confirm removals
 
 ---
 
-#### `commands/init.py`
+#### `cli/commands/init.py`
 
 **Purpose**: Implements `workstack init` command.
 
@@ -348,7 +424,7 @@ workstack sync --yes  # auto-confirm removals
 
 **Dependencies**:
 
-- `core.py` - For `discover_repo_context()`, `ensure_work_dir()`
+- `cli/core.py` - For `discover_repo_context()`, `ensure_work_dir()`
 - `presets/` - For configuration templates
 - Context ops: `global_config_ops`
 
@@ -362,7 +438,7 @@ workstack init --shell-only
 
 ---
 
-#### `commands/config.py`
+#### `cli/commands/config.py`
 
 **Purpose**: Implements `workstack config` command group.
 
@@ -394,7 +470,7 @@ workstack config set workstacks_root ~/worktrees
 
 ---
 
-#### `commands/gc.py`
+#### `cli/commands/gc.py`
 
 **Purpose**: Implements `workstack gc` command (garbage collection).
 
@@ -410,7 +486,7 @@ workstack config set workstacks_root ~/worktrees
 
 **Dependencies**:
 
-- `core.py` - For `discover_repo_context()`
+- `cli/core.py` - For `discover_repo_context()`
 - Context ops: `git_ops`, `github_ops`, `global_config_ops`
 
 **Usage**:
@@ -423,7 +499,7 @@ workstack gc
 
 ---
 
-#### `commands/completion.py`
+#### `cli/commands/completion.py`
 
 **Purpose**: Implements `workstack completion` command group.
 
@@ -441,7 +517,7 @@ workstack gc
 
 **Dependencies**:
 
-- `core.py` - For `discover_repo_context()`
+- `cli/core.py` - For `discover_repo_context()`
 - Context ops: `git_ops`, `global_config_ops`
 
 **Usage**:
@@ -453,7 +529,7 @@ workstack completion zsh > ~/.workstack-completion.zsh
 
 ---
 
-#### `commands/shell_integration.py`
+#### `cli/commands/shell_integration.py`
 
 **Purpose**: Implements hidden `workstack __shell` command for shell integration.
 
@@ -471,7 +547,7 @@ workstack completion zsh > ~/.workstack-completion.zsh
 
 **Dependencies**:
 
-- `shell_integration/handler.py` - For `handle_shell_request()`
+- `cli/shell_integration/handler.py` - For `handle_shell_request()`
 
 **Usage** (internal, called by shell wrappers):
 
@@ -487,9 +563,33 @@ workstack __shell create new-feature
 
 ---
 
+#### `cli/commands/prepare_cwd_recovery.py`
+
+**Purpose**: Implements hidden `workstack __prepare_cwd_recovery` command.
+
+**Responsibilities**:
+
+- Generate a one-time shell script that returns to repo root if cwd disappears
+- Defensively handle races where `Path.cwd()` fails or directories vanish
+- Emit script path (without newline) for wrapper consumption
+
+**Key Functions**:
+
+- `generate_recovery_script()` - Core helper performing guarded detection + script creation
+- `prepare_cwd_recovery_cmd()` - Hidden Click command emitting the script path
+
+**Dependencies**:
+
+- `cli/core.py` - For `discover_repo_context()`
+- `cli/shell_utils.py` - For `render_cd_script()` and `write_script_to_temp()`
+
+**Usage**: Hidden helper invoked by shell wrappers before passthrough operations.
+
+---
+
 ### Core Layer
 
-#### `context.py`
+#### `core/context.py`
 
 **Purpose**: Dependency injection container.
 
@@ -523,7 +623,7 @@ class WorkstackContext:
 
 ---
 
-#### `core.py`
+#### `cli/core.py`
 
 **Purpose**: Core business logic (pure functions).
 
@@ -553,7 +653,7 @@ class RepoContext:
 
 **Dependencies**:
 
-- `context.py` - For `WorkstackContext` type
+- `core/context.py` - For `WorkstackContext` type
 - Uses ops through context parameter (no direct imports)
 
 **Used By**: Nearly all commands
@@ -562,7 +662,7 @@ class RepoContext:
 
 ---
 
-#### `config.py`
+#### `cli/config.py`
 
 **Purpose**: Configuration loading from TOML.
 
@@ -587,11 +687,11 @@ class LoadedConfig:
 
 **Dependencies**: None (pure TOML parsing)
 
-**Used By**: `commands/create.py`, `commands/init.py`
+**Used By**: `cli/commands/create.py`, `cli/commands/init.py`
 
 ---
 
-#### `tree.py`
+#### `cli/tree.py`
 
 **Purpose**: Tree visualization logic.
 
@@ -607,15 +707,15 @@ class LoadedConfig:
 
 **Dependencies**:
 
-- `graphite.py` - For stack loading
+- `cli/graphite.py` - For stack loading
 
-**Used By**: `commands/tree.py`, `commands/list.py`
+**Used By**: `cli/commands/tree.py`, `cli/commands/list.py`
 
 **Note**: Complex logic, separate module for maintainability.
 
 ---
 
-#### `graphite.py`
+#### `cli/graphite.py`
 
 **Purpose**: Graphite integration logic.
 
@@ -632,14 +732,14 @@ class LoadedConfig:
 
 **Dependencies**:
 
-- `context.py` - For `WorkstackContext` type
+- `core/context.py` - For `WorkstackContext` type
 - Uses `graphite_ops` through context
 
-**Used By**: `commands/list.py`, `tree.py`
+**Used By**: `cli/commands/list.py`, `cli/tree.py`
 
 ---
 
-#### `shell_integration/handler.py`
+#### `cli/shell_integration/handler.py`
 
 **Purpose**: Unified shell integration handler logic (Core Layer).
 
@@ -676,12 +776,12 @@ class ShellIntegrationResult:
 **Dependencies**:
 
 - `click.testing.CliRunner` - For invoking commands programmatically
-- `commands/create.py` - For `create` command with `--script`
-- `commands/switch.py` - For `switch_cmd` with `--script`
-- `commands/sync.py` - For `sync_cmd` with `--script`
-- `context.py` - For `create_context()`
+- `cli/commands/create.py` - For `create` command with `--script`
+- `cli/commands/switch.py` - For `switch_cmd` with `--script`
+- `cli/commands/sync.py` - For `sync_cmd` with `--script`
+- `core/context.py` - For `create_context()`
 
-**Used By**: `commands/shell_integration.py`
+**Used By**: `cli/commands/shell_integration.py`
 
 **Pattern**: Provides clean separation between shell integration logic and command logic. Commands only need to support `--script` flag; handler manages the routing and passthrough protocol.
 
@@ -705,7 +805,7 @@ Shell wrapper evals script
 
 ### Operations Layer
 
-#### `gitops.py`
+#### `core/gitops.py`
 
 **Purpose**: Git operations abstraction.
 
@@ -735,7 +835,7 @@ Shell wrapper evals script
 
 ---
 
-#### `github_ops.py`
+#### `core/github_ops.py`
 
 **Purpose**: GitHub API operations.
 
@@ -753,11 +853,11 @@ Shell wrapper evals script
 
 **Graceful Degradation**: Returns `None` if `gh` not available
 
-**Used By**: `commands/list.py`, `commands/sync.py`, `commands/gc.py`
+**Used By**: `cli/commands/list.py`, `cli/commands/sync.py`, `cli/commands/gc.py`
 
 ---
 
-#### `graphite_ops.py`
+#### `core/graphite_ops.py`
 
 **Purpose**: Graphite CLI operations.
 
@@ -774,11 +874,11 @@ Shell wrapper evals script
 
 **Dependencies**: None (uses `gt` CLI via `subprocess`)
 
-**Used By**: `commands/list.py`, `commands/sync.py`
+**Used By**: `cli/commands/list.py`, `cli/commands/sync.py`
 
 ---
 
-#### `global_config_ops.py`
+#### `core/global_config_ops.py`
 
 **Purpose**: Global configuration management.
 
@@ -847,20 +947,20 @@ tests/integration/ ──> src/workstack/ (real implementations)
 
 1. Find command in `commands/` directory
 2. Read command file to understand current behavior
-3. Check `core.py` if command uses core functions
+3. Check `cli/core.py` if command uses core functions
 4. Check relevant ops interface if interacting with git/github/graphite
 
 **Example**: Modify how worktrees are listed
 
-- Read: `commands/list.py`
-- Check: `core.py` for `discover_repo_context()`
-- Check: `gitops.py` for `list_worktrees()`
+- Read: `cli/commands/list.py`
+- Check: `cli/core.py` for `discover_repo_context()`
+- Check: `core/gitops.py` for `list_worktrees()`
 
 ---
 
 ### "I want to add a new git operation"
 
-1. Add abstract method to `GitOps` in `gitops.py`
+1. Add abstract method to `GitOps` in `core/gitops.py`
 2. Implement in `RealGitOps`
 3. Implement in `FakeGitOps` (`tests/fakes/gitops.py`)
 4. Add to `DryRunGitOps` if destructive operation
@@ -870,21 +970,21 @@ tests/integration/ ──> src/workstack/ (real implementations)
 ### "I want to add a new command"
 
 1. Create new file in `commands/`
-2. Follow pattern from existing commands (e.g., `commands/rename.py` is simple)
-3. Register in `cli.py`
+2. Follow pattern from existing commands (e.g., `cli/commands/rename.py` is simple)
+3. Register in `cli/cli.py`
 4. Add tests in `tests/commands/`
 
 ---
 
 ### "I want to understand configuration"
 
-1. **Global config**: Read `global_config_ops.py`
+1. **Global config**: Read `core/global_config_ops.py`
    - Location: `~/.workstack/config.toml`
    - Keys: `workstacks_root`, `use_graphite`, `show_pr_info`
-2. **Repo config**: Read `config.py`
+2. **Repo config**: Read `cli/config.py`
    - Location: `{work_dir}/config.toml`
    - Sections: `[env]`, `[[post_create]]`
-3. **How configs are created**: See `commands/init.py`
+3. **How configs are created**: See `cli/commands/init.py`
 4. **Example configurations**: See `presets/`
 
 ---
@@ -917,16 +1017,16 @@ Commands that need to modify the parent shell's environment (cd, export) cannot 
 
 ### Components
 
-1. **Shell Wrappers** (`shell_integration/*.sh`, `*.fish`)
+1. **Shell Wrappers** (`cli/shell_integration/*.sh`, `*.fish`)
    - Intercept `workstack` commands in the user's shell
    - Call `workstack __shell <command> <args>`
    - Eval the output (unless passthrough marker detected)
 
-2. **Hidden Command** (`commands/shell_integration.py`)
+2. **Hidden Command** (`cli/commands/shell_integration.py`)
    - Single entry point: `workstack __shell`
    - Routes to handler for processing
 
-3. **Handler** (`shell_integration/handler.py`)
+3. **Handler** (`cli/shell_integration/handler.py`)
    - Core routing logic
    - Invokes commands with `--script` flag
    - Returns `ShellIntegrationResult`
@@ -1020,7 +1120,7 @@ commands/sync.py:
 commands/create.py:
   - create(script: bool)  # Single function
 
-shell_integration/handler.py:
+cli/shell_integration/handler.py:
   - handle_shell_request()  # Single routing function
 ```
 

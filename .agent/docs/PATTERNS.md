@@ -412,7 +412,7 @@ def main() -> None:
 **Examples in this codebase:**
 
 - `src/workstack/__init__.py` - Defines `main()` entry point ✅
-- `src/workstack/commands/__init__.py` - Empty ✅
+- `src/workstack/cli/commands/__init__.py` - Empty ✅
 - `tests/__init__.py` - Docstring only ✅
 
 ### Rationale

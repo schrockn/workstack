@@ -23,25 +23,28 @@ Quick reference for locating feature implementations, tests, and related code.
 
 ## Core Features
 
-| Feature            | Implementation                                              | Tests                               | Notes                               |
-| ------------------ | ----------------------------------------------------------- | ----------------------------------- | ----------------------------------- |
-| Create worktree    | `src/workstack/commands/create.py`                          | `tests/commands/test_plan.py`       | Plan file support, branch creation  |
-| Switch worktree    | `src/workstack/commands/switch.py`                          | `tests/commands/test_switch.py`     | Shell activation, env loading       |
-| List worktrees     | `src/workstack/commands/list.py`                            | `tests/commands/list/test_basic.py` | PR status optional, graphite stacks |
-| Remove worktree    | `src/workstack/commands/remove.py`                          | `tests/commands/test_rm.py`         | Branch deletion, force flag         |
-| Rename worktree    | `src/workstack/commands/rename.py`                          | `tests/commands/test_rename.py`     | Directory move + git update         |
-| Tree visualization | `src/workstack/commands/tree.py`<br>`src/workstack/tree.py` | `tests/commands/test_tree.py`       | Graphite stack hierarchy            |
-| Initialize config  | `src/workstack/commands/init.py`                            | N/A                                 | Presets, shell integration          |
-| Manage config      | `src/workstack/commands/config.py`                          | N/A                                 | Get/set/list operations             |
-| Garbage collection | `src/workstack/commands/gc.py`                              | N/A                                 | Merged PR identification            |
-| Sync with graphite | `src/workstack/commands/sync.py`                            | `tests/test_sync.py`                | PR detection, cleanup               |
-| Shell completion   | `src/workstack/commands/completion.py`                      | `tests/commands/test_completion.py` | Bash/zsh/fish support               |
+| Feature            | Implementation                                                      | Tests                                                                  | Notes                               |
+| ------------------ | ------------------------------------------------------------------- | ---------------------------------------------------------------------- | ----------------------------------- |
+| Create worktree    | `src/workstack/cli/commands/create.py`                              | `tests/commands/test_plan.py`                                          | Plan file support, branch creation  |
+| Switch worktree    | `src/workstack/cli/commands/switch.py`                              | `tests/commands/test_switch.py`                                        | Shell activation, env loading       |
+| List worktrees     | `src/workstack/cli/commands/list.py`                                | `tests/commands/list/test_basic.py`                                    | PR status optional, graphite stacks |
+| Remove worktree    | `src/workstack/cli/commands/remove.py`                              | `tests/commands/test_rm.py`                                            | Branch deletion, force flag         |
+| Rename worktree    | `src/workstack/cli/commands/rename.py`                              | `tests/commands/test_rename.py`                                        | Directory move + git update         |
+| Tree visualization | `src/workstack/cli/commands/tree.py`<br>`src/workstack/cli/tree.py` | `tests/commands/test_tree.py`                                          | Graphite stack hierarchy            |
+| Move worktree      | `src/workstack/cli/commands/move.py`                                | `tests/test_move.py`                                                   | Move/swap branches across worktrees |
+| Status overview    | `src/workstack/cli/commands/status.py`                              | `tests/commands/test_status.py`<br>`tests/status/test_orchestrator.py` | Aggregate repo/worktree status      |
+| Initialize config  | `src/workstack/cli/commands/init.py`                                | N/A                                                                    | Presets, shell integration          |
+| Manage config      | `src/workstack/cli/commands/config.py`                              | N/A                                                                    | Get/set/list operations             |
+| Prepare recovery   | `src/workstack/cli/commands/prepare_cwd_recovery.py`                | `tests/commands/test_prepare_cwd_recovery.py`                          | Print shell snippet for PWD restore |
+| Garbage collection | `src/workstack/cli/commands/gc.py`                                  | N/A                                                                    | Merged PR identification            |
+| Sync with graphite | `src/workstack/cli/commands/sync.py`                                | `tests/test_sync.py`                                                   | PR detection, cleanup               |
+| Shell completion   | `src/workstack/cli/commands/completion.py`                          | `tests/commands/test_completion.py`                                    | Bash/zsh/fish support               |
 
 ---
 
 ## Git Operations
 
-All git operations are defined in `src/workstack/gitops.py`.
+All git operations are defined in `src/workstack/core/gitops.py`.
 
 | Operation             | ABC Interface | Real Implementation | Fake Implementation     | Description                                 |
 | --------------------- | ------------- | ------------------- | ----------------------- | ------------------------------------------- |
@@ -61,7 +64,7 @@ All git operations are defined in `src/workstack/gitops.py`.
 
 ## GitHub Operations
 
-All GitHub operations are defined in `src/workstack/github_ops.py`.
+All GitHub operations are defined in `src/workstack/core/github_ops.py`.
 
 | Operation     | ABC Interface   | Real Implementation | Fake Implementation         | Description                           |
 | ------------- | --------------- | ------------------- | --------------------------- | ------------------------------------- |
@@ -95,21 +98,22 @@ All graphite operations are defined in `src/workstack/core/graphite_ops.py`.
 
 ## Configuration
 
-| Feature        | Implementation                                                               | Tests                               | Description                           |
-| -------------- | ---------------------------------------------------------------------------- | ----------------------------------- | ------------------------------------- |
-| Global config  | `src/workstack/global_config_ops.py`                                         | N/A                                 | `~/.workstack/config.toml` management |
-| Repo config    | `src/workstack/config.py`                                                    | `tests/core/test_config_and_env.py` | `{work_dir}/config.toml` loading      |
-| Config presets | `src/workstack/presets/dagster.toml`<br>`src/workstack/presets/generic.toml` | `tests/core/test_setup_template.py` | Template configurations               |
+| Feature        | Implementation                                                                       | Tests                               | Description                           |
+| -------------- | ------------------------------------------------------------------------------------ | ----------------------------------- | ------------------------------------- |
+| Global config  | `src/workstack/core/global_config_ops.py`                                            | N/A                                 | `~/.workstack/config.toml` management |
+| Repo config    | `src/workstack/cli/config.py`                                                        | `tests/core/test_config_and_env.py` | `{work_dir}/config.toml` loading      |
+| Config presets | `src/workstack/cli/presets/dagster.toml`<br>`src/workstack/cli/presets/generic.toml` | `tests/core/test_setup_template.py` | Template configurations               |
 
 **Global Config Operations** (`global_config_ops.py`):
 
-- `get_workstacks_root()` - Get root directory
-- `get_use_graphite()` - Check graphite enabled
-- `get_show_pr_info()` - Check PR display setting
-- `set(key, value)` - Update config
-- `config_path()` - Get config file path
-- `config_exists()` - Check if config exists
-- `get_shell_setup_complete()` - Check shell setup
+- `get_workstacks_root()` - Resolve workstacks root directory (Path)
+- `get_use_graphite()` - Feature flag for Graphite integration
+- `get_shell_setup_complete()` - Whether shell wrappers are installed
+- `get_show_pr_info()` - Display PR details in `workstack list`
+- `get_show_pr_checks()` - Display CI status in PR info
+- `set(...)` - Sentinel-based update helper (creates file if missing)
+- `exists()` - Does `~/.workstack/config.toml` exist?
+- `get_path()` - Return the config file path for messaging
 
 **Repo Config** (`config.py`):
 
@@ -120,36 +124,36 @@ All graphite operations are defined in `src/workstack/core/graphite_ops.py`.
 
 ## Core Business Logic
 
-| Feature           | Implementation                     | Tests                                      | Description                        |
-| ----------------- | ---------------------------------- | ------------------------------------------ | ---------------------------------- |
-| Repo discovery    | `src/workstack/core.py`            | N/A                                        | Walk tree to find `.git` directory |
-| Path construction | `src/workstack/core.py`            | N/A                                        | `worktree_path_for()` helper       |
-| Work dir creation | `src/workstack/core.py`            | N/A                                        | `ensure_work_dir()` helper         |
-| Name validation   | `src/workstack/core.py`            | N/A                                        | Safety checks for removal          |
-| Worktree naming   | `src/workstack/commands/create.py` | `tests/core/test_naming.py`                | Generate names from branches       |
-| Branch detection  | `src/workstack/gitops.py`          | `tests/core/test_detect_default_branch.py` | Detect main vs master              |
-| Dagster detection | `src/workstack/commands/init.py`   | `tests/core/test_detect_dagster.py`        | Auto-detect dagster projects       |
-| Stack loading     | `src/workstack/graphite.py`        | N/A                                        | Load graphite metadata             |
-| Tree building     | `src/workstack/tree.py`            | N/A                                        | Build visualization tree           |
+| Feature           | Implementation                         | Tests                                      | Description                        |
+| ----------------- | -------------------------------------- | ------------------------------------------ | ---------------------------------- |
+| Repo discovery    | `src/workstack/cli/core.py`            | N/A                                        | Walk tree to find `.git` directory |
+| Path construction | `src/workstack/cli/core.py`            | N/A                                        | `worktree_path_for()` helper       |
+| Work dir creation | `src/workstack/cli/core.py`            | N/A                                        | `ensure_work_dir()` helper         |
+| Name validation   | `src/workstack/cli/core.py`            | N/A                                        | Safety checks for removal          |
+| Worktree naming   | `src/workstack/cli/commands/create.py` | `tests/core/test_naming.py`                | Generate names from branches       |
+| Branch detection  | `src/workstack/core/gitops.py`         | `tests/core/test_detect_default_branch.py` | Detect main vs master              |
+| Dagster detection | `src/workstack/cli/commands/init.py`   | `tests/core/test_detect_dagster.py`        | Auto-detect dagster projects       |
+| Stack loading     | `src/workstack/cli/graphite.py`        | N/A                                        | Load graphite metadata             |
+| Tree building     | `src/workstack/cli/tree.py`            | N/A                                        | Build visualization tree           |
 
 **Key Types**:
 
-- `RepoContext` - Repo root + work dir (`src/workstack/core.py`)
-- `WorkstackContext` - DI container (`src/workstack/context.py`)
-- `LoadedConfig` - Parsed config (`src/workstack/config.py`)
+- `RepoContext` - Repo root + work dir (`src/workstack/cli/core.py`)
+- `WorkstackContext` - DI container (`src/workstack/core/context.py`)
+- `LoadedConfig` - Parsed config (`src/workstack/cli/config.py`)
 
 ---
 
 ## Shell Integration
 
-| Feature               | Implementation                                      | Description                                   |
-| --------------------- | --------------------------------------------------- | --------------------------------------------- |
-| Bash activation       | `src/workstack/shell_integration/bash_wrapper.sh`   | Source in `.bashrc`                           |
-| Zsh activation        | `src/workstack/shell_integration/zsh_wrapper.sh`    | Source in `.zshrc`                            |
-| Fish activation       | `src/workstack/shell_integration/fish_wrapper.fish` | Source in `config.fish`                       |
-| Shell handler         | `src/workstack/shell_integration/handler.py`        | Unified handler for shell-integrated commands |
-| Shell command entry   | `src/workstack/commands/shell_integration.py`       | Hidden `__shell` command for wrappers         |
-| Completion generation | `src/workstack/commands/completion.py`              | Generate shell-specific completions           |
+| Feature               | Implementation                                          | Description                                   |
+| --------------------- | ------------------------------------------------------- | --------------------------------------------- |
+| Bash activation       | `src/workstack/cli/shell_integration/bash_wrapper.sh`   | Source in `.bashrc`                           |
+| Zsh activation        | `src/workstack/cli/shell_integration/zsh_wrapper.sh`    | Source in `.zshrc`                            |
+| Fish activation       | `src/workstack/cli/shell_integration/fish_wrapper.fish` | Source in `config.fish`                       |
+| Shell handler         | `src/workstack/cli/shell_integration/handler.py`        | Unified handler for shell-integrated commands |
+| Shell command entry   | `src/workstack/cli/commands/shell_integration.py`       | Hidden `__shell` command for wrappers         |
+| Completion generation | `src/workstack/cli/commands/completion.py`              | Generate shell-specific completions           |
 
 **Shell Integration Pattern**: The `switch`, `sync`, and `create` commands support a hidden `--script` flag that outputs shell code instead of regular output. Shell wrapper functions use the unified `__shell` command to invoke these commands in script mode.
 
@@ -177,7 +181,7 @@ All graphite operations are defined in `src/workstack/core/graphite_ops.py`.
 **Example**: Find where worktree removal is implemented
 
 - Search for "Remove worktree"
-- See: `src/workstack/commands/remove.py`
+- See: `src/workstack/cli/commands/remove.py`
 - Tests: `tests/commands/test_rm.py`
 
 ---
@@ -185,15 +189,15 @@ All graphite operations are defined in `src/workstack/core/graphite_ops.py`.
 ### Understanding a Feature
 
 1. **Find ABC interface** (for ops-related features)
-   - Example: `gitops.py` for remove operation
+   - Example: `core/gitops.py` for remove operation
 2. **Read interface docstrings** to understand contract
 3. **Check real implementation** for actual behavior
 4. **Review tests** for edge cases and examples
 
 **Example**: Understand how branch deletion works
 
-- Interface: `gitops.py` (abstract method)
-- Real impl: `gitops.py` (subprocess logic)
+- Interface: `core/gitops.py` (abstract method)
+- Real impl: `core/gitops.py` (subprocess logic)
 - Fake impl: `tests/fakes/gitops.py` (test double)
 
 ---
@@ -219,11 +223,11 @@ All graphite operations are defined in `src/workstack/core/graphite_ops.py`.
 
 **For new command**:
 
-- Pattern: Study `commands/rename.py` (simple) or `commands/create.py` (complex)
+- Pattern: Study `cli/commands/rename.py` (simple) or `cli/commands/create.py` (complex)
 
 **For new ops interface**:
 
-- Pattern: Study `gitops.py` (ABC + Real + DryRun)
+- Pattern: Study `core/gitops.py` (ABC + Real + DryRun)
 
 ---
 
@@ -231,9 +235,9 @@ All graphite operations are defined in `src/workstack/core/graphite_ops.py`.
 
 ### By Module
 
-- **CLI entry** → `src/workstack/cli.py`
-- **Commands** → `src/workstack/commands/*.py` (see [.agent/docs/MODULE_MAP.md](.agent/docs/MODULE_MAP.md))
-- **Operations** → `src/workstack/*_ops.py` (see [ARCHITECTURE.md](ARCHITECTURE.md))
+- **CLI entry** → `src/workstack/cli/cli.py`
+- **Commands** → `src/workstack/cli/commands/*.py` (see [.agent/docs/MODULE_MAP.md](.agent/docs/MODULE_MAP.md))
+- **Operations** → `src/workstack/core/*_ops.py` (see [ARCHITECTURE.md](ARCHITECTURE.md))
 - **Testing** → `tests/fakes/*.py` (see [tests/CLAUDE.md](tests/CLAUDE.md))
 
 ### By Concept
