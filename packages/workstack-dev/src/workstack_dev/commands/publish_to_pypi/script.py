@@ -29,7 +29,7 @@ RECOVERY FROM FAILURES:
    - DO NOT revert version bumps
    - Fix dot-agent-kit issue and manually publish:
      * cd dist
-     * uvx uv-publish dot-agent-kit-<version>*
+     * uvx uv-publish dot_agent_kit-<version>*
    - Then continue with workstack
 
 5. workstack publish failure (devclikit and dot-agent-kit already published):
@@ -51,6 +51,7 @@ RECOVERY FROM FAILURES:
 # pyright: reportMissingImports=false
 
 import re
+import shutil
 import subprocess
 import time
 from dataclasses import dataclass
@@ -60,6 +61,21 @@ import click
 
 # PyPI CDN propagation typically takes 3-5 seconds
 PYPI_PROPAGATION_WAIT_SECONDS = 5
+
+
+def normalize_package_name(name: str) -> str:
+    """Normalize package name for artifact filenames.
+
+    Python packaging tools normalize hyphens to underscores in artifact names.
+    For example, "dot-agent-kit" becomes "dot_agent_kit" in wheel and sdist filenames.
+
+    Args:
+        name: Package name (e.g., "dot-agent-kit")
+
+    Returns:
+        Normalized name for use in filenames (e.g., "dot_agent_kit")
+    """
+    return name.replace("-", "_")
 
 
 @dataclass(frozen=True)
@@ -109,6 +125,86 @@ def run_git_pull(repo_root: Path, dry_run: bool) -> None:
         return
     run_command(["git", "pull"], cwd=repo_root, description="git pull")
     click.echo("✓ Pulled latest changes")
+
+
+def ensure_branch_is_in_sync(repo_root: Path, dry_run: bool) -> None:
+    """Validate that the current branch is tracking its upstream and is not behind."""
+    if dry_run:
+        click.echo("[DRY RUN] Would run: git fetch --prune")
+    else:
+        run_command(
+            ["git", "fetch", "--prune"],
+            cwd=repo_root,
+            description="git fetch --prune",
+        )
+
+    status_output = run_command(
+        ["git", "status", "--short", "--branch"],
+        cwd=repo_root,
+        description="git status --short --branch",
+    )
+
+    if not status_output:
+        return
+
+    first_line = status_output.splitlines()[0]
+    if not first_line.startswith("## "):
+        return
+
+    branch_summary = first_line[3:]
+    if "..." not in branch_summary:
+        click.echo("✗ Current branch is not tracking a remote upstream", err=True)
+        click.echo("  Run `git push -u origin <branch>` before publishing", err=True)
+        raise SystemExit(1)
+
+    local_branch, remote_section = branch_summary.split("...", 1)
+    remote_name = remote_section
+    tracking_info = ""
+
+    if " [" in remote_section:
+        remote_name, tracking_info = remote_section.split(" [", 1)
+        tracking_info = tracking_info.rstrip("]")
+
+    remote_name = remote_name.strip()
+    tracking_info = tracking_info.strip()
+
+    ahead = 0
+    behind = 0
+    remote_gone = False
+
+    if tracking_info:
+        for token in tracking_info.split(","):
+            item = token.strip()
+            if item.startswith("ahead "):
+                ahead = int(item.split(" ", 1)[1])
+            elif item.startswith("behind "):
+                behind = int(item.split(" ", 1)[1])
+            elif item == "gone":
+                remote_gone = True
+
+    if remote_gone:
+        click.echo("✗ Upstream branch is gone", err=True)
+        click.echo(f"  Local branch: {local_branch}", err=True)
+        click.echo(f"  Last known upstream: {remote_name}", err=True)
+        click.echo("  Re-create or change the upstream before publishing", err=True)
+        raise SystemExit(1)
+
+    if behind > 0:
+        click.echo("✗ Current branch is behind its upstream", err=True)
+        click.echo(f"  Local branch: {local_branch}", err=True)
+        click.echo(f"  Upstream: {remote_name}", err=True)
+        if ahead > 0:
+            click.echo(
+                f"  Diverged by ahead {ahead} / behind {behind} commit(s)",
+                err=True,
+            )
+        else:
+            click.echo(f"  Behind by {behind} commit(s)", err=True)
+        click.echo(
+            "  Pull and reconcile changes (e.g., `git pull --rebase`) before publishing",
+            err=True,
+        )
+        raise SystemExit(1)
 
 
 def get_workspace_packages(repo_root: Path) -> list[PackageInfo]:
@@ -308,7 +404,10 @@ def build_all_packages(
     if staging_dir.exists() and not dry_run:
         # Clean existing artifacts
         for artifact in staging_dir.glob("*"):
-            artifact.unlink()
+            if artifact.is_dir():
+                shutil.rmtree(artifact)
+            else:
+                artifact.unlink()
     elif not dry_run:
         staging_dir.mkdir(parents=True, exist_ok=True)
 
@@ -339,8 +438,9 @@ def validate_build_artifacts(
         return
 
     for pkg in packages:
-        wheel = staging_dir / f"{pkg.name}-{version}-py3-none-any.whl"
-        sdist = staging_dir / f"{pkg.name}-{version}.tar.gz"
+        normalized_name = normalize_package_name(pkg.name)
+        wheel = staging_dir / f"{normalized_name}-{version}-py3-none-any.whl"
+        sdist = staging_dir / f"{normalized_name}-{version}.tar.gz"
 
         if not wheel.exists():
             click.echo(f"✗ Missing wheel: {wheel}", err=True)
@@ -365,8 +465,9 @@ def publish_package(package: PackageInfo, staging_dir: Path, version: str, dry_r
         click.echo(f"[DRY RUN] Would publish {package.name} to PyPI")
         return
 
-    # Filter to only this package's artifacts
-    artifacts = list(staging_dir.glob(f"{package.name}-{version}*"))
+    # Filter to only this package's artifacts (use normalized name for glob)
+    normalized_name = normalize_package_name(package.name)
+    artifacts = list(staging_dir.glob(f"{normalized_name}-{version}*"))
 
     if not artifacts:
         click.echo(f"✗ No artifacts found for {package.name} {version}", err=True)
@@ -558,6 +659,7 @@ def main(dry_run: bool) -> None:
     click.echo("\nStarting synchronized publish workflow...\n")
 
     # Step 3: Pull latest changes
+    ensure_branch_is_in_sync(repo_root, dry_run)
     run_git_pull(repo_root, dry_run)
 
     # Step 4: Validate version consistency
