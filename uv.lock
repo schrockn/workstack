@@ -5,6 +5,7 @@ requires-python = ">=3.13"
 [manifest]
 members = [
     "devclikit",
+    "dot-agent",
     "workstack",
     "workstack-dev",
 ]
@@ -93,6 +94,21 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [{ name = "click", specifier = ">=8.1.7" }]
+
+[[package]]
+name = "dot-agent"
+version = "0.1.0"
+source = { editable = "packages/dot-agent" }
+dependencies = [
+    { name = "click" },
+    { name = "pyyaml" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "click", specifier = ">=8.1.7" },
+    { name = "pyyaml", specifier = ">=6.0.0" },
+]
 
 [[package]]
 name = "iniconfig"
