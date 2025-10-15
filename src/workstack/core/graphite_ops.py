@@ -14,6 +14,7 @@ import sys
 from abc import ABC, abstractmethod
 from pathlib import Path
 
+from workstack.core.branch_metadata import BranchMetadata
 from workstack.core.github_ops import PullRequestInfo, _parse_github_pr_url
 from workstack.core.gitops import GitOps
 
@@ -63,6 +64,25 @@ class GraphiteOps(ABC):
             Mapping of branch name -> PullRequestInfo
             - checks_passing is always None (CI status not available)
             - Empty dict if .graphite_pr_info doesn't exist
+        """
+        ...
+
+    @abstractmethod
+    def get_all_branches(self, git_ops: GitOps, repo_root: Path) -> dict[str, BranchMetadata]:
+        """Get all gt-tracked branches with metadata.
+
+        Reads .git/.graphite_cache_persist and returns branch relationship data
+        along with current commit SHAs from git.
+
+        Args:
+            git_ops: GitOps instance for accessing git common directory and branch heads
+            repo_root: Repository root directory
+
+        Returns:
+            Mapping of branch name -> BranchMetadata
+            Empty dict if:
+            - .graphite_cache_persist doesn't exist
+            - Git common directory cannot be determined
         """
         ...
 
@@ -167,6 +187,55 @@ class RealGraphiteOps(GraphiteOps):
             return f"https://github.com/{owner}/{repo}/pull/{pr_number}"
         return graphite_url
 
+    def get_all_branches(self, git_ops: GitOps, repo_root: Path) -> dict[str, BranchMetadata]:
+        """Get all gt-tracked branches with metadata.
+
+        Reads .git/.graphite_cache_persist and enriches with commit SHAs from git.
+        Returns empty dict if cache doesn't exist or git operations fail.
+        """
+        git_dir = git_ops.get_git_common_dir(repo_root)
+        if git_dir is None:
+            return {}
+
+        cache_file = git_dir / ".graphite_cache_persist"
+        if not cache_file.exists():
+            return {}
+
+        try:
+            cache_data = json.loads(cache_file.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            return {}
+
+        branches_data: list[tuple[str, dict[str, object]]] = cache_data.get("branches", [])
+
+        result: dict[str, BranchMetadata] = {}
+        for branch_name, info in branches_data:
+            if not isinstance(info, dict):
+                continue
+
+            commit_sha = git_ops.get_branch_head(repo_root, branch_name) or ""
+
+            parent = info.get("parentBranchName")
+            if not isinstance(parent, str | None):
+                parent = None
+
+            children_raw = info.get("children", [])
+            if not isinstance(children_raw, list):
+                children_raw = []
+            children = [c for c in children_raw if isinstance(c, str)]
+
+            is_trunk = info.get("validationResult") == "TRUNK"
+
+            result[branch_name] = BranchMetadata(
+                name=branch_name,
+                parent=parent,
+                children=children,
+                is_trunk=is_trunk,
+                commit_sha=commit_sha,
+            )
+
+        return result
+
 
 class DryRunGraphiteOps(GraphiteOps):
     """Wrapper that prints dry-run messages instead of executing destructive operations.
@@ -199,6 +268,10 @@ class DryRunGraphiteOps(GraphiteOps):
     def get_prs_from_graphite(self, git_ops: GitOps, repo_root: Path) -> dict[str, PullRequestInfo]:
         """Get PR info from Graphite cache (read-only, delegates to wrapped)."""
         return self._wrapped.get_prs_from_graphite(git_ops, repo_root)
+
+    def get_all_branches(self, git_ops: GitOps, repo_root: Path) -> dict[str, BranchMetadata]:
+        """Get all branches metadata (read-only, delegates to wrapped)."""
+        return self._wrapped.get_all_branches(git_ops, repo_root)
 
     # Destructive operations: print dry-run message instead of executing
 

@@ -70,6 +70,7 @@ class FakeGitOps(GitOps):
         current_branches: dict[Path, str | None] | None = None,
         default_branches: dict[Path, str] | None = None,
         git_common_dirs: dict[Path, Path] | None = None,
+        branch_heads: dict[str, str] | None = None,
     ) -> None:
         """Create FakeGitOps with pre-configured state.
 
@@ -78,11 +79,13 @@ class FakeGitOps(GitOps):
             current_branches: Mapping of cwd -> current branch
             default_branches: Mapping of repo_root -> default branch
             git_common_dirs: Mapping of cwd -> git common directory
+            branch_heads: Mapping of branch name -> commit SHA
         """
         self._worktrees = worktrees or {}
         self._current_branches = current_branches or {}
         self._default_branches = default_branches or {}
         self._git_common_dirs = git_common_dirs or {}
+        self._branch_heads = branch_heads or {}
 
         # Mutation tracking
         self._deleted_branches: list[str] = []
@@ -196,6 +199,10 @@ class FakeGitOps(GitOps):
             if wt.branch == branch:
                 return wt.path
         return None
+
+    def get_branch_head(self, repo_root: Path, branch: str) -> str | None:
+        """Get the commit SHA at the head of a branch."""
+        return self._branch_heads.get(branch)
 
     @property
     def deleted_branches(self) -> list[str]:

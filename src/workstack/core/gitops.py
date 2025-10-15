@@ -127,6 +127,19 @@ class GitOps(ABC):
         """
         ...
 
+    @abstractmethod
+    def get_branch_head(self, repo_root: Path, branch: str) -> str | None:
+        """Get the commit SHA at the head of a branch.
+
+        Args:
+            repo_root: Path to the git repository root
+            branch: Branch name to query
+
+        Returns:
+            Commit SHA as a string, or None if branch doesn't exist.
+        """
+        ...
+
 
 # ============================================================================
 # Production Implementation
@@ -311,6 +324,20 @@ class RealGitOps(GitOps):
                 return wt.path
         return None
 
+    def get_branch_head(self, repo_root: Path, branch: str) -> str | None:
+        """Get the commit SHA at the head of a branch."""
+        result = subprocess.run(
+            ["git", "rev-parse", branch],
+            cwd=repo_root,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if result.returncode != 0:
+            return None
+
+        return result.stdout.strip()
+
 
 # ============================================================================
 # Dry-Run Wrapper
@@ -410,3 +437,7 @@ class DryRunGitOps(GitOps):
     def is_branch_checked_out(self, repo_root: Path, branch: str) -> Path | None:
         """Check if branch is checked out (read-only, delegates to wrapped)."""
         return self._wrapped.is_branch_checked_out(repo_root, branch)
+
+    def get_branch_head(self, repo_root: Path, branch: str) -> str | None:
+        """Get branch head commit SHA (read-only, delegates to wrapped)."""
+        return self._wrapped.get_branch_head(repo_root, branch)
