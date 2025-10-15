@@ -3,8 +3,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
-from dot_agent import list_available_files, read_resource_file
-from dot_agent.config import DotAgentConfig
+from dot_agent_kit import list_available_files, read_resource_file
+from dot_agent_kit.config import DotAgentConfig
 
 
 @dataclass(frozen=True, slots=True)

@@ -5,7 +5,7 @@
 This project uses a uv workspace with three packages that are published to PyPI:
 
 1. **devclikit** - Framework for building development CLIs with PEP 723 script support
-2. **dot-agent** - CLI tool for managing .agent/ automated documentation folders
+2. **dot-agent-kit** - CLI tool for managing .agent/ automated documentation folders
 3. **workstack** - Main worktree management tool (depends on devclikit)
 
 All packages share the same version number and are published together.
@@ -75,7 +75,7 @@ This script:
 5. **Builds** all packages to `dist/`
 6. **Publishes** in dependency order:
    - devclikit (no dependencies)
-   - dot-agent (no dependencies)
+   - dot-agent-kit (no dependencies)
    - workstack (depends on devclikit)
 7. **Commits** version changes
 8. **Pushes** to remote
@@ -92,10 +92,10 @@ The `make publish` target automatically:
 
 1. **Cleans** old build artifacts from `dist/`
 2. **Builds devclikit** from `packages/devclikit/`
-3. **Builds dot-agent** from `packages/dot-agent/`
+3. **Builds dot-agent-kit** from `packages/dot-agent-kit/`
 4. **Builds workstack** from the root
 5. **Publishes devclikit** first (since workstack depends on it)
-6. **Publishes dot-agent** second
+6. **Publishes dot-agent-kit** second
 7. **Publishes workstack** third
 
 ```bash
@@ -108,9 +108,9 @@ Output:
 Publishing devclikit...
 Uploading devclikit-0.1.10-py3-none-any.whl (12.4KiB)
 Uploading devclikit-0.1.10.tar.gz (9.3KiB)
-Publishing dot-agent...
-Uploading dot-agent-0.1.10-py3-none-any.whl (15KiB)
-Uploading dot-agent-0.1.10.tar.gz (11KiB)
+Publishing dot-agent-kit...
+Uploading dot-agent-kit-0.1.10-py3-none-any.whl (15KiB)
+Uploading dot-agent-kit-0.1.10.tar.gz (11KiB)
 Publishing workstack...
 Uploading workstack-0.1.10-py3-none-any.whl (79KiB)
 Uploading workstack-0.1.10.tar.gz (183KiB)
@@ -128,8 +128,8 @@ make build
 # Publish devclikit first
 uvx uv-publish ./dist/devclikit-*.whl ./dist/devclikit-*.tar.gz
 
-# Publish dot-agent second
-uvx uv-publish ./dist/dot-agent-*.whl ./dist/dot-agent-*.tar.gz
+# Publish dot-agent-kit second
+uvx uv-publish ./dist/dot-agent-kit-*.whl ./dist/dot-agent-kit-*.tar.gz
 
 # Publish workstack third (after devclikit is available on PyPI)
 uvx uv-publish ./dist/workstack-*.whl ./dist/workstack-*.tar.gz
@@ -140,7 +140,7 @@ uvx uv-publish ./dist/workstack-*.whl ./dist/workstack-*.tar.gz
 All packages share the same version number defined in their respective `pyproject.toml` files:
 
 - **devclikit**: `packages/devclikit/pyproject.toml`
-- **dot-agent**: `packages/dot-agent/pyproject.toml`
+- **dot-agent-kit**: `packages/dot-agent-kit/pyproject.toml`
 - **workstack**: `pyproject.toml`
 
 ### Updating Version
@@ -162,7 +162,7 @@ For manual version updates:
    [project]
    version = "0.1.11"
 
-   # In packages/dot-agent/pyproject.toml
+   # In packages/dot-agent-kit/pyproject.toml
    [project]
    version = "0.1.11"
 
@@ -201,7 +201,7 @@ For manual version updates:
 **IMPORTANT**: Always publish packages in dependency order:
 
 1. **devclikit** - Has no dependencies, publish first
-2. **dot-agent** - Has no dependencies on our packages, can publish anytime after devclikit
+2. **dot-agent-kit** - Has no dependencies on our packages, can publish anytime after devclikit
 3. **workstack** - Depends on devclikit, must publish last
 
 The `workstack-dev publish-to-pypi` script and `make publish` target handle this automatically.
@@ -222,7 +222,7 @@ make build
 uv venv test-env
 source test-env/bin/activate
 uv pip install ./dist/devclikit-*.whl
-uv pip install ./dist/dot-agent-*.whl
+uv pip install ./dist/dot-agent-kit-*.whl
 uv pip install ./dist/workstack-*.whl
 
 # Test functionality
@@ -275,8 +275,8 @@ All build artifacts are placed in the `dist/` directory:
 dist/
 ├── devclikit-0.1.10-py3-none-any.whl
 ├── devclikit-0.1.10.tar.gz
-├── dot-agent-0.1.10-py3-none-any.whl
-├── dot-agent-0.1.10.tar.gz
+├── dot-agent-kit-0.1.10-py3-none-any.whl
+├── dot-agent-kit-0.1.10.tar.gz
 ├── workstack-0.1.10-py3-none-any.whl
 └── workstack-0.1.10.tar.gz
 ```
@@ -288,11 +288,11 @@ Both are uploaded to PyPI for each package.
 
 ## Makefile Targets
 
-| Target         | Description                                  |
-| -------------- | -------------------------------------------- |
-| `make clean`   | Remove all build artifacts from `dist/`      |
-| `make build`   | Build devclikit, dot-agent, and workstack    |
-| `make publish` | Build and publish all three packages to PyPI |
+| Target         | Description                                   |
+| -------------- | --------------------------------------------- |
+| `make clean`   | Remove all build artifacts from `dist/`       |
+| `make build`   | Build devclikit, dot-agent-kit, and workstack |
+| `make publish` | Build and publish all three packages to PyPI  |
 
 ## Workspace Structure
 
@@ -303,9 +303,9 @@ workstack/                           # Root workspace
 │   ├── devclikit/
 │   │   ├── pyproject.toml           # devclikit package metadata
 │   │   └── src/devclikit/           # devclikit source
-│   ├── dot-agent/
-│   │   ├── pyproject.toml           # dot-agent package metadata
-│   │   └── src/dot_agent/           # dot-agent source
+│   ├── dot-agent-kit/
+│   │   ├── pyproject.toml           # dot-agent-kit package metadata
+│   │   └── src/dot_agent_kit/       # dot-agent-kit source
 │   └── workstack-dev/
 │       ├── pyproject.toml           # workstack-dev (dev tools, not published)
 │       └── src/workstack_dev/       # workstack-dev source
@@ -320,7 +320,7 @@ members = ["packages/*"]
 
 [tool.uv.sources]
 devclikit = { workspace = true }
-dot-agent = { workspace = true }
+dot-agent-kit = { workspace = true }
 workstack-dev = { workspace = true }
 ```
 
@@ -425,11 +425,11 @@ Before publishing a new version:
 - [ ] Published to PyPI: `uv run workstack-dev publish-to-pypi` or `make publish`
 - [ ] Verify on PyPI:
   - https://pypi.org/project/devclikit/
-  - https://pypi.org/project/dot-agent/
+  - https://pypi.org/project/dot-agent-kit/
   - https://pypi.org/project/workstack/
 - [ ] Test installation:
   - `uv tool install workstack`
-  - `uv tool install dot-agent`
+  - `uv tool install dot-agent-kit`
 
 ## Adding a New Package to the Workspace
 
@@ -510,9 +510,9 @@ def get_workspace_packages(repo_root: Path) -> list[PackageInfo]:
             pyproject_path=repo_root / "packages" / "devclikit" / "pyproject.toml",
         ),
         PackageInfo(
-            name="dot-agent",
-            path=repo_root / "packages" / "dot-agent",
-            pyproject_path=repo_root / "packages" / "dot-agent" / "pyproject.toml",
+            name="dot-agent-kit",
+            path=repo_root / "packages" / "dot-agent-kit",
+            pyproject_path=repo_root / "packages" / "dot-agent-kit" / "pyproject.toml",
         ),
         # Add your package here (in dependency order)
         PackageInfo(
@@ -533,13 +533,13 @@ def get_workspace_packages(repo_root: Path) -> list[PackageInfo]:
 Edit the same file around line 544 to exclude your package's pyproject.toml from git status checks:
 
 ```python
-excluded_files = {
-    "pyproject.toml",
-    "uv.lock",
-    "packages/devclikit/pyproject.toml",
-    "packages/dot-agent/pyproject.toml",
-    "packages/my-package/pyproject.toml",  # Add this
-}
+    excluded_files = {
+        "pyproject.toml",
+        "uv.lock",
+        "packages/devclikit/pyproject.toml",
+        "packages/dot-agent-kit/pyproject.toml",
+        "packages/my-package/pyproject.toml",  # Add this
+    }
 ```
 
 ### 6. Update Documentation

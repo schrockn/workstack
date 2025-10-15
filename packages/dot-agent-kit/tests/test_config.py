@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from dot_agent import __version__
-from dot_agent.config import DotAgentConfig, get_config_path
+from dot_agent_kit import __version__
+from dot_agent_kit.config import DotAgentConfig, get_config_path
 
 
 def test_default_config_uses_package_version() -> None:
@@ -24,7 +24,7 @@ def test_save_and_reload_round_trip(tmp_path: Path) -> None:
 
 
 def test_load_handles_missing_file(tmp_path: Path) -> None:
-    config_path = tmp_path / ".agent" / ".dot-agent.yml"
+    config_path = tmp_path / ".agent" / ".dot-agent-kit.yml"
     loaded = DotAgentConfig.load(config_path)
 
     assert loaded.managed_files

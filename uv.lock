@@ -5,7 +5,7 @@ requires-python = ">=3.13"
 [manifest]
 members = [
     "devclikit",
-    "dot-agent",
+    "dot-agent-kit",
     "workstack",
     "workstack-dev",
 ]
@@ -96,9 +96,9 @@ dependencies = [
 requires-dist = [{ name = "click", specifier = ">=8.1.7" }]
 
 [[package]]
-name = "dot-agent"
+name = "dot-agent-kit"
 version = "0.1.11"
-source = { editable = "packages/dot-agent" }
+source = { editable = "packages/dot-agent-kit" }
 dependencies = [
     { name = "click" },
     { name = "pyyaml" },
@@ -293,7 +293,7 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
-    { name = "dot-agent" },
+    { name = "dot-agent-kit" },
     { name = "pyright" },
     { name = "pytest" },
     { name = "pytest-cov" },
@@ -310,7 +310,7 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "dot-agent", editable = "packages/dot-agent" },
+    { name = "dot-agent-kit", editable = "packages/dot-agent-kit" },
     { name = "pyright", specifier = ">=1.1.406" },
     { name = "pytest", specifier = ">=8.0.0" },
     { name = "pytest-cov", specifier = ">=5.0.0" },

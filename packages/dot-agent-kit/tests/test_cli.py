@@ -2,7 +2,7 @@ from pathlib import Path
 
 from click.testing import CliRunner
 
-from dot_agent.cli import main
+from dot_agent_kit.cli import main
 
 
 def test_list_command_shows_known_files() -> None:
