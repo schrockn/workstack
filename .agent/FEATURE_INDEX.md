@@ -32,11 +32,13 @@ Quick reference for locating feature implementations, tests, and related code.
 | Rename worktree    | `src/workstack/cli/commands/rename.py`                              | `tests/commands/test_rename.py`                                        | Directory move + git update         |
 | Tree visualization | `src/workstack/cli/commands/tree.py`<br>`src/workstack/cli/tree.py` | `tests/commands/test_tree.py`                                          | Graphite stack hierarchy            |
 | Move worktree      | `src/workstack/cli/commands/move.py`                                | `tests/test_move.py`                                                   | Move/swap branches across worktrees |
+| Jump to branch     | `src/workstack/cli/commands/jump.py`                                | `tests/commands/test_jump.py`                                          | Navigate between stack branches     |
 | Status overview    | `src/workstack/cli/commands/status.py`                              | `tests/commands/test_status.py`<br>`tests/status/test_orchestrator.py` | Aggregate repo/worktree status      |
 | Initialize config  | `src/workstack/cli/commands/init.py`                                | N/A                                                                    | Presets, shell integration          |
 | Manage config      | `src/workstack/cli/commands/config.py`                              | N/A                                                                    | Get/set/list operations             |
 | Prepare recovery   | `src/workstack/cli/commands/prepare_cwd_recovery.py`                | `tests/commands/test_prepare_cwd_recovery.py`                          | Print shell snippet for PWD restore |
 | Garbage collection | `src/workstack/cli/commands/gc.py`                                  | N/A                                                                    | Merged PR identification            |
+| Graphite branches  | `src/workstack/cli/commands/gt.py`                                  | `tests/commands/graphite/test_gt_branches.py`                          | Machine-readable branch metadata    |
 | Sync with graphite | `src/workstack/cli/commands/sync.py`                                | `tests/test_sync.py`                                                   | PR detection, cleanup               |
 | Shell completion   | `src/workstack/cli/commands/completion.py`                          | `tests/commands/test_completion.py`                                    | Bash/zsh/fish support               |
 
@@ -57,6 +59,7 @@ All git operations are defined in `src/workstack/core/gitops.py`.
 | Detect default branch | `gitops.py`   | `gitops.py`         | `tests/fakes/gitops.py` | `git symbolic-ref refs/remotes/origin/HEAD` |
 | Delete branch         | `gitops.py`   | `gitops.py`         | `tests/fakes/gitops.py` | Branch deletion with graphite support       |
 | Get git common dir    | `gitops.py`   | `gitops.py`         | `tests/fakes/gitops.py` | Worktree support via `git rev-parse`        |
+| Get branch head       | `gitops.py`   | `gitops.py`         | `tests/fakes/gitops.py` | Get commit SHA at branch head               |
 
 **Integration Tests**: `tests/integration/test_gitops_integration.py`
 
@@ -84,10 +87,11 @@ All graphite operations are defined in `src/workstack/core/graphite_ops.py`.
 
 **For comprehensive gt documentation**: See [tools/gt.md](tools/gt.md)
 
-| Operation        | ABC Interface     | Real Implementation | Fake Implementation           | Description                |
-| ---------------- | ----------------- | ------------------- | ----------------------------- | -------------------------- |
-| Get graphite URL | `graphite_ops.py` | `graphite_ops.py`   | `tests/fakes/graphite_ops.py` | Construct web URL for repo |
-| Sync             | `graphite_ops.py` | `graphite_ops.py`   | `tests/fakes/graphite_ops.py` | Run `gt repo sync` command |
+| Operation        | ABC Interface     | Real Implementation | Fake Implementation           | Description                             |
+| ---------------- | ----------------- | ------------------- | ----------------------------- | --------------------------------------- |
+| Get graphite URL | `graphite_ops.py` | `graphite_ops.py`   | `tests/fakes/graphite_ops.py` | Construct web URL for repo              |
+| Get all branches | `graphite_ops.py` | `graphite_ops.py`   | `tests/fakes/graphite_ops.py` | Read Graphite cache for branch metadata |
+| Sync             | `graphite_ops.py` | `graphite_ops.py`   | `tests/fakes/graphite_ops.py` | Run `gt repo sync` command              |
 
 **Related**:
 
