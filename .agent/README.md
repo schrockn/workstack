@@ -90,6 +90,36 @@ This directory contains comprehensive, agent-friendly documentation for the work
 | ------------------- | ------ | ---------------- | ------------- |
 | **tests/CLAUDE.md** | ~3,000 | Testing patterns | Writing tests |
 
+### Development
+
+| Document                                  | Tokens | Purpose                         | When to Read                    |
+| ----------------------------------------- | ------ | ------------------------------- | ------------------------------- |
+| **packages/dot-agent-kit/CLAUDE.md**      | ~3,000 | dot-agent-kit quick reference   | Working with tool documentation |
+| **packages/dot-agent-kit/DEVELOPMENT.md** | ~6,000 | dot-agent-kit development guide | Understanding symlink workflow  |
+
+---
+
+## ⚠️ Note on Symlinks (Workstack Repo Only)
+
+In the workstack development repository, files in `.agent/tools/` are **symbolic links** to `packages/dot-agent-kit/src/dot_agent_kit/resources/tools/`. This ensures a single source of truth during development.
+
+**In user repositories** (after `dot-agent init`), these are **regular files** synced by `dot-agent sync`.
+
+**Managing symlinks in workstack repo:**
+
+```bash
+# Check status
+workstack-dev link-dot-agent-resources
+
+# Create symlinks
+workstack-dev link-dot-agent-resources --create
+
+# Verify symlinks
+workstack-dev link-dot-agent-resources --verify
+```
+
+**See:** `packages/dot-agent-kit/DEVELOPMENT.md` for complete documentation.
+
 ---
 
 ## 🎯 Use Case Guide
