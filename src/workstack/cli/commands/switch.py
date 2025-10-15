@@ -16,6 +16,107 @@ from workstack.core.context import WorkstackContext, create_context
 from workstack.core.gitops import WorktreeInfo
 
 
+def _ensure_graphite_enabled(ctx: WorkstackContext) -> None:
+    """Validate that Graphite is enabled.
+
+    Args:
+        ctx: Workstack context
+
+    Raises:
+        SystemExit: If Graphite is not enabled
+    """
+    if not ctx.global_config_ops.get_use_graphite():
+        click.echo(
+            "Error: This command requires Graphite to be enabled. "
+            "Run 'workstack config set use_graphite true'",
+            err=True,
+        )
+        raise SystemExit(1)
+
+
+def _activate_root_repo(repo: RepoContext, script: bool, command_name: str) -> None:
+    """Activate the root repository and exit.
+
+    Args:
+        repo: Repository context
+        script: Whether to output script path or user message
+        command_name: Name of the command (for script generation)
+
+    Raises:
+        SystemExit: Always (successful exit after activation)
+    """
+    root_path = repo.root
+    if script:
+        script_content = render_activation_script(
+            worktree_path=root_path,
+            final_message='echo "Switched to root repo: $(pwd)"',
+            comment="work activate-script (root repo)",
+        )
+        script_path = write_script_to_temp(
+            script_content,
+            command_name=command_name,
+            comment="activate root",
+        )
+        click.echo(str(script_path), nl=False)
+    else:
+        click.echo(f"Switched to root repo: {root_path}")
+        click.echo(
+            "\nShell integration not detected. "
+            "Run 'workstack init --shell' to set up automatic activation."
+        )
+        if command_name == "switch":
+            click.echo("Or use: source <(workstack switch root --script)")
+        else:
+            click.echo(f"Or use: source <(workstack {command_name} --script)")
+    raise SystemExit(0)
+
+
+def _activate_worktree(
+    repo: RepoContext, target_name: str, script: bool, command_name: str
+) -> None:
+    """Activate a worktree and exit.
+
+    Args:
+        repo: Repository context
+        target_name: Name of the target worktree
+        script: Whether to output script path or user message
+        command_name: Name of the command (for script generation and debug logging)
+
+    Raises:
+        SystemExit: If worktree not found, or after successful activation
+    """
+    workstacks_dir = ensure_workstacks_dir(repo)
+    wt_path = worktree_path_for(workstacks_dir, target_name)
+
+    if not wt_path.exists():
+        click.echo(f"Worktree not found: {wt_path}", err=True)
+        raise SystemExit(1)
+
+    if script:
+        activation_script = render_activation_script(worktree_path=wt_path)
+        script_path = write_script_to_temp(
+            activation_script,
+            command_name=command_name,
+            comment=f"activate {target_name}",
+        )
+
+        debug_log(f"{command_name.capitalize()}: Generated script at {script_path}")
+        debug_log(f"{command_name.capitalize()}: Script content:\n{activation_script}")
+        debug_log(f"{command_name.capitalize()}: File exists? {script_path.exists()}")
+
+        click.echo(str(script_path), nl=False)
+    else:
+        click.echo(
+            "Shell integration not detected. "
+            "Run 'workstack init --shell' to set up automatic activation."
+        )
+        if command_name == "switch":
+            click.echo(f"\nOr use: source <(workstack switch {target_name} --script)")
+        else:
+            click.echo(f"\nOr use: source <(workstack {command_name} --script)")
+    raise SystemExit(0)
+
+
 def _resolve_up_navigation(
     ctx: WorkstackContext, repo: RepoContext, current_branch: str, worktrees: list[WorktreeInfo]
 ) -> str:
@@ -216,13 +317,7 @@ def switch_cmd(ctx: WorkstackContext, name: str | None, script: bool, up: bool, 
 
     # Check Graphite requirement for --up/--down
     if up or down:
-        if not ctx.global_config_ops.get_use_graphite():
-            click.echo(
-                "Error: --up/--down requires Graphite to be enabled. "
-                "Run 'workstack config set use_graphite true'",
-                err=True,
-            )
-            raise SystemExit(1)
+        _ensure_graphite_enabled(ctx)
 
     repo = discover_repo_context(ctx, Path.cwd())
 
@@ -258,53 +353,6 @@ def switch_cmd(ctx: WorkstackContext, name: str | None, script: bool, up: bool, 
 
     # Check if target_name refers to 'root' which means root repo
     if target_name == "root":
-        # Switch to root repo
-        root_path = repo.root
-        if script:
-            # Generate activation script for root repo using shared function
-            script_content = render_activation_script(
-                worktree_path=root_path,
-                final_message='echo "Switched to root repo: $(pwd)"',
-                comment="work activate-script (root repo)",
-            )
-            script_path = write_script_to_temp(
-                script_content,
-                command_name="switch",
-                comment="activate root",
-            )
-            click.echo(str(script_path), nl=False)
-        else:
-            click.echo(f"Switched to root repo: {root_path}")
-            click.echo(
-                "\nShell integration not detected. "
-                "Run 'workstack init --shell' to set up automatic activation."
-            )
-            click.echo("Or use: source <(workstack switch root --script)")
-        return
+        _activate_root_repo(repo, script, "switch")
 
-    workstacks_dir = ensure_workstacks_dir(repo)
-    wt_path = worktree_path_for(workstacks_dir, target_name)
-
-    if not wt_path.exists():
-        click.echo(f"Worktree not found: {wt_path}", err=True)
-        raise SystemExit(1)
-
-    if script:
-        activation_script = render_activation_script(worktree_path=wt_path)
-        script_path = write_script_to_temp(
-            activation_script,
-            command_name="switch",
-            comment=f"activate {target_name}",
-        )
-
-        debug_log(f"Switch: Generated script at {script_path}")
-        debug_log(f"Switch: Script content:\n{activation_script}")
-        debug_log(f"Switch: File exists? {script_path.exists()}")
-
-        click.echo(str(script_path), nl=False)
-    else:
-        click.echo(
-            "Shell integration not detected. "
-            "Run 'workstack init --shell' to set up automatic activation."
-        )
-        click.echo(f"\nOr use: source <(workstack switch {target_name} --script)")
+    _activate_worktree(repo, target_name, script, "switch")
