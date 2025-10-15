@@ -51,6 +51,7 @@ RECOVERY FROM FAILURES:
 # pyright: reportMissingImports=false
 
 import re
+import shutil
 import subprocess
 import time
 from dataclasses import dataclass
@@ -66,13 +67,13 @@ def normalize_package_name(name: str) -> str:
     """Normalize package name for artifact filenames.
 
     Python packaging tools normalize hyphens to underscores in artifact names.
-    For example, "dot-agent" becomes "dot_agent" in wheel and sdist filenames.
+    For example, "dot-agent-kit" becomes "dot_agent_kit" in wheel and sdist filenames.
 
     Args:
-        name: Package name (e.g., "dot-agent")
+        name: Package name (e.g., "dot-agent-kit")
 
     Returns:
-        Normalized name for use in filenames (e.g., "dot_agent")
+        Normalized name for use in filenames (e.g., "dot_agent_kit")
     """
     return name.replace("-", "_")
 
@@ -323,7 +324,10 @@ def build_all_packages(
     if staging_dir.exists() and not dry_run:
         # Clean existing artifacts
         for artifact in staging_dir.glob("*"):
-            artifact.unlink()
+            if artifact.is_dir():
+                shutil.rmtree(artifact)
+            else:
+                artifact.unlink()
     elif not dry_run:
         staging_dir.mkdir(parents=True, exist_ok=True)
 
