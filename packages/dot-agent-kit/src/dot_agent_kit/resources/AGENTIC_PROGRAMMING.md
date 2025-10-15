@@ -12,7 +12,7 @@ This document presents best practices for **agentic programming** - the art of s
 
 Agentic programming is an emerging discipline focused on making codebases and workflows optimally compatible with AI-assisted development. It recognizes that AI agents have unique strengths and constraints that fundamentally differ from human developers.
 
-Agents work within limited context windows that require efficient information architecture. Their stateless interactions need persistent artifacts for continuity. Their pattern recognition capabilities benefit from consistent structures, and their parallel processing potential emerges when tasks are properly decomposed. Understanding these characteristics shapes how we structure code for agent collaboration.
+Agents work within limited context windows that require efficient information architecture. Their stateless interactions need persistent documentation and planning files for continuity. Their pattern recognition capabilities benefit from consistent structures, and their parallel processing potential emerges when tasks are properly decomposed. Understanding these characteristics shapes how we structure code for agent collaboration.
 
 ### Document Philosophy
 
@@ -22,7 +22,47 @@ Vibe alert: these guidelines have been developed from observed experience, rathe
 
 ---
 
+## Glossary of Terms
+
+Key terminology used throughout this document. For detailed explanations, see the linked sections.
+
+**Agent Session** - A single, stateless interaction between a human and AI assistant working on code.
+
+**Agentic Programming** - Structuring code and workflows to maximize effectiveness when working with AI assistants.
+
+**Coarse-grained** - Working with larger, complete functional units rather than fine details. In modules: entire features in single files. In testing: whole subsystem interfaces rather than individual function mocks. See [Coarse-grained Modules](#coarse-grained-parallel-modules).
+
+**Context Window** - The maximum amount of text an AI model can process in a single interaction, measured in tokens (roughly 3/4 of a word). Claude Code has per-file limits of ~25,000 tokens or ~6,000-8,000 lines of code before comprehension degrades. Exceeding these limits causes the AI to miss details, lose track of component relationships, or produce inconsistent outputs. Context window contents must remain consistent to maintain agent performance—violations known as context rot, context poisoning, and similar terms lead to degraded outputs. This makes modular architecture with smaller, coarse-grained modules essential for maintaining quality.
+
+**Disposability** - Property of modules that can be deleted cleanly without unwinding dependencies. See [One Feature Per File](#key-pattern-one-feature-per-file).
+
+**Fakes** - In-memory test implementations with injectable constructor state. See [Test Architecture](#test-architecture-coarse-grained-dependency-injection).
+
+**Injectable State** - Test configuration passed via constructor parameters for explicit scenarios.
+
+**Mental Model Document** - Distilled documentation of external tool behavior. See [External Tool Mental Models](#external-tool-mental-models).
+
+**Parallel Modules** - Independent, self-contained code units enabling simultaneous development. See [Coarse-grained Parallel Modules](#coarse-grained-parallel-modules).
+
+**Planning Documents** - Markdown files (.md) that capture implementation plans, preserving design decisions and execution blueprints across stateless agent sessions. See [Planning](#planning-iterative-design-before-implementation).
+
+**Plan-based Development** - Creating detailed execution blueprints before implementation. See [Planning](#planning-iterative-design-before-implementation).
+
+**Stateless Interactions** - Agents don't maintain memory between sessions, requiring planning documents and other persistent files for continuity.
+
+**Token Cache** - Pre-materialized knowledge in `.agent` directory avoiding repeated discovery. See [Agent Documentation](#agent-documentation-the-agent-directory).
+
+**Token Efficiency** - Optimizing information architecture to maximize useful content within context limits.
+
+**Worktree** - Git feature enabling multiple working directories from one repository. See [Parallel Development](#parallel-development-with-worktrees-and-workstack).
+
+**Workstack** - Orchestration tool providing simplified worktree lifecycle management, standardized conventions, and automatic plan document integration for parallel agentic development. See [Parallel Development](#parallel-development-with-worktrees-and-workstack).
+
+---
+
 ## Table of Contents
+
+0. [Glossary of Terms](#glossary-of-terms) - Key terminology and definitions used throughout this document.
 
 1. [Coarse-grained Parallel Modules](#coarse-grained-parallel-modules) - Organize code into independent, self-contained modules for efficient context management and safe disposability.
 
@@ -30,7 +70,7 @@ Vibe alert: these guidelines have been developed from observed experience, rathe
 
 3. [External Tool Mental Models](#external-tool-mental-models) - Document how external tools and APIs work to prevent expensive rediscovery and incorrect assumptions.
 
-4. [Planning: Iterative Design Before Implementation](#planning-iterative-design-before-implementation) - Invest in iterative planning with persistent artifacts before implementation to reduce context thrashing and increase the complexity of tasks that can be performed autonomously.
+4. [Planning: Iterative Design Before Implementation](#planning-iterative-design-before-implementation) - Invest in iterative planning with persistent documentation before implementation to reduce context thrashing and increase the complexity of tasks that can be performed autonomously.
 
 5. [Advanced: Custom Tooling](#advanced-custom-tooling) - Custom development tools that amplify agentic programming capabilities:
    - [Dev-Only CLIs: Flat Script Architecture](#dev-only-clis-flat-script-architecture) - Build development CLIs as collections of self-contained PEP 723 scripts for maximum agent compatibility.
@@ -354,7 +394,7 @@ The goal isn't comprehensive coverage but practical sufficiency. Document the co
 
 Invest in planning before implementation for non-trivial or complex tasks. Well-crafted plans save time and reduce context thrashing during execution. Think of plans as execution blueprints—detailed specifications that enable efficient, autonomous agent work.
 
-### Key Pattern: Plans as Persistent Artifacts
+### Key Pattern: Plans as Persistent Documents
 
 For tasks requiring substantial implementation time, persist plans as `.md` files. This approach preserves context across multiple agent sessions, enables switching between planning models and execution models, tracks progress through complex multi-step implementations, and creates clear boundaries between design thinking and implementation.
 
