@@ -286,6 +286,11 @@ def quote_env_value(value: str) -> str:
     ),
 )
 @click.option(
+    "--keep-plan",
+    is_flag=True,
+    help="Copy the plan file instead of moving it (requires --plan).",
+)
+@click.option(
     "--from-current-branch",
     is_flag=True,
     help=(
@@ -314,6 +319,7 @@ def create(
     ref: str | None,
     no_post: bool,
     plan_file: Path | None,
+    keep_plan: bool,
     from_current_branch: bool,
     from_branch: str | None,
     script: bool,
@@ -331,6 +337,11 @@ def create(
     flags_set = sum([from_current_branch, from_branch is not None, plan_file is not None])
     if flags_set > 1:
         click.echo("Cannot use multiple of: --from-current-branch, --from-branch, --plan")
+        raise SystemExit(1)
+
+    # Validate --keep-plan requires --plan
+    if keep_plan and not plan_file:
+        click.echo("Error: --keep-plan requires --plan", err=True)
         raise SystemExit(1)
 
     # Handle --from-current-branch flag
@@ -470,12 +481,17 @@ def create(
     env_content = make_env_content(cfg, worktree_path=wt_path, repo_root=repo.root, name=name)
     (wt_path / ".env").write_text(env_content, encoding="utf-8")
 
-    # Move plan file if provided
+    # Move or copy plan file if provided
     if plan_file:
         plan_dest = wt_path / ".PLAN.md"
-        shutil.move(str(plan_file), str(plan_dest))
-        if not script:
-            click.echo(f"Moved plan to {plan_dest}")
+        if keep_plan:
+            shutil.copy2(str(plan_file), str(plan_dest))
+            if not script:
+                click.echo(f"Copied plan to {plan_dest}")
+        else:
+            shutil.move(str(plan_file), str(plan_dest))
+            if not script:
+                click.echo(f"Moved plan to {plan_dest}")
 
     # Post-create commands
     if not no_post and cfg.post_create_commands:

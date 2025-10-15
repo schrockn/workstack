@@ -925,3 +925,88 @@ def test_create_from_current_branch_on_master_fails() -> None:
 
         assert result.exit_code == 1
         assert "Cannot use --from-current-branch when on 'master'" in result.output
+
+
+def test_create_with_keep_plan_flag() -> None:
+    """Test that --keep-plan copies instead of moves the plan file."""
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        cwd = Path.cwd()
+        git_dir = cwd / ".git"
+        git_dir.mkdir()
+
+        # Create plan file
+        plan_file = cwd / "my-feature-plan.md"
+        plan_file.write_text("# My Feature Plan\n", encoding="utf-8")
+
+        workstacks_root = cwd / "workstacks"
+        workstacks_dir = workstacks_root / cwd.name
+        workstacks_dir.mkdir(parents=True)
+
+        config_toml = workstacks_dir / "config.toml"
+        config_toml.write_text("", encoding="utf-8")
+
+        git_ops = FakeGitOps(
+            git_common_dirs={cwd: git_dir},
+            default_branches={cwd: "main"},
+        )
+        global_config_ops = FakeGlobalConfigOps(
+            exists=True,
+            workstacks_root=workstacks_root,
+            use_graphite=False,
+        )
+
+        test_ctx = WorkstackContext(
+            git_ops=git_ops,
+            global_config_ops=global_config_ops,
+            github_ops=FakeGitHubOps(),
+            graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
+            dry_run=False,
+        )
+
+        result = runner.invoke(
+            cli, ["create", "--plan", str(plan_file), "--keep-plan"], obj=test_ctx
+        )
+
+        assert result.exit_code == 0, result.output
+        # Should create worktree with "plan" stripped from filename
+        wt_path = workstacks_dir / "my-feature"
+        assert wt_path.exists()
+        # Plan file should be copied to .PLAN.md
+        assert (wt_path / ".PLAN.md").exists()
+        # Original plan file should still exist (copied, not moved)
+        assert plan_file.exists()
+        assert "Copied plan to" in result.output
+
+
+def test_create_keep_plan_without_plan_fails() -> None:
+    """Test that --keep-plan without --plan fails with error message."""
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        cwd = Path.cwd()
+        git_dir = cwd / ".git"
+        git_dir.mkdir()
+
+        workstacks_root = cwd / "workstacks"
+
+        git_ops = FakeGitOps(git_common_dirs={cwd: git_dir})
+        global_config_ops = FakeGlobalConfigOps(
+            exists=True,
+            workstacks_root=workstacks_root,
+            use_graphite=False,
+        )
+
+        test_ctx = WorkstackContext(
+            git_ops=git_ops,
+            global_config_ops=global_config_ops,
+            github_ops=FakeGitHubOps(),
+            graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
+            dry_run=False,
+        )
+
+        result = runner.invoke(cli, ["create", "test-feature", "--keep-plan"], obj=test_ctx)
+
+        assert result.exit_code == 1
+        assert "--keep-plan requires --plan" in result.output
