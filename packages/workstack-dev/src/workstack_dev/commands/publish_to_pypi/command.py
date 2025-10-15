@@ -138,11 +138,6 @@ def get_workspace_packages(repo_root: Path) -> list[PackageInfo]:
     """Get all publishable packages in workspace."""
     packages = [
         PackageInfo(
-            name="devclikit",
-            path=repo_root / "packages" / "devclikit",
-            pyproject_path=repo_root / "packages" / "devclikit" / "pyproject.toml",
-        ),
-        PackageInfo(
             name="dot-agent-kit",
             path=repo_root / "packages" / "dot-agent-kit",
             pyproject_path=repo_root / "packages" / "dot-agent-kit" / "pyproject.toml",
@@ -366,7 +361,7 @@ def commit_changes(
     dry_run: bool,
 ) -> str:
     """Commit version bump changes for all packages."""
-    commit_message = f"""Published workstack, devclikit, and dot-agent-kit {version}
+    commit_message = f"""Published workstack and dot-agent-kit {version}
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 
@@ -447,7 +442,6 @@ def publish_workflow(dry_run: bool) -> None:
         excluded_files = {
             "pyproject.toml",
             "uv.lock",
-            "packages/devclikit/pyproject.toml",
             "packages/dot-agent-kit/pyproject.toml",
         }
         lines = filter_git_status(status, excluded_files)
@@ -496,7 +490,7 @@ def run_pep723_script(dry_run: bool) -> None:
 @click.command(name="publish-to-pypi")
 @click.option("--dry-run", is_flag=True, help="Show what would be done without making changes")
 def command(dry_run: bool) -> None:
-    """Publish workstack, devclikit, and dot-agent-kit packages to PyPI."""
+    """Publish workstack and dot-agent-kit packages to PyPI."""
     try:
         run_pep723_script(dry_run)
     except KeyboardInterrupt:

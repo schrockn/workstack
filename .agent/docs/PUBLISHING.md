@@ -2,24 +2,17 @@
 
 ## Overview
 
-This project uses a uv workspace with three packages that are published to PyPI:
+This project uses a uv workspace with two packages that are published to PyPI:
 
-1. **devclikit** - Framework for building development CLIs with PEP 723 script support
-2. **dot-agent-kit** - CLI tool for managing .agent/ automated documentation folders
-3. **workstack** - Main worktree management tool (depends on devclikit)
+1. **dot-agent-kit** - CLI tool for managing .agent/ automated documentation folders
+2. **workstack** - Main worktree management tool
 
 All packages share the same version number and are published together.
 
 ## Quick Start
 
 ```bash
-# Build all packages
-make build
-
-# Publish to PyPI (requires credentials)
-make publish
-
-# Or use the workstack-dev automated script (recommended)
+# Use the workstack-dev automated script (recommended)
 uv run workstack-dev publish-to-pypi
 uv run workstack-dev publish-to-pypi --dry-run  # Preview changes
 ```
@@ -73,10 +66,9 @@ This script:
 3. **Bumps** patch version in all packages
 4. **Syncs** dependencies with `uv sync`
 5. **Builds** all packages to `dist/`
-6. **Publishes** in dependency order:
-   - devclikit (no dependencies)
-   - dot-agent-kit (no dependencies)
-   - workstack (depends on devclikit)
+6. **Publishes** packages:
+   - dot-agent-kit
+   - workstack
 7. **Commits** version changes
 8. **Pushes** to remote
 
@@ -88,50 +80,17 @@ uv run workstack-dev publish-to-pypi --dry-run
 
 #### Manual Publishing
 
-The `make publish` target automatically:
-
-1. **Cleans** old build artifacts from `dist/`
-2. **Builds devclikit** from `packages/devclikit/`
-3. **Builds dot-agent-kit** from `packages/dot-agent-kit/`
-4. **Builds workstack** from the root
-5. **Publishes devclikit** first (since workstack depends on it)
-6. **Publishes dot-agent-kit** second
-7. **Publishes workstack** third
+You can publish packages manually using `uvx uv-publish`:
 
 ```bash
-make publish
-```
+# Build all packages first
+uv build --package dot-agent-kit -o dist
+uv build --package workstack -o dist
 
-Output:
+# Publish dot-agent-kit
+uvx uv-publish ./dist/dot_agent_kit-*.whl ./dist/dot_agent_kit-*.tar.gz
 
-```
-Publishing devclikit...
-Uploading devclikit-0.1.10-py3-none-any.whl (12.4KiB)
-Uploading devclikit-0.1.10.tar.gz (9.3KiB)
-Publishing dot-agent-kit...
-Uploading dot-agent-kit-0.1.10-py3-none-any.whl (15KiB)
-Uploading dot-agent-kit-0.1.10.tar.gz (11KiB)
-Publishing workstack...
-Uploading workstack-0.1.10-py3-none-any.whl (79KiB)
-Uploading workstack-0.1.10.tar.gz (183KiB)
-✓ All packages published successfully
-```
-
-#### Advanced Manual Publishing
-
-If you need more control, you can publish manually:
-
-```bash
-# Build all packages
-make build
-
-# Publish devclikit first
-uvx uv-publish ./dist/devclikit-*.whl ./dist/devclikit-*.tar.gz
-
-# Publish dot-agent-kit second
-uvx uv-publish ./dist/dot-agent-kit-*.whl ./dist/dot-agent-kit-*.tar.gz
-
-# Publish workstack third (after devclikit is available on PyPI)
+# Publish workstack
 uvx uv-publish ./dist/workstack-*.whl ./dist/workstack-*.tar.gz
 ```
 
@@ -139,7 +98,6 @@ uvx uv-publish ./dist/workstack-*.whl ./dist/workstack-*.tar.gz
 
 All packages share the same version number defined in their respective `pyproject.toml` files:
 
-- **devclikit**: `packages/devclikit/pyproject.toml`
 - **dot-agent-kit**: `packages/dot-agent-kit/pyproject.toml`
 - **workstack**: `pyproject.toml`
 
@@ -158,10 +116,6 @@ For manual version updates:
 1. **Update all version numbers** to match:
 
    ```toml
-   # In packages/devclikit/pyproject.toml
-   [project]
-   version = "0.1.11"
-
    # In packages/dot-agent-kit/pyproject.toml
    [project]
    version = "0.1.11"
@@ -193,20 +147,8 @@ For manual version updates:
 
 5. **Publish to PyPI**:
    ```bash
-   make publish
+   uv run workstack-dev publish-to-pypi
    ```
-
-## Package Order
-
-**IMPORTANT**: Always publish packages in dependency order:
-
-1. **devclikit** - Has no dependencies, publish first
-2. **dot-agent-kit** - Has no dependencies on our packages, can publish anytime after devclikit
-3. **workstack** - Depends on devclikit, must publish last
-
-The `workstack-dev publish-to-pypi` script and `make publish` target handle this automatically.
-
-If you publish manually, ensure devclikit is available on PyPI before publishing workstack, otherwise users installing workstack will fail to find the devclikit dependency.
 
 ## Testing Before Publishing
 
@@ -216,18 +158,17 @@ Test the built packages locally before publishing:
 
 ```bash
 # Build packages
-make build
+uv build --package dot-agent-kit -o dist
+uv build --package workstack -o dist
 
 # Install locally in a test environment
 uv venv test-env
 source test-env/bin/activate
-uv pip install ./dist/devclikit-*.whl
-uv pip install ./dist/dot-agent-kit-*.whl
+uv pip install ./dist/dot_agent_kit-*.whl
 uv pip install ./dist/workstack-*.whl
 
 # Test functionality
 workstack --help
-workstack-dev --help
 dot-agent --help
 
 # Cleanup
@@ -254,11 +195,12 @@ For testing the full publishing flow without affecting production PyPI:
 
    ```bash
    # Build packages
-   make build
+   uv build --package dot-agent-kit -o dist
+   uv build --package workstack -o dist
 
    # Publish to TestPyPI (note: uv-publish doesn't support --repository flag yet)
    # You'll need to use twine for TestPyPI:
-   uvx twine upload --repository testpypi ./dist/devclikit-*.whl ./dist/devclikit-*.tar.gz
+   uvx twine upload --repository testpypi ./dist/dot_agent_kit-*.whl ./dist/dot_agent_kit-*.tar.gz
    uvx twine upload --repository testpypi ./dist/workstack-*.whl ./dist/workstack-*.tar.gz
    ```
 
@@ -273,10 +215,8 @@ All build artifacts are placed in the `dist/` directory:
 
 ```
 dist/
-├── devclikit-0.1.10-py3-none-any.whl
-├── devclikit-0.1.10.tar.gz
-├── dot-agent-kit-0.1.10-py3-none-any.whl
-├── dot-agent-kit-0.1.10.tar.gz
+├── dot_agent_kit-0.1.10-py3-none-any.whl
+├── dot_agent_kit-0.1.10.tar.gz
 ├── workstack-0.1.10-py3-none-any.whl
 └── workstack-0.1.10.tar.gz
 ```
@@ -286,23 +226,12 @@ dist/
 
 Both are uploaded to PyPI for each package.
 
-## Makefile Targets
-
-| Target         | Description                                   |
-| -------------- | --------------------------------------------- |
-| `make clean`   | Remove all build artifacts from `dist/`       |
-| `make build`   | Build devclikit, dot-agent-kit, and workstack |
-| `make publish` | Build and publish all three packages to PyPI  |
-
 ## Workspace Structure
 
 ```
 workstack/                           # Root workspace
 ├── pyproject.toml                   # Workspace config + workstack package
 ├── packages/
-│   ├── devclikit/
-│   │   ├── pyproject.toml           # devclikit package metadata
-│   │   └── src/devclikit/           # devclikit source
 │   ├── dot-agent-kit/
 │   │   ├── pyproject.toml           # dot-agent-kit package metadata
 │   │   └── src/dot_agent_kit/       # dot-agent-kit source
@@ -319,12 +248,9 @@ The workspace is configured in the root `pyproject.toml`:
 members = ["packages/*"]
 
 [tool.uv.sources]
-devclikit = { workspace = true }
 dot-agent-kit = { workspace = true }
 workstack-dev = { workspace = true }
 ```
-
-This allows workstack to depend on the local devclikit during development, but the published workstack package will depend on devclikit from PyPI.
 
 ## Troubleshooting
 
@@ -352,17 +278,11 @@ chmod 600 ~/.pypirc
 
 **Solution**: Bump the version number in both `pyproject.toml` files and try again. PyPI does not allow overwriting existing versions.
 
-### "Could not find dependency" error during install
-
-**Problem**: Users can't install workstack because devclikit is not found
-
-**Solution**: Ensure devclikit was published first and is available on PyPI before publishing workstack.
-
 ### Build artifacts from previous version
 
 **Problem**: Old build artifacts in `dist/` from a previous version
 
-**Solution**: Run `make clean` before building or use `make build` which includes the clean step.
+**Solution**: Remove old artifacts with `rm -rf dist/` before building.
 
 ## CI/CD Publishing
 
@@ -401,7 +321,7 @@ jobs:
           chmod 600 ~/.pypirc
 
       - name: Build and publish
-        run: make publish
+        run: uv run workstack-dev publish-to-pypi
 ```
 
 Store your PyPI token as `PYPI_API_TOKEN` in GitHub repository secrets.
@@ -412,19 +332,15 @@ Store your PyPI token as `PYPI_API_TOKEN` in GitHub repository secrets.
 
 Before publishing a new version:
 
-- [ ] All tests pass: `make test`
-- [ ] Linting passes: `make lint`
-- [ ] Type checking passes: `make pyright`
-- [ ] Version updated in all three `pyproject.toml` files (or use automated script)
+- [ ] All tests pass: `uv run pytest`
+- [ ] Linting passes: `uv run ruff check`
+- [ ] Type checking passes: `uv run pyright`
+- [ ] Version updated in both `pyproject.toml` files (or use automated script)
 - [ ] Changelog/release notes updated (if applicable)
 - [ ] Changes committed and pushed
-- [ ] Git tag created: `git tag v0.1.x` (optional for automated script)
-- [ ] Tag pushed: `git push origin v0.1.x` (optional for automated script)
 - [ ] PyPI credentials configured in `~/.pypirc`
-- [ ] Build succeeds: `make build`
-- [ ] Published to PyPI: `uv run workstack-dev publish-to-pypi` or `make publish`
+- [ ] Published to PyPI: `uv run workstack-dev publish-to-pypi`
 - [ ] Verify on PyPI:
-  - https://pypi.org/project/devclikit/
   - https://pypi.org/project/dot-agent-kit/
   - https://pypi.org/project/workstack/
 - [ ] Test installation:
@@ -494,27 +410,18 @@ my-package = { workspace = true }
 
 ### 4. Update Publishing Script
 
-Edit `packages/workstack-dev/src/workstack_dev/commands/publish_to_pypi/script.py:114`:
+Edit `packages/workstack-dev/src/workstack_dev/commands/publish_to_pypi/command.py` in the `get_workspace_packages` function:
 
 ```python
 def get_workspace_packages(repo_root: Path) -> list[PackageInfo]:
-    """Get all publishable packages in workspace.
-
-    Returns:
-        List of packages in dependency order (dependencies first)
-    """
+    """Get all publishable packages in workspace."""
     packages = [
-        PackageInfo(
-            name="devclikit",
-            path=repo_root / "packages" / "devclikit",
-            pyproject_path=repo_root / "packages" / "devclikit" / "pyproject.toml",
-        ),
         PackageInfo(
             name="dot-agent-kit",
             path=repo_root / "packages" / "dot-agent-kit",
             pyproject_path=repo_root / "packages" / "dot-agent-kit" / "pyproject.toml",
         ),
-        # Add your package here (in dependency order)
+        # Add your package here
         PackageInfo(
             name="my-package",
             path=repo_root / "packages" / "my-package",
@@ -530,13 +437,12 @@ def get_workspace_packages(repo_root: Path) -> list[PackageInfo]:
 
 ### 5. Update Git Status Check
 
-Edit the same file around line 544 to exclude your package's pyproject.toml from git status checks:
+Edit the same file to exclude your package's pyproject.toml from git status checks:
 
 ```python
     excluded_files = {
         "pyproject.toml",
         "uv.lock",
-        "packages/devclikit/pyproject.toml",
         "packages/dot-agent-kit/pyproject.toml",
         "packages/my-package/pyproject.toml",  # Add this
     }
@@ -551,20 +457,20 @@ Update this file (`.agent/docs/PUBLISHING.md`) to include your package in:
 - Build artifacts example
 - Release checklist (PyPI URLs, test installation)
 
-### 7. Sync and Test
+### 6. Sync and Test
 
 ```bash
 # Sync the lockfile
 uv sync
 
 # Test building
-make build
+uv build --package my-package -o dist
 
 # Verify artifacts
 ls -la dist/
 ```
 
-### 8. Version Consistency
+### 7. Version Consistency
 
 Ensure your new package has the same version as other packages before first publish:
 
@@ -578,4 +484,3 @@ The automated publishing script will keep all versions in sync going forward.
 
 - **uv Documentation**: https://docs.astral.sh/uv/
 - **PyPI Publishing Guide**: https://packaging.python.org/guides/distributing-packages-using-setuptools/
-- **Workspace Setup**: See `devclikit-extraction-plan.md` for the original workspace migration plan

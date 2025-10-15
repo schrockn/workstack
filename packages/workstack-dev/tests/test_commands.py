@@ -4,7 +4,6 @@ from pathlib import Path
 
 from click.testing import CliRunner
 
-from devclikit.exceptions import ScriptExecutionError
 from workstack_dev.cli import cli
 
 
@@ -21,7 +20,7 @@ def test_publish_to_pypi_help() -> None:
     runner = CliRunner()
     result = runner.invoke(cli, ["publish-to-pypi", "--help"])
     assert result.exit_code == 0
-    assert "Publish workstack, devclikit, and dot-agent-kit packages to PyPI." in result.output
+    assert "Publish workstack and dot-agent-kit packages to PyPI." in result.output
 
 
 def test_reserve_pypi_name_help() -> None:
@@ -83,24 +82,3 @@ def test_all_command_directories_are_registered() -> None:
         f"Command directory count ({len(command_dirs)}) != "
         f"registered command count ({len(registered_commands)})"
     )
-
-
-def test_script_execution_error_shows_user_facing_message(monkeypatch) -> None:
-    """Ensure framework errors become Click-style messages without tracebacks."""
-
-    def fail(*_args: object, **_kwargs: object) -> None:
-        raise ScriptExecutionError("workflow failed")
-
-    monkeypatch.setattr(
-        "workstack_dev.commands.publish_to_pypi.command.run_pep723_script",
-        fail,
-    )
-
-    runner = CliRunner()
-    result = runner.invoke(cli, ["publish-to-pypi"])
-
-    assert result.exit_code == 1
-    assert "Error: workflow failed" in result.output
-    assert "Traceback" not in result.output
-    assert isinstance(result.exception, SystemExit)
-    assert result.exception.code == 1
