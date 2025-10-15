@@ -520,6 +520,49 @@ def test_create_uses_graphite_when_enabled() -> None:
         assert any("gt" in str(call) for call in mock_run.call_args_list)
 
 
+def test_create_blocks_when_staged_changes_present_with_graphite_enabled() -> None:
+    """Ensure the command fails fast when staged changes exist and graphite is enabled."""
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        cwd = Path.cwd()
+        git_dir = cwd / ".git"
+        git_dir.mkdir()
+
+        workstacks_root = cwd / "workstacks"
+        workstacks_dir = workstacks_root / cwd.name
+        workstacks_dir.mkdir(parents=True)
+        (workstacks_dir / "config.toml").write_text("", encoding="utf-8")
+
+        git_ops = FakeGitOps(
+            git_common_dirs={cwd: git_dir},
+            default_branches={cwd: "main"},
+            current_branches={cwd: "main"},
+            staged_repos={cwd},
+        )
+        global_config_ops = FakeGlobalConfigOps(
+            exists=True,
+            workstacks_root=workstacks_root,
+            use_graphite=True,
+        )
+
+        test_ctx = WorkstackContext(
+            git_ops=git_ops,
+            global_config_ops=global_config_ops,
+            github_ops=FakeGitHubOps(),
+            graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
+            dry_run=False,
+        )
+
+        with mock.patch("workstack.cli.commands.create.subprocess.run") as mock_run:
+            result = runner.invoke(cli, ["create", "test-feature"], obj=test_ctx)
+
+        assert result.exit_code == 1
+        assert "Staged changes detected." in result.output
+        assert 'git commit -m "message"' in result.output
+        mock_run.assert_not_called()
+
+
 def test_create_uses_git_when_graphite_disabled() -> None:
     """Test that create uses git when graphite is disabled."""
     runner = CliRunner()
@@ -538,6 +581,44 @@ def test_create_uses_git_when_graphite_disabled() -> None:
         git_ops = FakeGitOps(
             git_common_dirs={cwd: git_dir},
             default_branches={cwd: "main"},
+        )
+        global_config_ops = FakeGlobalConfigOps(
+            exists=True,
+            workstacks_root=workstacks_root,
+            use_graphite=False,
+        )
+
+        test_ctx = WorkstackContext(
+            git_ops=git_ops,
+            global_config_ops=global_config_ops,
+            github_ops=FakeGitHubOps(),
+            graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
+            dry_run=False,
+        )
+
+        result = runner.invoke(cli, ["create", "test-feature"], obj=test_ctx)
+
+        assert result.exit_code == 0, result.output
+
+
+def test_create_allows_staged_changes_when_graphite_disabled() -> None:
+    """Graphite disabled path should ignore staged changes and continue."""
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        cwd = Path.cwd()
+        git_dir = cwd / ".git"
+        git_dir.mkdir()
+
+        workstacks_root = cwd / "workstacks"
+        workstacks_dir = workstacks_root / cwd.name
+        workstacks_dir.mkdir(parents=True)
+        (workstacks_dir / "config.toml").write_text("", encoding="utf-8")
+
+        git_ops = FakeGitOps(
+            git_common_dirs={cwd: git_dir},
+            default_branches={cwd: "main"},
+            staged_repos={cwd},
         )
         global_config_ops = FakeGlobalConfigOps(
             exists=True,

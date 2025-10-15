@@ -71,6 +71,7 @@ class FakeGitOps(GitOps):
         default_branches: dict[Path, str] | None = None,
         git_common_dirs: dict[Path, Path] | None = None,
         branch_heads: dict[str, str] | None = None,
+        staged_repos: set[Path] | None = None,
     ) -> None:
         """Create FakeGitOps with pre-configured state.
 
@@ -80,12 +81,14 @@ class FakeGitOps(GitOps):
             default_branches: Mapping of repo_root -> default branch
             git_common_dirs: Mapping of cwd -> git common directory
             branch_heads: Mapping of branch name -> commit SHA
+            staged_repos: Set of repo roots that should report staged changes
         """
         self._worktrees = worktrees or {}
         self._current_branches = current_branches or {}
         self._default_branches = default_branches or {}
         self._git_common_dirs = git_common_dirs or {}
         self._branch_heads = branch_heads or {}
+        self._repos_with_staged_changes: set[Path] = staged_repos or set()
 
         # Mutation tracking
         self._deleted_branches: list[str] = []
@@ -111,6 +114,10 @@ class FakeGitOps(GitOps):
     def get_git_common_dir(self, cwd: Path) -> Path | None:
         """Get the common git directory."""
         return self._git_common_dirs.get(cwd)
+
+    def has_staged_changes(self, repo_root: Path) -> bool:
+        """Report whether the repository has staged changes."""
+        return repo_root in self._repos_with_staged_changes
 
     def add_worktree(
         self,
