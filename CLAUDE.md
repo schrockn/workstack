@@ -230,7 +230,7 @@ Time-based estimates have no basis in reality for AI-assisted development and sh
 
 ## Related Documentation
 
-- [AGENTIC_PROGRAMMING.md](AGENTIC_PROGRAMMING.md) - Agentic programming patterns and best practices
+- [.agent/AGENTIC_PROGRAMMING.md](.agent/AGENTIC_PROGRAMMING.md) - Agentic programming patterns and best practices
 - [.agent/docs/PATTERNS.md](.agent/docs/PATTERNS.md) - Code examples
 - [.agent/docs/EXCEPTION_HANDLING.md](.agent/docs/EXCEPTION_HANDLING.md) - Exception guide
 - [.agent/docs/QUICK_REFERENCE.md](.agent/docs/QUICK_REFERENCE.md) - Quick lookup

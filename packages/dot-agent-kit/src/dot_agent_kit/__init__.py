@@ -38,14 +38,19 @@ def _resolve_resource(relative_path: str) -> Traversable:
 def list_available_files() -> list[str]:
     """Return the list of relative resource file paths shipped with the package."""
     root = get_resource_root()
-    tools_dir = root.joinpath("tools")
-    if not tools_dir.is_dir():
-        return []
-
     relative_paths: list[str] = []
-    for entry in tools_dir.iterdir():
+
+    # Add root-level markdown files
+    for entry in root.iterdir():
         if entry.is_file() and entry.name.endswith(".md"):
-            relative_paths.append(f"tools/{entry.name}")
+            relative_paths.append(entry.name)
+
+    # Add files from tools directory
+    tools_dir = root.joinpath("tools")
+    if tools_dir.is_dir():
+        for entry in tools_dir.iterdir():
+            if entry.is_file() and entry.name.endswith(".md"):
+                relative_paths.append(f"tools/{entry.name}")
 
     return sorted(relative_paths)
 

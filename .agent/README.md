@@ -68,10 +68,11 @@ This directory contains comprehensive, agent-friendly documentation for the work
 
 ### Architecture & Design
 
-| Document             | Tokens | Purpose                         | When to Read            |
-| -------------------- | ------ | ------------------------------- | ----------------------- |
-| **ARCHITECTURE.md**  | ~4,000 | System design, patterns, layers | Understanding structure |
-| **FEATURE_INDEX.md** | ~3,000 | Feature → file mapping          | Finding implementations |
+| Document                   | Tokens  | Purpose                         | When to Read                     |
+| -------------------------- | ------- | ------------------------------- | -------------------------------- |
+| **ARCHITECTURE.md**        | ~4,000  | System design, patterns, layers | Understanding structure          |
+| **AGENTIC_PROGRAMMING.md** | ~14,000 | Agentic programming practices   | Learning AI-assisted development |
+| **FEATURE_INDEX.md**       | ~3,000  | Feature → file mapping          | Finding implementations          |
 
 ### Detailed References (As Needed)
 
@@ -159,6 +160,7 @@ Read in this order:
 ### Architecture
 
 - **ARCHITECTURE.md** - System architecture, design patterns, component relationships
+- **AGENTIC_PROGRAMMING.md** - Agentic programming patterns and best practices (14K tokens)
 - **FEATURE_INDEX.md** - Complete index of features with implementation locations
 - **docs/MODULE_MAP.md** - Module structure and exports
 

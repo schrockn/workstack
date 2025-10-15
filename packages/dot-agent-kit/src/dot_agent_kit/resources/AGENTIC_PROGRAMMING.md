@@ -18,7 +18,7 @@ Agents work within limited context windows that require efficient information ar
 
 These practices are opinionated and prescriptive. They represent patterns that have proven effective across multiple projects and teams. Not every pattern will apply to every codebase, but understanding the principles will help you make informed decisions about your own AI-assisted development workflow.
 
-Vibe alert: these guidelines have been developed from observed experience, rather than formal evaluations. We have not rigorously tested this techniques nor understand which ones are more effective than others relatively, and to the degree that they actually compound. These are formulated from intuition, first-principles reasoning, and from observed behavior during actual development.
+Vibe alert: these guidelines have been developed from observed experience, rather than formal evaluations. We have not rigorously tested these techniques nor understand which ones are more effective than others relatively, and to the degree that they actually compound. These are formulated from intuition, first-principles reasoning, and from observed behavior during actual development.
 
 ---
 
@@ -150,8 +150,20 @@ Keep user-facing documentation in standard locations. The `.agent` directory isn
 
 Documentation optimized for AI consumption differs from human-oriented writing. Structure information for rapid scanning and extraction. Use imperative statements and clear hierarchies rather than conversational prose.
 
-```markdown
+**Example:**
 
+```markdown
+## Exception Handling
+
+🔴 **MUST**: Never use try/except for control flow
+🟡 **SHOULD**: Check conditions with if statements
+🟢 **MAY**: Catch at error boundaries for user messages
+
+**Acceptable uses:**
+
+- CLI error boundaries for user-friendly messages
+- Third-party APIs that require exception handling
+- Adding context before re-raising
 ```
 
 This direct style helps agents quickly extract rules and apply them consistently.

@@ -7,7 +7,12 @@ import yaml
 from dot_agent_kit import __version__
 
 CONFIG_FILENAME = ".dot-agent-kit.yml"
-DEFAULT_MANAGED_FILES: tuple[str, ...] = ("tools/",)
+DEFAULT_MANAGED_FILES: tuple[str, ...] = (
+    "AGENTIC_PROGRAMMING.md",
+    "tools/gt.md",
+    "tools/gh.md",
+    "tools/workstack.md",
+)
 
 
 def _as_tuple(value: Any) -> tuple[str, ...]:
