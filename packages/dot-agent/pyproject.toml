@@ -3,11 +3,30 @@ name = "dot-agent"
 version = "0.1.0"
 description = "CLI tool for managing .agent/ automated documentation folders"
 readme = "README.md"
+authors = [
+    { name = "Dagster Labs", email = "hello@dagsterlabs.com" }
+]
+license = { text = "MIT" }
+keywords = ["cli", "documentation", "agent", "ai", "tools"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Documentation",
+    "Topic :: Utilities",
+]
 requires-python = ">=3.13"
 dependencies = [
     "click>=8.1.7",
     "pyyaml>=6.0.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/dagster-io/workstack"
+Repository = "https://github.com/dagster-io/workstack"
+Issues = "https://github.com/dagster-io/workstack/issues"
 
 [project.scripts]
 dot-agent = "dot_agent.cli:main"
@@ -18,6 +37,3 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/dot_agent"]
-
-[tool.hatch.build.targets.wheel.force-include]
-"src/dot_agent/resources" = "dot_agent/resources"
