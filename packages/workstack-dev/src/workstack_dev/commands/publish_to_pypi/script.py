@@ -29,7 +29,7 @@ RECOVERY FROM FAILURES:
    - DO NOT revert version bumps
    - Fix dot-agent issue and manually publish:
      * cd dist
-     * uvx uv-publish dot-agent-<version>*
+     * uvx uv-publish dot_agent-<version>*
    - Then continue with workstack
 
 5. workstack publish failure (devclikit and dot-agent already published):
@@ -60,6 +60,21 @@ import click
 
 # PyPI CDN propagation typically takes 3-5 seconds
 PYPI_PROPAGATION_WAIT_SECONDS = 5
+
+
+def normalize_package_name(name: str) -> str:
+    """Normalize package name for artifact filenames.
+
+    Python packaging tools normalize hyphens to underscores in artifact names.
+    For example, "dot-agent" becomes "dot_agent" in wheel and sdist filenames.
+
+    Args:
+        name: Package name (e.g., "dot-agent")
+
+    Returns:
+        Normalized name for use in filenames (e.g., "dot_agent")
+    """
+    return name.replace("-", "_")
 
 
 @dataclass(frozen=True)
@@ -339,8 +354,9 @@ def validate_build_artifacts(
         return
 
     for pkg in packages:
-        wheel = staging_dir / f"{pkg.name}-{version}-py3-none-any.whl"
-        sdist = staging_dir / f"{pkg.name}-{version}.tar.gz"
+        normalized_name = normalize_package_name(pkg.name)
+        wheel = staging_dir / f"{normalized_name}-{version}-py3-none-any.whl"
+        sdist = staging_dir / f"{normalized_name}-{version}.tar.gz"
 
         if not wheel.exists():
             click.echo(f"✗ Missing wheel: {wheel}", err=True)
@@ -365,8 +381,9 @@ def publish_package(package: PackageInfo, staging_dir: Path, version: str, dry_r
         click.echo(f"[DRY RUN] Would publish {package.name} to PyPI")
         return
 
-    # Filter to only this package's artifacts
-    artifacts = list(staging_dir.glob(f"{package.name}-{version}*"))
+    # Filter to only this package's artifacts (use normalized name for glob)
+    normalized_name = normalize_package_name(package.name)
+    artifacts = list(staging_dir.glob(f"{normalized_name}-{version}*"))
 
     if not artifacts:
         click.echo(f"✗ No artifacts found for {package.name} {version}", err=True)
