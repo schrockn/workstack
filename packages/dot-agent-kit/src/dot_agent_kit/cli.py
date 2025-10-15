@@ -3,13 +3,13 @@ from typing import NoReturn
 
 import click
 
-from dot_agent import __version__, list_available_files, read_resource_file
-from dot_agent.config import (
+from dot_agent_kit import __version__, list_available_files, read_resource_file
+from dot_agent_kit.config import (
     DotAgentConfig,
     find_agent_dir,
     get_config_path,
 )
-from dot_agent.sync import (
+from dot_agent_kit.sync import (
     FileSyncResult,
     collect_statuses,
     generate_diff,
@@ -114,7 +114,7 @@ def extract(relative_path: str, force_overwrite: bool) -> None:
 
     available = set(list_available_files())
     if relative_path not in available:
-        _fail(f"Error: {relative_path} is not provided by dot-agent.")
+        _fail(f"Error: {relative_path} is not provided by dot-agent-kit.")
 
     local_path = agent_dir / relative_path
     if local_path.exists() and not force_overwrite:
@@ -172,7 +172,7 @@ def diff(relative_path: str) -> None:
 
     available = set(list_available_files())
     if relative_path not in available:
-        _fail(f"Error: {relative_path} is not provided by dot-agent.")
+        _fail(f"Error: {relative_path} is not provided by dot-agent-kit.")
 
     local_path = agent_dir / relative_path
     if not local_path.exists():
