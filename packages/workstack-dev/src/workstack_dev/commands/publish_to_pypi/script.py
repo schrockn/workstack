@@ -5,9 +5,9 @@
 # ]
 # requires-python = ">=3.13"
 # ///
-"""Publish workstack and devclikit packages to PyPI.
+"""Publish workstack, devclikit, and dot-agent packages to PyPI.
 
-This script automates the synchronized publishing workflow for both packages.
+This script automates the synchronized publishing workflow for all packages.
 
 RECOVERY FROM FAILURES:
 
@@ -16,26 +16,34 @@ RECOVERY FROM FAILURES:
 
 2. Build failure:
    - Version bumps made but not committed
-   - Run: git checkout -- pyproject.toml packages/devclikit/pyproject.toml uv.lock
+   - Run: git checkout -- pyproject.toml packages/*/pyproject.toml uv.lock
    - Fix build issue and retry
 
 3. devclikit publish failure:
    - Version bumps made but not committed
-   - Run: git checkout -- pyproject.toml packages/devclikit/pyproject.toml uv.lock
+   - Run: git checkout -- pyproject.toml packages/*/pyproject.toml uv.lock
    - Investigate PyPI issue and retry
 
-4. workstack publish failure (devclikit already published):
-   - devclikit published to PyPI but workstack failed
+4. dot-agent publish failure (devclikit already published):
+   - devclikit published to PyPI but dot-agent failed
+   - DO NOT revert version bumps
+   - Fix dot-agent issue and manually publish:
+     * cd dist
+     * uvx uv-publish dot-agent-<version>*
+   - Then continue with workstack
+
+5. workstack publish failure (devclikit and dot-agent already published):
+   - devclikit and dot-agent published to PyPI but workstack failed
    - DO NOT revert version bumps
    - Fix workstack issue and manually publish:
      * cd dist
      * uvx uv-publish workstack-<version>*
    - Then commit and push
 
-5. Git commit/push failure (both packages published):
-   - Both packages published successfully
+6. Git commit/push failure (all packages published):
+   - All packages published successfully
    - Manually commit and push:
-     * git add pyproject.toml packages/devclikit/pyproject.toml uv.lock
+     * git add pyproject.toml packages/*/pyproject.toml uv.lock
      * git commit -m "Published <version>"
      * git push
 """
@@ -114,6 +122,11 @@ def get_workspace_packages(repo_root: Path) -> list[PackageInfo]:
             name="devclikit",
             path=repo_root / "packages" / "devclikit",
             pyproject_path=repo_root / "packages" / "devclikit" / "pyproject.toml",
+        ),
+        PackageInfo(
+            name="dot-agent",
+            path=repo_root / "packages" / "dot-agent",
+            pyproject_path=repo_root / "packages" / "dot-agent" / "pyproject.toml",
         ),
         PackageInfo(
             name="workstack",
@@ -421,7 +434,7 @@ def commit_changes(
     Returns:
         Commit SHA (or fake SHA in dry-run mode)
     """
-    commit_message = f"""Published workstack and devclikit {version}
+    commit_message = f"""Published workstack, devclikit, and dot-agent {version}
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 
@@ -532,6 +545,7 @@ def main(dry_run: bool) -> None:
             "pyproject.toml",
             "uv.lock",
             "packages/devclikit/pyproject.toml",
+            "packages/dot-agent/pyproject.toml",
         }
         lines = filter_git_status(status, excluded_files)
 
