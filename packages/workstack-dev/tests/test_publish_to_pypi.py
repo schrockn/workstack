@@ -6,27 +6,7 @@ These tests verify the git status filtering logic correctly handles:
 - Exclusion of specific files
 """
 
-import importlib.util
-import sys
-from pathlib import Path
-
-# Add src to path for PEP 723 script import
-script_path = (
-    Path(__file__).parent.parent
-    / "src"
-    / "workstack_dev"
-    / "commands"
-    / "publish_to_pypi"
-    / "script.py"
-)
-
-spec = importlib.util.spec_from_file_location("publish_script", script_path)
-if spec and spec.loader:
-    publish_script = importlib.util.module_from_spec(spec)
-    sys.modules["publish_script"] = publish_script
-    spec.loader.exec_module(publish_script)
-else:
-    raise ImportError(f"Failed to load script from {script_path}")
+from workstack_dev.commands.publish_to_pypi import command as publish_command
 
 
 def test_filter_git_status_handles_spaces_in_filenames() -> None:
@@ -40,7 +20,7 @@ def test_filter_git_status_handles_spaces_in_filenames() -> None:
     status = " M my file.txt\n M another file.py"
     excluded = set()
 
-    result = publish_script.filter_git_status(status, excluded)
+    result = publish_command.filter_git_status(status, excluded)
 
     assert len(result) == 2
     assert " M my file.txt" in result
@@ -52,7 +32,7 @@ def test_filter_git_status_excludes_specified_files() -> None:
     status = " M pyproject.toml\n M uv.lock\n M other_file.py"
     excluded = {"pyproject.toml", "uv.lock"}
 
-    result = publish_script.filter_git_status(status, excluded)
+    result = publish_command.filter_git_status(status, excluded)
 
     assert len(result) == 1
     assert " M other_file.py" in result
@@ -65,7 +45,7 @@ def test_filter_git_status_excludes_files_with_spaces() -> None:
     status = " M my file.txt\n M other.py"
     excluded = {"my file.txt"}
 
-    result = publish_script.filter_git_status(status, excluded)
+    result = publish_command.filter_git_status(status, excluded)
 
     assert len(result) == 1
     assert " M other.py" in result
@@ -95,7 +75,7 @@ def test_filter_git_status_handles_various_status_codes() -> None:
     )
     excluded = set()
 
-    result = publish_script.filter_git_status(status, excluded)
+    result = publish_command.filter_git_status(status, excluded)
 
     assert len(result) == 7
     assert " M modified_worktree.py" in result
@@ -112,7 +92,7 @@ def test_filter_git_status_handles_empty_status() -> None:
     status = ""
     excluded = {"pyproject.toml"}
 
-    result = publish_script.filter_git_status(status, excluded)
+    result = publish_command.filter_git_status(status, excluded)
 
     assert len(result) == 0
 
@@ -122,7 +102,7 @@ def test_filter_git_status_handles_only_excluded_files() -> None:
     status = " M pyproject.toml\n M uv.lock"
     excluded = {"pyproject.toml", "uv.lock"}
 
-    result = publish_script.filter_git_status(status, excluded)
+    result = publish_command.filter_git_status(status, excluded)
 
     assert len(result) == 0
 
@@ -132,7 +112,7 @@ def test_filter_git_status_minimum_line_length() -> None:
     status = "M\nMM\nMMM\n M file.py"
     excluded = set()
 
-    result = publish_script.filter_git_status(status, excluded)
+    result = publish_command.filter_git_status(status, excluded)
 
     # Only "MMM" (len=3) and " M file.py" should be ignored/included
     # "M" (len=1) and "MM" (len=2) are too short
@@ -160,7 +140,7 @@ def test_filter_git_status_complex_scenario() -> None:
     )
     excluded = {"pyproject.toml", "uv.lock"}
 
-    result = publish_script.filter_git_status(status, excluded)
+    result = publish_command.filter_git_status(status, excluded)
 
     assert len(result) == 4
     assert " M my config file.toml" in result
