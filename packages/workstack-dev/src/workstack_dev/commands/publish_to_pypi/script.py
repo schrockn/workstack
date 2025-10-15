@@ -127,6 +127,86 @@ def run_git_pull(repo_root: Path, dry_run: bool) -> None:
     click.echo("✓ Pulled latest changes")
 
 
+def ensure_branch_is_in_sync(repo_root: Path, dry_run: bool) -> None:
+    """Validate that the current branch is tracking its upstream and is not behind."""
+    if dry_run:
+        click.echo("[DRY RUN] Would run: git fetch --prune")
+    else:
+        run_command(
+            ["git", "fetch", "--prune"],
+            cwd=repo_root,
+            description="git fetch --prune",
+        )
+
+    status_output = run_command(
+        ["git", "status", "--short", "--branch"],
+        cwd=repo_root,
+        description="git status --short --branch",
+    )
+
+    if not status_output:
+        return
+
+    first_line = status_output.splitlines()[0]
+    if not first_line.startswith("## "):
+        return
+
+    branch_summary = first_line[3:]
+    if "..." not in branch_summary:
+        click.echo("✗ Current branch is not tracking a remote upstream", err=True)
+        click.echo("  Run `git push -u origin <branch>` before publishing", err=True)
+        raise SystemExit(1)
+
+    local_branch, remote_section = branch_summary.split("...", 1)
+    remote_name = remote_section
+    tracking_info = ""
+
+    if " [" in remote_section:
+        remote_name, tracking_info = remote_section.split(" [", 1)
+        tracking_info = tracking_info.rstrip("]")
+
+    remote_name = remote_name.strip()
+    tracking_info = tracking_info.strip()
+
+    ahead = 0
+    behind = 0
+    remote_gone = False
+
+    if tracking_info:
+        for token in tracking_info.split(","):
+            item = token.strip()
+            if item.startswith("ahead "):
+                ahead = int(item.split(" ", 1)[1])
+            elif item.startswith("behind "):
+                behind = int(item.split(" ", 1)[1])
+            elif item == "gone":
+                remote_gone = True
+
+    if remote_gone:
+        click.echo("✗ Upstream branch is gone", err=True)
+        click.echo(f"  Local branch: {local_branch}", err=True)
+        click.echo(f"  Last known upstream: {remote_name}", err=True)
+        click.echo("  Re-create or change the upstream before publishing", err=True)
+        raise SystemExit(1)
+
+    if behind > 0:
+        click.echo("✗ Current branch is behind its upstream", err=True)
+        click.echo(f"  Local branch: {local_branch}", err=True)
+        click.echo(f"  Upstream: {remote_name}", err=True)
+        if ahead > 0:
+            click.echo(
+                f"  Diverged by ahead {ahead} / behind {behind} commit(s)",
+                err=True,
+            )
+        else:
+            click.echo(f"  Behind by {behind} commit(s)", err=True)
+        click.echo(
+            "  Pull and reconcile changes (e.g., `git pull --rebase`) before publishing",
+            err=True,
+        )
+        raise SystemExit(1)
+
+
 def get_workspace_packages(repo_root: Path) -> list[PackageInfo]:
     """Get all publishable packages in workspace.
 
@@ -579,6 +659,7 @@ def main(dry_run: bool) -> None:
     click.echo("\nStarting synchronized publish workflow...\n")
 
     # Step 3: Pull latest changes
+    ensure_branch_is_in_sync(repo_root, dry_run)
     run_git_pull(repo_root, dry_run)
 
     # Step 4: Validate version consistency
