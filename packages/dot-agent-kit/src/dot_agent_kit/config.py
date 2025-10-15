@@ -4,9 +4,9 @@ from typing import Any
 
 import yaml
 
-from dot_agent import __version__
+from dot_agent_kit import __version__
 
-CONFIG_FILENAME = ".dot-agent.yml"
+CONFIG_FILENAME = ".dot-agent-kit.yml"
 DEFAULT_MANAGED_FILES: tuple[str, ...] = ("tools/",)
 
 

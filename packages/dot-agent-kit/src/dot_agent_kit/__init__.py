@@ -3,7 +3,7 @@ from importlib.resources import files
 from importlib.resources.abc import Traversable
 from pathlib import PurePosixPath
 
-PACKAGE_NAME = "dot-agent"
+PACKAGE_NAME = "dot-agent-kit"
 DEFAULT_VERSION = "0.1.0"
 
 # Exception handling acceptable here: metadata.version() provides no LBYL alternative.
@@ -16,7 +16,7 @@ except metadata.PackageNotFoundError:
 
 def get_resource_root() -> Traversable:
     """Return the traversable root for bundled resources."""
-    return files("dot_agent.resources")
+    return files("dot_agent_kit.resources")
 
 
 def _resolve_resource(relative_path: str) -> Traversable:

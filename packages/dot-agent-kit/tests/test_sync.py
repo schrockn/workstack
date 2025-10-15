@@ -1,8 +1,13 @@
 from pathlib import Path
 
-from dot_agent import list_available_files
-from dot_agent.config import DotAgentConfig
-from dot_agent.sync import _expand_managed_files, collect_statuses, generate_diff, sync_all_files
+from dot_agent_kit import list_available_files
+from dot_agent_kit.config import DotAgentConfig
+from dot_agent_kit.sync import (
+    _expand_managed_files,
+    collect_statuses,
+    generate_diff,
+    sync_all_files,
+)
 
 
 def test_sync_creates_expected_files(tmp_path: Path) -> None:

@@ -5,7 +5,7 @@
 # ]
 # requires-python = ">=3.13"
 # ///
-"""Publish workstack, devclikit, and dot-agent packages to PyPI.
+"""Publish workstack, devclikit, and dot-agent-kit packages to PyPI.
 
 This script automates the synchronized publishing workflow for all packages.
 
@@ -24,16 +24,16 @@ RECOVERY FROM FAILURES:
    - Run: git checkout -- pyproject.toml packages/*/pyproject.toml uv.lock
    - Investigate PyPI issue and retry
 
-4. dot-agent publish failure (devclikit already published):
-   - devclikit published to PyPI but dot-agent failed
+4. dot-agent-kit publish failure (devclikit already published):
+   - devclikit published to PyPI but dot-agent-kit failed
    - DO NOT revert version bumps
-   - Fix dot-agent issue and manually publish:
+   - Fix dot-agent-kit issue and manually publish:
      * cd dist
-     * uvx uv-publish dot-agent-<version>*
+     * uvx uv-publish dot-agent-kit-<version>*
    - Then continue with workstack
 
-5. workstack publish failure (devclikit and dot-agent already published):
-   - devclikit and dot-agent published to PyPI but workstack failed
+5. workstack publish failure (devclikit and dot-agent-kit already published):
+   - devclikit and dot-agent-kit published to PyPI but workstack failed
    - DO NOT revert version bumps
    - Fix workstack issue and manually publish:
      * cd dist
@@ -124,9 +124,9 @@ def get_workspace_packages(repo_root: Path) -> list[PackageInfo]:
             pyproject_path=repo_root / "packages" / "devclikit" / "pyproject.toml",
         ),
         PackageInfo(
-            name="dot-agent",
-            path=repo_root / "packages" / "dot-agent",
-            pyproject_path=repo_root / "packages" / "dot-agent" / "pyproject.toml",
+            name="dot-agent-kit",
+            path=repo_root / "packages" / "dot-agent-kit",
+            pyproject_path=repo_root / "packages" / "dot-agent-kit" / "pyproject.toml",
         ),
         PackageInfo(
             name="workstack",
@@ -434,7 +434,7 @@ def commit_changes(
     Returns:
         Commit SHA (or fake SHA in dry-run mode)
     """
-    commit_message = f"""Published workstack, devclikit, and dot-agent {version}
+    commit_message = f"""Published workstack, devclikit, and dot-agent-kit {version}
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 
@@ -545,7 +545,7 @@ def main(dry_run: bool) -> None:
             "pyproject.toml",
             "uv.lock",
             "packages/devclikit/pyproject.toml",
-            "packages/dot-agent/pyproject.toml",
+            "packages/dot-agent-kit/pyproject.toml",
         }
         lines = filter_git_status(status, excluded_files)
 
