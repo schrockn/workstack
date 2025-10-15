@@ -337,6 +337,68 @@ def test_create_detects_default_branch() -> None:
         assert result.exit_code == 0, result.output
 
 
+def test_create_from_current_branch_in_worktree() -> None:
+    """Regression: ensure --from-current-branch works when executed from a worktree."""
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        base = Path.cwd()
+        repo_root = base / "repo"
+        repo_root.mkdir()
+        git_dir = repo_root / ".git"
+        git_dir.mkdir()
+
+        current_worktree = base / "wt-current"
+        current_worktree.mkdir()
+
+        workstacks_root = base / "workstacks"
+        workstacks_root.mkdir()
+        workstacks_dir = workstacks_root / repo_root.name
+        workstacks_dir.mkdir()
+
+        config_toml = workstacks_dir / "config.toml"
+        config_toml.write_text("", encoding="utf-8")
+
+        git_ops = FakeGitOps(
+            worktrees={
+                repo_root: [
+                    WorktreeInfo(path=current_worktree, branch="feature"),
+                ]
+            },
+            current_branches={current_worktree: "feature"},
+            default_branches={repo_root: "main"},
+            git_common_dirs={
+                current_worktree: git_dir,
+                repo_root: git_dir,
+            },
+        )
+        global_config_ops = FakeGlobalConfigOps(
+            exists=True,
+            workstacks_root=workstacks_root,
+            use_graphite=False,
+        )
+
+        test_ctx = WorkstackContext(
+            git_ops=git_ops,
+            global_config_ops=global_config_ops,
+            github_ops=FakeGitHubOps(),
+            graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
+            dry_run=False,
+        )
+
+        with mock.patch("pathlib.Path.cwd", return_value=current_worktree):
+            result = runner.invoke(cli, ["create", "--from-current-branch"], obj=test_ctx)
+
+        assert result.exit_code == 0, result.output
+
+        expected_worktree = workstacks_dir / "feature"
+        assert expected_worktree.exists()
+        assert (expected_worktree / ".env").exists()
+        assert (current_worktree, "main") in git_ops.checked_out_branches
+        assert (repo_root, "main") not in git_ops.checked_out_branches
+        assert (expected_worktree, "feature") in git_ops.added_worktrees
+
+
 def test_create_fails_if_worktree_exists() -> None:
     """Test that create fails if worktree already exists."""
     runner = CliRunner()
