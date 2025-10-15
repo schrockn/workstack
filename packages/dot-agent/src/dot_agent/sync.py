@@ -82,6 +82,25 @@ def sync_file(
     return FileSyncResult(changed=True, message=f"Updated {relative_path}")
 
 
+def _expand_managed_files(
+    managed_files: tuple[str, ...],
+    available_resources: set[str],
+) -> list[str]:
+    """Expand directory patterns in managed files to actual file paths."""
+    expanded: list[str] = []
+    for pattern in managed_files:
+        if pattern.endswith("/"):
+            # Directory pattern - expand to all matching files
+            prefix = pattern
+            for resource in sorted(available_resources):
+                if resource.startswith(prefix):
+                    expanded.append(resource)
+        else:
+            # Specific file path
+            expanded.append(pattern)
+    return expanded
+
+
 def sync_all_files(
     agent_dir: Path,
     config: DotAgentConfig,
@@ -93,8 +112,9 @@ def sync_all_files(
     results: dict[str, FileSyncResult] = {}
 
     available_resources = set(list_available_files())
+    expanded_files = _expand_managed_files(config.managed_files, available_resources)
 
-    for file_path in config.managed_files:
+    for file_path in expanded_files:
         if file_path in config.exclude:
             results[file_path] = FileSyncResult(
                 changed=False,
@@ -134,8 +154,9 @@ def collect_statuses(agent_dir: Path, config: DotAgentConfig) -> dict[str, SyncS
     """Return the sync status for every managed file."""
     statuses: dict[str, SyncStatus] = {}
     available_resources = set(list_available_files())
+    expanded_files = _expand_managed_files(config.managed_files, available_resources)
 
-    for file_path in config.managed_files:
+    for file_path in expanded_files:
         if file_path in config.exclude:
             statuses[file_path] = "excluded"
             continue

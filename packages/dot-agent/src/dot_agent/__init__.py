@@ -1,4 +1,3 @@
-from collections.abc import Iterator
 from importlib import metadata
 from importlib.resources import files
 from importlib.resources.abc import Traversable
@@ -7,6 +6,8 @@ from pathlib import PurePosixPath
 PACKAGE_NAME = "dot-agent"
 DEFAULT_VERSION = "0.1.0"
 
+# Exception handling acceptable here: metadata.version() provides no LBYL alternative.
+# This catches cases where the package is run from source without being installed.
 try:
     __version__ = metadata.version(PACKAGE_NAME)
 except metadata.PackageNotFoundError:
@@ -57,8 +58,3 @@ def read_resource_file(relative_path: str) -> str:
         raise IsADirectoryError(msg)
 
     return resource.read_text(encoding="utf-8")
-
-
-def iter_resource_files() -> Iterator[str]:
-    """Yield all known resource relative paths."""
-    yield from list_available_files()
