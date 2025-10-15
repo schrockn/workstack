@@ -58,6 +58,11 @@ class GitOps(ABC):
         ...
 
     @abstractmethod
+    def has_staged_changes(self, repo_root: Path) -> bool:
+        """Check if the repository has staged changes."""
+        ...
+
+    @abstractmethod
     def add_worktree(
         self,
         repo_root: Path,
@@ -251,6 +256,20 @@ class RealGitOps(GitOps):
 
         return git_dir.resolve()
 
+    def has_staged_changes(self, repo_root: Path) -> bool:
+        """Check if the repository has staged changes."""
+        result = subprocess.run(
+            ["git", "diff", "--cached", "--quiet"],
+            cwd=repo_root,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if result.returncode in (0, 1):
+            return result.returncode == 1
+        result.check_returncode()
+        return False
+
     def add_worktree(
         self,
         repo_root: Path,
@@ -393,6 +412,10 @@ class DryRunGitOps(GitOps):
         return self._wrapped.checkout_detached(cwd, ref)
 
     # Destructive operations: print dry-run message instead of executing
+
+    def has_staged_changes(self, repo_root: Path) -> bool:
+        """Check for staged changes (read-only, delegates to wrapped)."""
+        return self._wrapped.has_staged_changes(repo_root)
 
     def add_worktree(
         self,

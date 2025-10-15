@@ -97,7 +97,7 @@ requires-dist = [{ name = "click", specifier = ">=8.1.7" }]
 
 [[package]]
 name = "dot-agent"
-version = "0.1.0"
+version = "0.1.11"
 source = { editable = "packages/dot-agent" }
 dependencies = [
     { name = "click" },
