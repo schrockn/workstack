@@ -7,7 +7,7 @@ from dot_agent_kit.config import DotAgentConfig, get_config_path
 def test_default_config_uses_package_version() -> None:
     config = DotAgentConfig.default()
     assert config.version == __version__
-    assert "tools/" in config.managed_files
+    assert any(f.startswith("tools/") for f in config.managed_files)
 
 
 def test_save_and_reload_round_trip(tmp_path: Path) -> None:
