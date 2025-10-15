@@ -6,6 +6,7 @@ in its constructor. Construct instances directly with keyword arguments.
 
 from pathlib import Path
 
+from workstack.core.branch_metadata import BranchMetadata
 from workstack.core.github_ops import PullRequestInfo
 from workstack.core.gitops import GitOps
 from workstack.core.graphite_ops import GraphiteOps
@@ -23,16 +24,19 @@ class FakeGraphiteOps(GraphiteOps):
         *,
         sync_raises: Exception | None = None,
         pr_info: dict[str, PullRequestInfo] | None = None,
+        branches: dict[str, BranchMetadata] | None = None,
     ) -> None:
         """Create FakeGraphiteOps with pre-configured state.
 
         Args:
             sync_raises: Exception to raise when sync() is called (for testing error cases)
             pr_info: Mapping of branch name -> PullRequestInfo for get_prs_from_graphite()
+            branches: Mapping of branch name -> BranchMetadata for get_all_branches()
         """
         self._sync_raises = sync_raises
         self._sync_calls: list[tuple[Path, bool]] = []
         self._pr_info = pr_info if pr_info is not None else {}
+        self._branches = branches if branches is not None else {}
 
     def get_graphite_url(self, owner: str, repo: str, pr_number: int) -> str:
         """Get Graphite PR URL (constructs URL directly)."""
@@ -51,6 +55,10 @@ class FakeGraphiteOps(GraphiteOps):
     def get_prs_from_graphite(self, git_ops: GitOps, repo_root: Path) -> dict[str, PullRequestInfo]:
         """Return pre-configured PR info for tests."""
         return self._pr_info.copy()
+
+    def get_all_branches(self, git_ops: GitOps, repo_root: Path) -> dict[str, BranchMetadata]:
+        """Return pre-configured branch metadata for tests."""
+        return self._branches.copy()
 
     @property
     def sync_calls(self) -> list[tuple[Path, bool]]:
