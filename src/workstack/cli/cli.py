@@ -3,6 +3,7 @@ import click
 from workstack.cli.commands.completion import completion_group
 from workstack.cli.commands.config import config_group
 from workstack.cli.commands.create import create
+from workstack.cli.commands.down import down_cmd
 from workstack.cli.commands.gc import gc_cmd
 from workstack.cli.commands.gt import gt_group
 from workstack.cli.commands.init import init_cmd
@@ -17,6 +18,7 @@ from workstack.cli.commands.status import status_cmd
 from workstack.cli.commands.switch import switch_cmd
 from workstack.cli.commands.sync import sync_cmd
 from workstack.cli.commands.tree import tree_cmd
+from workstack.cli.commands.up import up_cmd
 from workstack.core.context import create_context
 
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])  # terse help flags
@@ -35,8 +37,10 @@ def cli(ctx: click.Context) -> None:
 # Register all commands
 cli.add_command(completion_group)
 cli.add_command(create)
+cli.add_command(down_cmd)
 cli.add_command(jump_cmd)
 cli.add_command(switch_cmd)
+cli.add_command(up_cmd)
 cli.add_command(list_cmd)
 cli.add_command(ls_cmd)
 cli.add_command(status_cmd)
