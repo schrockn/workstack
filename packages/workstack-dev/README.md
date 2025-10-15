@@ -27,4 +27,4 @@ uv run workstack-dev --help
 
 ## Development
 
-This package is part of the workstack workspace and depends on `devclikit`.
+This package is part of the workstack workspace.

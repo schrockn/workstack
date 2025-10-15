@@ -2,7 +2,6 @@
 members = ["packages/*"]
 
 [tool.uv.sources]
-devclikit = { workspace = true }
 workstack-dev = { workspace = true }
 dot-agent-kit = { workspace = true }
 
@@ -17,7 +16,6 @@ authors = [
 requires-python = ">=3.13"
 dependencies = [
     "click>=8.1.7",
-    "devclikit",
     "python-frontmatter>=1.0.0",
 ]
 
@@ -53,7 +51,7 @@ select = [
 ]
 
 [tool.ruff.lint.isort]
-known-first-party = ["workstack", "devclikit", "workstack_dev", "dot_agent_kit"]
+known-first-party = ["workstack", "workstack_dev", "dot_agent_kit"]
 
 [tool.pyright]
 pythonVersion = "3.13"

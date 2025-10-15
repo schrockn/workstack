@@ -7,7 +7,6 @@ available at import time for inspection.
 
 import click
 
-from devclikit.exceptions import DevCliFrameworkError
 from workstack_dev.commands.clean_cache.command import command as clean_cache_cmd
 from workstack_dev.commands.codex_review.command import command as codex_review_cmd
 from workstack_dev.commands.completion.command import command as completion_cmd
@@ -20,18 +19,7 @@ from workstack_dev.commands.reserve_pypi_name.command import (
 )
 
 
-class WorkstackDevGroup(click.Group):
-    """Customize CLI error handling for framework exceptions."""
-
-    def invoke(self, ctx: click.Context) -> object:
-        try:
-            return super().invoke(ctx)
-        except DevCliFrameworkError as error:
-            message = str(error) or "Command failed"
-            raise click.ClickException(message) from None
-
-
-@click.group(name="workstack-dev", cls=WorkstackDevGroup)
+@click.group(name="workstack-dev")
 def cli() -> None:
     """Development tools for workstack."""
     pass

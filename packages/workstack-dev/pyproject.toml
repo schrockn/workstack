@@ -5,14 +5,10 @@ description = "Development tools for workstack"
 requires-python = ">=3.13"
 dependencies = [
     "click>=8.1.7",
-    "devclikit",
 ]
 
 [project.scripts]
 workstack-dev = "workstack_dev.__main__:cli"
-
-[tool.uv.sources]
-devclikit = { workspace = true }
 
 [build-system]
 requires = ["hatchling"]

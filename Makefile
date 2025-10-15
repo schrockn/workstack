@@ -33,16 +33,16 @@ all-ci: lint format-check prettier-check pyright test
 clean:
 	rm -rf dist/*.whl dist/*.tar.gz
 
-# Build both devclikit and workstack packages
+# Build workstack and dot-agent-kit packages
 build: clean
-	cd packages/devclikit && uv build
-	uv build
+	uv build --package dot-agent-kit -o dist
+	uv build --package workstack -o dist
 
-# Publish both packages to PyPI (devclikit first, then workstack)
-# Credentials are read from ~/.pypirc
+# Publish packages to PyPI
+# Use workstack-dev publish-to-pypi command instead (recommended)
 publish: build
-	@echo "Publishing devclikit..."
-	uvx uv-publish ./dist/devclikit-*.whl ./dist/devclikit-*.tar.gz
+	@echo "Publishing dot-agent-kit..."
+	uvx uv-publish ./dist/dot_agent_kit-*.whl ./dist/dot_agent_kit-*.tar.gz
 	@echo "Publishing workstack..."
 	uvx uv-publish ./dist/workstack-*.whl ./dist/workstack-*.tar.gz
-	@echo "✓ Both packages published successfully"
+	@echo "✓ Packages published successfully"
