@@ -450,8 +450,8 @@ def create(
             )
             raise SystemExit(1)
 
-        # Switch current worktree to the target branch first
-        ctx.git_ops.checkout_branch(repo.root, to_branch)
+        # Switch the current worktree so the branch is free before creating the new worktree
+        ctx.git_ops.checkout_branch(Path.cwd(), to_branch)
 
         # Create worktree with existing branch
         add_worktree(
