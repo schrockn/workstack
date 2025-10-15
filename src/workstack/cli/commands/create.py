@@ -206,6 +206,20 @@ def add_worktree(
             original_branch = ctx.git_ops.get_current_branch(cwd)
             if original_branch is None:
                 raise ValueError("Cannot create graphite branch from detached HEAD")
+            if ctx.git_ops.has_staged_changes(repo_root):
+                click.echo(
+                    "Error: Staged changes detected. "
+                    "Graphite cannot create a branch while staged changes are present.\n"
+                    "`gt create --no-interactive` attempts to commit staged files but fails when "
+                    "no commit message is provided.\n\n"
+                    "Resolve the staged changes before running `workstack create`:\n"
+                    '  • Commit them: git commit -m "message"\n'
+                    "  • Unstage them: git reset\n"
+                    "  • Stash them: git stash\n"
+                    "  • Disable Graphite: workstack config set use_graphite false",
+                    err=True,
+                )
+                raise SystemExit(1)
             subprocess.run(
                 ["gt", "create", "--no-interactive", branch],
                 cwd=cwd,
