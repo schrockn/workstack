@@ -1,62 +1,44 @@
-"""Tests for the reserve_pypi_name script helpers."""
+"""Tests for the reserve_pypi_name helpers."""
 
-import importlib.util
-import sys
 from pathlib import Path
 
 import pytest
 
-# Load the PEP 723 script as a module for testing
-SCRIPT_PATH = (
-    Path(__file__).parent.parent
-    / "src"
-    / "workstack_dev"
-    / "commands"
-    / "reserve_pypi_name"
-    / "script.py"
-)
-
-SPEC = importlib.util.spec_from_file_location("reserve_script", SCRIPT_PATH)
-if SPEC and SPEC.loader:
-    reserve_script = importlib.util.module_from_spec(SPEC)
-    sys.modules["reserve_script"] = reserve_script
-    SPEC.loader.exec_module(reserve_script)
-else:
-    raise ImportError(f"Failed to load script from {SCRIPT_PATH}")
+from workstack_dev.commands.reserve_pypi_name import command as reserve_command
 
 
 def test_validate_package_name_accepts_valid_name() -> None:
     """Valid package names should pass validation."""
-    reserve_script.validate_package_name("example-package")
+    reserve_command.validate_package_name("example-package")
 
 
 def test_validate_package_name_rejects_invalid_characters() -> None:
     """Invalid characters should raise SystemExit."""
     with pytest.raises(SystemExit):
-        reserve_script.validate_package_name("invalid$name")
+        reserve_command.validate_package_name("invalid$name")
 
 
 def test_validate_package_name_rejects_starting_punctuation() -> None:
     """Names starting with punctuation should be rejected."""
     with pytest.raises(SystemExit):
-        reserve_script.validate_package_name("-example")
+        reserve_command.validate_package_name("-example")
 
 
 def test_module_name_from_package_converts_hyphenated_names() -> None:
     """Hyphenated package names should be converted to valid module names."""
-    result = reserve_script.module_name_from_package("my-package.name")
+    result = reserve_command.module_name_from_package("my-package.name")
     assert result == "my_package_name"
 
 
 def test_module_name_from_package_prefixes_numeric_start() -> None:
     """Names starting with digits should be prefixed for module usage."""
-    result = reserve_script.module_name_from_package("123package")
+    result = reserve_command.module_name_from_package("123package")
     assert result == "pkg_123package"
 
 
 def test_render_pyproject_contains_required_fields() -> None:
     """Rendered pyproject.toml should include expected metadata."""
-    content = reserve_script.render_pyproject("demo", "demo_pkg", "Reserved description")
+    content = reserve_command.render_pyproject("demo", "demo_pkg", "Reserved description")
     assert 'name = "demo"' in content
     assert 'version = "0.0.1"' in content
     assert 'description = "Reserved description"' in content
@@ -65,7 +47,7 @@ def test_render_pyproject_contains_required_fields() -> None:
 
 def test_write_project_files_creates_structure(tmp_path: Path) -> None:
     """write_project_files should create src structure and pyproject.toml."""
-    reserve_script.write_project_files(tmp_path, "demo_pkg", "demo", "A description")
+    reserve_command.write_project_files(tmp_path, "demo_pkg", "demo", "A description")
 
     init_path = tmp_path / "src" / "demo_pkg" / "__init__.py"
     pyproject_path = tmp_path / "pyproject.toml"
@@ -85,4 +67,4 @@ def test_write_project_files_fails_if_structure_exists(tmp_path: Path) -> None:
     (tmp_path / "src" / "demo_pkg").mkdir(parents=True)
 
     with pytest.raises(SystemExit):
-        reserve_script.write_project_files(tmp_path, "demo_pkg", "demo", "A description")
+        reserve_command.write_project_files(tmp_path, "demo_pkg", "demo", "A description")

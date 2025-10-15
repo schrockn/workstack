@@ -1,19 +1,47 @@
 """Shell completion command for workstack-dev."""
 
-from pathlib import Path
+import os
+import shutil
+import subprocess
+import sys
 
 import click
 
-from devclikit import run_pep723_script
+
+def workstack_dev_command() -> list[str]:
+    """Determine how to invoke workstack-dev for completion generation."""
+    executable = shutil.which("workstack-dev")
+    if executable is not None:
+        return [executable]
+
+    return [sys.executable, "-m", "workstack_dev.__main__"]
+
+
+def emit_completion_script(shell: str) -> None:
+    """Generate and print the completion script for the requested shell."""
+    env = os.environ.copy()
+    env["_WORKSTACK_DEV_COMPLETE"] = f"{shell}_source"
+
+    result = subprocess.run(
+        workstack_dev_command(),
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    if result.stdout:
+        click.echo(result.stdout, nl=False)
+    if result.stderr:
+        click.echo(result.stderr, err=True, nl=False)
+
+    if result.returncode != 0:
+        raise SystemExit(result.returncode)
 
 
 @click.group(name="completion")
 def command() -> None:
-    """Generate shell completion scripts for workstack-dev.
-
-    Enables tab completion for all workstack-dev commands and options.
-    """
-    pass
+    """Generate shell completion scripts for workstack-dev."""
 
 
 @command.command(name="bash")
@@ -32,12 +60,7 @@ def bash() -> None:
         workstack-dev completion bash > ~/.local/share/bash-completion/completions/workstack-dev
         # Then restart your shell
     """
-    script_path = Path(__file__).parent / "script.py"
-    if not script_path.exists():
-        click.echo(f"Error: Script not found at {script_path}", err=True)
-        raise SystemExit(1)
-    result = run_pep723_script(script_path, ["bash"], capture_output=True)
-    click.echo(result.stdout, nl=False)
+    emit_completion_script("bash")
 
 
 @command.command(name="zsh")
@@ -58,12 +81,7 @@ def zsh() -> None:
         # Add to ~/.zshrc: fpath=(~/.zsh/completions $fpath)
         # Then restart your shell
     """
-    script_path = Path(__file__).parent / "script.py"
-    if not script_path.exists():
-        click.echo(f"Error: Script not found at {script_path}", err=True)
-        raise SystemExit(1)
-    result = run_pep723_script(script_path, ["zsh"], capture_output=True)
-    click.echo(result.stdout, nl=False)
+    emit_completion_script("zsh")
 
 
 @command.command(name="fish")
@@ -78,9 +96,4 @@ def fish() -> None:
         workstack-dev completion fish > ~/.config/fish/completions/workstack-dev.fish
         # Completions will be loaded automatically in new fish sessions
     """
-    script_path = Path(__file__).parent / "script.py"
-    if not script_path.exists():
-        click.echo(f"Error: Script not found at {script_path}", err=True)
-        raise SystemExit(1)
-    result = run_pep723_script(script_path, ["fish"], capture_output=True)
-    click.echo(result.stdout, nl=False)
+    emit_completion_script("fish")

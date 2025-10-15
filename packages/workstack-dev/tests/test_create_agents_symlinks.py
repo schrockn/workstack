@@ -1,25 +1,11 @@
 """Tests for create-agents-symlinks command."""
 
-import sys
 from pathlib import Path
 
 from click.testing import CliRunner
 
 from workstack_dev.cli import cli
-
-# Import the script module dynamically since it's a PEP 723 script
-sys.path.insert(
-    0,
-    str(
-        Path(__file__).parent.parent
-        / "src"
-        / "workstack_dev"
-        / "commands"
-        / "create_agents_symlinks"
-    ),
-)
-
-import script  # pyright: ignore[reportMissingImports]
+from workstack_dev.commands.create_agents_symlinks import command
 
 
 def test_is_git_repo_root_with_git_dir() -> None:
@@ -30,14 +16,14 @@ def test_is_git_repo_root_with_git_dir() -> None:
         git_dir = Path.cwd() / ".git"
         git_dir.mkdir()
 
-        assert script.is_git_repo_root(Path.cwd())
+        assert command.is_git_repo_root(Path.cwd())
 
 
 def test_is_git_repo_root_without_git_dir() -> None:
     """Test is_git_repo_root returns False when .git doesn't exist."""
     runner = CliRunner()
     with runner.isolated_filesystem():
-        assert not script.is_git_repo_root(Path.cwd())
+        assert not command.is_git_repo_root(Path.cwd())
 
 
 def test_is_git_repo_root_with_git_file() -> None:
@@ -48,7 +34,7 @@ def test_is_git_repo_root_with_git_file() -> None:
         git_file = Path.cwd() / ".git"
         git_file.write_text("gitdir: ../somewhere", encoding="utf-8")
 
-        assert not script.is_git_repo_root(Path.cwd())
+        assert not command.is_git_repo_root(Path.cwd())
 
 
 def test_create_symlink_for_claude_md_creates_new_symlink() -> None:
@@ -60,7 +46,7 @@ def test_create_symlink_for_claude_md_creates_new_symlink() -> None:
         claude_md.write_text("# Project instructions", encoding="utf-8")
 
         # Create symlink
-        status = script.create_symlink_for_claude_md(claude_md, dry_run=False)
+        status = command.create_symlink_for_claude_md(claude_md, dry_run=False)
 
         assert status == "created"
         agents_md = Path.cwd() / "AGENTS.md"
@@ -78,7 +64,7 @@ def test_create_symlink_for_claude_md_dry_run() -> None:
         claude_md.write_text("# Project instructions", encoding="utf-8")
 
         # Try to create symlink in dry-run mode
-        status = script.create_symlink_for_claude_md(claude_md, dry_run=True)
+        status = command.create_symlink_for_claude_md(claude_md, dry_run=True)
 
         assert status == "created"
         agents_md = Path.cwd() / "AGENTS.md"
@@ -98,7 +84,7 @@ def test_create_symlink_for_claude_md_skips_correct_symlink() -> None:
         agents_md.symlink_to("CLAUDE.md")
 
         # Should skip
-        status = script.create_symlink_for_claude_md(claude_md, dry_run=False)
+        status = command.create_symlink_for_claude_md(claude_md, dry_run=False)
 
         assert status == "skipped_correct"
         assert agents_md.is_symlink()
@@ -118,7 +104,7 @@ def test_create_symlink_for_claude_md_skips_regular_file() -> None:
         agents_md.write_text("# Different content", encoding="utf-8")
 
         # Should skip
-        status = script.create_symlink_for_claude_md(claude_md, dry_run=False)
+        status = command.create_symlink_for_claude_md(claude_md, dry_run=False)
 
         assert status == "skipped_exists"
         assert agents_md.exists()
@@ -140,7 +126,7 @@ def test_create_symlink_for_claude_md_skips_wrong_symlink() -> None:
         agents_md.symlink_to("OTHER.md")
 
         # Should skip
-        status = script.create_symlink_for_claude_md(claude_md, dry_run=False)
+        status = command.create_symlink_for_claude_md(claude_md, dry_run=False)
 
         assert status == "skipped_exists"
         assert agents_md.is_symlink()
@@ -160,7 +146,7 @@ def test_create_agents_symlinks_finds_multiple_files() -> None:
         (repo_root / "sub2").mkdir()
         (repo_root / "sub2" / "CLAUDE.md").write_text("# Sub2", encoding="utf-8")
 
-        created, skipped = script.create_agents_symlinks(repo_root, dry_run=False, verbose=False)
+        created, skipped = command.create_agents_symlinks(repo_root, dry_run=False, verbose=False)
 
         assert created == 3
         assert skipped == 0
@@ -179,12 +165,12 @@ def test_create_agents_symlinks_idempotent() -> None:
         (repo_root / "CLAUDE.md").write_text("# Root", encoding="utf-8")
 
         # First run
-        created1, skipped1 = script.create_agents_symlinks(repo_root, dry_run=False, verbose=False)
+        created1, skipped1 = command.create_agents_symlinks(repo_root, dry_run=False, verbose=False)
         assert created1 == 1
         assert skipped1 == 0
 
         # Second run
-        created2, skipped2 = script.create_agents_symlinks(repo_root, dry_run=False, verbose=False)
+        created2, skipped2 = command.create_agents_symlinks(repo_root, dry_run=False, verbose=False)
         assert created2 == 0
         assert skipped2 == 1
 
@@ -195,7 +181,7 @@ def test_create_agents_symlinks_no_claude_files() -> None:
     with runner.isolated_filesystem():
         repo_root = Path.cwd()
 
-        created, skipped = script.create_agents_symlinks(repo_root, dry_run=False, verbose=False)
+        created, skipped = command.create_agents_symlinks(repo_root, dry_run=False, verbose=False)
 
         assert created == 0
         assert skipped == 0
