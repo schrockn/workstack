@@ -23,6 +23,14 @@ def test_publish_to_pypi_help() -> None:
     assert "Publish workstack package to PyPI" in result.output
 
 
+def test_reserve_pypi_name_help() -> None:
+    """Test reserve-pypi-name help output."""
+    runner = CliRunner()
+    result = runner.invoke(cli, ["reserve-pypi-name", "--help"])
+    assert result.exit_code == 0
+    assert "Reserve a package name on PyPI" in result.output
+
+
 def test_create_agents_symlinks_help() -> None:
     """Test create-agents-symlinks help output."""
     runner = CliRunner()
@@ -40,6 +48,7 @@ def test_cli_help_shows_commands() -> None:
     assert "completion" in result.output
     assert "publish-to-pypi" in result.output
     assert "create-agents-symlinks" in result.output
+    assert "reserve-pypi-name" in result.output
 
 
 def test_all_command_directories_are_registered() -> None:
