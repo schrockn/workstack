@@ -101,16 +101,22 @@ def list_files() -> None:
         click.echo("No documentation files bundled with the package.")
         return
 
-    click.echo("Available documentation files:")
-    for file in files:
+    click.echo("Available documentation files:\n")
+    for i, file in enumerate(files):
         content = read_resource_file(file)
         metadata, _ = parse_markdown_frontmatter(content)
 
-        click.echo(f"  {file}")
+        # Add visual separator between entries (but not before first)
+        if i > 0:
+            click.echo("")
+
+        # File name in bold/bright style
+        click.echo(click.style(f"  {file}", bold=True))
+
         if metadata.description:
             click.echo(f"    {metadata.description}")
         if metadata.url:
-            click.echo(f"    {metadata.url}")
+            click.echo(click.style(f"    {metadata.url}", dim=True))
 
 
 @main.command()
