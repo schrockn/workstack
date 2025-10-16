@@ -116,9 +116,7 @@ class DotAgentConfig:
             version = __version__
 
         # Support both old "managed_files" and new "installed_files" keys for backward compatibility
-        installed_files = _as_tuple(
-            data.get("installed_files", data.get("managed_files", []))
-        )
+        installed_files = _as_tuple(data.get("installed_files", data.get("managed_files", [])))
         if not installed_files:
             # Default to all available files if not specified
             installed_files = tuple(list_available_files())
