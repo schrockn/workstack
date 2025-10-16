@@ -30,6 +30,7 @@ This document defines rules for managing `.agent/` directories and explains whic
 **Files in `.agent/packages/` are managed by dot-agent-kit and MUST NOT be edited directly.**
 
 ❌ **DO NOT**:
+
 - Edit any file under `.agent/packages/`
 - Modify tool documentation in `packages/tools/`
 - Update guides in `packages/agentic_programming_guide/`
@@ -37,6 +38,7 @@ This document defines rules for managing `.agent/` directories and explains whic
 - Copy package files from other projects
 
 ✅ **INSTEAD**:
+
 - Use `dot-agent sync` to update packages
 - Create custom documentation at `.agent/` root level
 - Report issues or suggest changes to dot-agent-kit repository
@@ -46,6 +48,7 @@ This document defines rules for managing `.agent/` directories and explains whic
 **Run `dot-agent check` to verify package files match bundled versions.**
 
 The check command reports:
+
 - **Modified files**: Package files that have been edited (❌ violation)
 - **Missing files**: Package files that should exist but don't
 - **Up-to-date files**: Package files matching bundled versions (✅ correct)
@@ -57,6 +60,7 @@ If `dot-agent check` reports modified files, run `dot-agent sync` to restore the
 **Files at `.agent/` root level are project-specific and safe to edit.**
 
 These files will NEVER be touched by `dot-agent sync`:
+
 - `ARCHITECTURE.md` - Your architecture documentation
 - `CUSTOM_RULES.md` - Your project-specific rules
 - `GLOSSARY.md` - Your domain terminology
@@ -67,6 +71,7 @@ These files will NEVER be touched by `dot-agent sync`:
 ### 1. Consistency Across Updates
 
 When dot-agent-kit releases updates with improved documentation:
+
 - All projects get the improvements automatically via `dot-agent sync`
 - Local modifications would be lost or create conflicts
 - Immutability ensures predictable update behavior
@@ -74,6 +79,7 @@ When dot-agent-kit releases updates with improved documentation:
 ### 2. Shared Knowledge Base
 
 Package files provide consistent, vetted documentation:
+
 - AI agents rely on accurate, up-to-date information
 - Local modifications create inconsistency between projects
 - Shared packages benefit from community improvements
@@ -94,6 +100,7 @@ This separation keeps roles clear and prevents confusion.
 **❌ Wrong approach**: Edit the file directly.
 
 **✅ Correct approach**:
+
 1. Report the issue to dot-agent-kit repository
 2. Create temporary workaround at `.agent/GT_WORKAROUND.md`
 3. Wait for fix in next dot-agent-kit release
@@ -107,10 +114,10 @@ This separation keeps roles clear and prevents confusion.
 **❌ Wrong approach**: Edit `packages/tools/gt/gt.md`.
 
 **✅ Correct approach**:
+
 1. Create `.agent/PROJECT_GT_USAGE.md`
 2. Document your project-specific patterns
 3. Reference the package docs: "See `packages/tools/gt/gt.md` for general usage"
-
 
 ### Scenario 3: Package File Is Outdated
 
@@ -119,6 +126,7 @@ This separation keeps roles clear and prevents confusion.
 **❌ Wrong approach**: Copy files from another project.
 
 **✅ Correct approach**:
+
 ```bash
 dot-agent sync  # Updates all packages to current version
 ```
@@ -128,6 +136,7 @@ dot-agent sync  # Updates all packages to current version
 **Problem**: You modified `packages/tools/gh/gh.md` by mistake.
 
 **Solution**:
+
 ```bash
 # Check what's been modified
 dot-agent check
@@ -144,6 +153,7 @@ dot-agent check
 ### Manual Verification
 
 Run `dot-agent check` before committing:
+
 ```bash
 dot-agent check
 # Exit code 0: All packages intact
@@ -153,6 +163,7 @@ dot-agent check
 ### CI/CD Integration
 
 Add to your CI pipeline:
+
 ```yaml
 # .github/workflows/validate.yml
 - name: Verify .agent integrity
@@ -166,6 +177,7 @@ This prevents modified package files from being merged.
 ### Git Hooks
 
 Add a pre-commit hook (optional):
+
 ```bash
 #!/bin/sh
 # .git/hooks/pre-commit
@@ -181,6 +193,7 @@ fi
 ### During Sync
 
 `dot-agent sync` will:
+
 1. Detect the modification (shows in diff)
 2. Overwrite with bundled version
 3. Your changes are lost
@@ -188,6 +201,7 @@ fi
 ### During Check
 
 `dot-agent check` will:
+
 1. Report file as "Modified"
 2. Exit with code 1 (failure)
 3. CI/CD pipelines will fail
@@ -223,12 +237,14 @@ fi
 The `.agent/` directory separates managed packages from project-specific documentation:
 
 **Managed (packages/)**:
+
 - Provided by dot-agent-kit
 - Updated via `dot-agent sync`
 - Verified via `dot-agent check`
 - Never edit directly
 
 **Project-Specific (root level)**:
+
 - Created by you
 - Managed by you
 - Never touched by sync

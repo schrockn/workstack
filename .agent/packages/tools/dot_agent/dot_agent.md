@@ -36,6 +36,7 @@ dot-agent init
 ```
 
 Creates:
+
 - `.agent/` directory
 - `.agent/packages/` with all available documentation
 
@@ -52,11 +53,13 @@ dot-agent sync --force      # Update without showing diffs
 ```
 
 **Behavior**:
+
 - Creates missing package files
 - Updates modified package files to bundled versions
 - Shows diffs for changed files (unless --force)
 
 **When to use**:
+
 - After upgrading dot-agent-kit
 - To restore modified package files
 - To add newly available packages
@@ -70,6 +73,7 @@ dot-agent check
 ```
 
 **Reports**:
+
 - Up-to-date files (matching bundled version)
 - Missing files (should exist but don't)
 - Modified files (differ from bundled version)
@@ -77,10 +81,12 @@ dot-agent check
 - Front matter validation errors
 
 **Exit codes**:
+
 - `0`: All package files are up-to-date
 - `1`: Package files have been modified or are missing
 
 **When to use**:
+
 - Before committing changes
 - In CI/CD pipelines
 - To verify package integrity
@@ -94,6 +100,7 @@ dot-agent list
 ```
 
 Displays:
+
 - File paths relative to `.agent/packages/`
 - Descriptions from YAML front matter
 - Documentation URLs
@@ -209,6 +216,7 @@ dot-agent sync
 Running `dot-agent sync` updates packages to match the currently installed dot-agent-kit version.
 
 **Upgrading**:
+
 ```bash
 # Upgrade dot-agent-kit
 uv tool upgrade dot-agent-kit

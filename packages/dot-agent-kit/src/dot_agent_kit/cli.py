@@ -161,8 +161,14 @@ def check() -> None:
         click.echo("", err=True)
         click.echo("Error: Package files are not in sync with bundled versions.", err=True)
         click.echo("", err=True)
-        click.echo("Package files in .agent/packages/ are managed by dot-agent-kit", err=True)
-        click.echo("and should not be edited directly. Run 'dot-agent sync' to restore them.", err=True)
+        click.echo(
+            "Package files in .agent/packages/ are managed by dot-agent-kit",
+            err=True,
+        )
+        click.echo(
+            "and should not be edited directly. Run 'dot-agent sync' to restore them.",
+            err=True,
+        )
         raise SystemExit(1)
 
 
