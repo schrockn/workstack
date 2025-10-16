@@ -82,13 +82,13 @@ def sync_file(
     return FileSyncResult(changed=True, message=f"Updated {relative_path}")
 
 
-def _expand_managed_files(
-    managed_files: tuple[str, ...],
+def _expand_installed_files(
+    installed_files: tuple[str, ...],
     available_resources: set[str],
 ) -> list[str]:
-    """Expand directory patterns in managed files to actual file paths."""
+    """Expand directory patterns in installed files to actual file paths."""
     expanded: list[str] = []
-    for pattern in managed_files:
+    for pattern in installed_files:
         if pattern.endswith("/"):
             # Directory pattern - expand to all matching files
             prefix = pattern
@@ -108,11 +108,11 @@ def sync_all_files(
     force: bool,
     dry_run: bool,
 ) -> dict[str, FileSyncResult]:
-    """Sync all managed files defined by the configuration."""
+    """Sync all installed files defined by the configuration."""
     results: dict[str, FileSyncResult] = {}
 
     available_resources = set(list_available_files())
-    expanded_files = _expand_managed_files(config.managed_files, available_resources)
+    expanded_files = _expand_installed_files(config.installed_files, available_resources)
 
     for file_path in expanded_files:
         if file_path in config.exclude:
@@ -134,7 +134,7 @@ def sync_all_files(
 
 
 def detect_status(agent_dir: Path, relative_path: str, available_resources: set[str]) -> SyncStatus:
-    """Return the state of a managed file relative to packaged content."""
+    """Return the state of an installed file relative to packaged content."""
     if relative_path not in available_resources:
         return "unavailable"
 
@@ -151,10 +151,10 @@ def detect_status(agent_dir: Path, relative_path: str, available_resources: set[
 
 
 def collect_statuses(agent_dir: Path, config: DotAgentConfig) -> dict[str, SyncStatus]:
-    """Return the sync status for every managed file."""
+    """Return the sync status for every installed file."""
     statuses: dict[str, SyncStatus] = {}
     available_resources = set(list_available_files())
-    expanded_files = _expand_managed_files(config.managed_files, available_resources)
+    expanded_files = _expand_installed_files(config.installed_files, available_resources)
 
     for file_path in expanded_files:
         if file_path in config.exclude:

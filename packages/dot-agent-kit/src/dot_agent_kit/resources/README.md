@@ -18,7 +18,7 @@ This directory contains curated documentation and context for AI agents.
   PROJECT_STANDARDS.md   # Your coding standards
   *.md                  # Any other project documentation
 
-  .dot-agent-kit.yml     # Package manifest (managed by dot-agent)
+  .dot-agent-kit.yml     # Package manifest (installed by dot-agent)
 ```
 
 ## Package System

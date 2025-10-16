@@ -4,15 +4,69 @@ from typing import Any
 
 import yaml
 
-from dot_agent_kit import __version__
+from dot_agent_kit import __version__, list_available_files
 
 CONFIG_FILENAME = ".dot-agent-kit.yml"
-DEFAULT_MANAGED_FILES: tuple[str, ...] = (
-    "AGENTIC_PROGRAMMING.md",
-    "tools/gt.md",
-    "tools/gh.md",
-    "tools/workstack.md",
-)
+
+
+@dataclass(frozen=True, slots=True)
+class MarkdownMetadata:
+    """Metadata extracted from YAML front matter."""
+
+    description: str | None = None
+    url: str | None = None
+
+
+def parse_markdown_frontmatter(content: str) -> tuple[MarkdownMetadata, str]:
+    """Extract YAML front matter from markdown content.
+
+    Returns a tuple of (metadata, remaining_content).
+    If no front matter is present, returns empty metadata and full content.
+    """
+    lines = content.split("\n")
+
+    # Check if content starts with front matter delimiter
+    if not lines or lines[0].strip() != "---":
+        return MarkdownMetadata(), content
+
+    # Find the closing delimiter
+    closing_index = -1
+    for i in range(1, len(lines)):
+        if lines[i].strip() == "---":
+            closing_index = i
+            break
+
+    # If no closing delimiter found, treat as normal content
+    if closing_index == -1:
+        return MarkdownMetadata(), content
+
+    # Extract YAML content between delimiters
+    yaml_content = "\n".join(lines[1:closing_index])
+
+    # Parse YAML
+    metadata_dict: dict[str, Any] = {}
+    if yaml_content.strip():
+        parsed = yaml.safe_load(yaml_content)
+        if isinstance(parsed, dict):
+            metadata_dict = parsed
+
+    # Extract known fields
+    description = metadata_dict.get("description")
+    url = metadata_dict.get("url")
+
+    # Validate types
+    if not isinstance(description, str):
+        description = None
+    if not isinstance(url, str):
+        url = None
+
+    metadata = MarkdownMetadata(description=description, url=url)
+
+    # Return remaining content after front matter
+    remaining_lines = lines[closing_index + 1 :]
+    remaining_content = "\n".join(remaining_lines).lstrip()
+
+    return metadata, remaining_content
 
 
 def _as_tuple(value: Any) -> tuple[str, ...]:
@@ -31,16 +85,17 @@ def _as_tuple(value: Any) -> tuple[str, ...]:
 @dataclass(frozen=True, slots=True)
 class DotAgentConfig:
     version: str
-    managed_files: tuple[str, ...]
+    installed_files: tuple[str, ...]
     exclude: tuple[str, ...]
     custom_files: tuple[str, ...]
 
     @classmethod
     def default(cls) -> "DotAgentConfig":
-        """Return the default configuration."""
+        """Return the default configuration with all available files."""
+        available_files = tuple(list_available_files())
         return cls(
             version=__version__,
-            managed_files=DEFAULT_MANAGED_FILES,
+            installed_files=available_files,
             exclude=(),
             custom_files=(),
         )
@@ -60,16 +115,18 @@ class DotAgentConfig:
         if not isinstance(version, str):
             version = __version__
 
-        managed_files = _as_tuple(data.get("managed_files", list(DEFAULT_MANAGED_FILES)))
-        if not managed_files:
-            managed_files = DEFAULT_MANAGED_FILES
+        # Support both old "managed_files" and new "installed_files" keys for backward compatibility
+        installed_files = _as_tuple(data.get("installed_files", data.get("managed_files", [])))
+        if not installed_files:
+            # Default to all available files if not specified
+            installed_files = tuple(list_available_files())
 
         exclude = _as_tuple(data.get("exclude", []))
         custom_files = _as_tuple(data.get("custom_files", []))
 
         return cls(
             version=version,
-            managed_files=managed_files,
+            installed_files=installed_files,
             exclude=exclude,
             custom_files=custom_files,
         )
@@ -79,7 +136,7 @@ class DotAgentConfig:
         config_path.parent.mkdir(parents=True, exist_ok=True)
         data = {
             "version": self.version,
-            "managed_files": list(self.managed_files),
+            "installed_files": list(self.installed_files),
             "exclude": list(self.exclude),
             "custom_files": list(self.custom_files),
         }

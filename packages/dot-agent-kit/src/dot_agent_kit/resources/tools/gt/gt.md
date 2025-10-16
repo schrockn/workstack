@@ -1,3 +1,8 @@
+---
+description: "Graphite CLI for stacked pull requests"
+url: "https://graphite.dev/"
+---
+
 # Graphite (gt) Mental Model
 
 **Last Updated**: 2025-10-11

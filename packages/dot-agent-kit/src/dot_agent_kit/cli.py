@@ -8,11 +8,12 @@ from dot_agent_kit.config import (
     DotAgentConfig,
     find_agent_dir,
     get_config_path,
+    parse_markdown_frontmatter,
 )
+from dot_agent_kit.local import LocalFileDiscovery
 from dot_agent_kit.sync import (
     FileSyncResult,
     collect_statuses,
-    generate_diff,
     sync_all_files,
 )
 
@@ -100,35 +101,27 @@ def list_files() -> None:
         click.echo("No documentation files bundled with the package.")
         return
 
-    click.echo("Available documentation files:")
-    for file in files:
-        click.echo(f"  {file}")
+    click.echo("Available documentation files:\n")
+    for i, file in enumerate(files):
+        content = read_resource_file(file)
+        metadata, _ = parse_markdown_frontmatter(content)
 
+        # Add visual separator between entries (but not before first)
+        if i > 0:
+            click.echo("")
 
-@main.command()
-@click.argument("relative_path")
-@click.option("--force", "force_overwrite", is_flag=True, help="Overwrite existing file")
-def extract(relative_path: str, force_overwrite: bool) -> None:
-    """Extract a specific documentation file into the local .agent directory."""
-    agent_dir = _require_agent_dir()
+        # File name in bold/bright style
+        click.echo(click.style(f"  {file}", bold=True))
 
-    available = set(list_available_files())
-    if relative_path not in available:
-        _fail(f"Error: {relative_path} is not provided by dot-agent-kit.")
-
-    local_path = agent_dir / relative_path
-    if local_path.exists() and not force_overwrite:
-        _fail(f"Error: {relative_path} already exists. Use --force to overwrite.")
-
-    local_path.parent.mkdir(parents=True, exist_ok=True)
-    content = read_resource_file(relative_path)
-    local_path.write_text(content, encoding="utf-8")
-    click.echo(f"Extracted {relative_path} into {agent_dir}")
+        if metadata.description:
+            click.echo(f"    {metadata.description}")
+        if metadata.url:
+            click.echo(click.style(f"    {metadata.url}", dim=True))
 
 
 @main.command()
 def check() -> None:
-    """Check if managed files are up-to-date."""
+    """Check if installed files are up-to-date."""
     agent_dir = _require_agent_dir()
 
     config_path = get_config_path(agent_dir)
@@ -142,11 +135,22 @@ def check() -> None:
     unavailable = [path for path, status in statuses.items() if status == "unavailable"]
     up_to_date = [path for path, status in statuses.items() if status == "up-to-date"]
 
+    # Validate front matter in all available markdown files
+    frontmatter_errors: list[tuple[str, str]] = []
+    for file in list_available_files():
+        if file.endswith(".md"):
+            content = read_resource_file(file)
+            try:
+                parse_markdown_frontmatter(content)
+            except Exception as e:
+                frontmatter_errors.append((file, str(e)))
+
     click.echo(f"Up-to-date files: {len(up_to_date)}")
     click.echo(f"Missing files: {len(missing)}")
     click.echo(f"Modified files: {len(different)}")
     click.echo(f"Excluded files: {len(excluded)}")
     click.echo(f"Unavailable files: {len(unavailable)}")
+    click.echo(f"Front matter errors: {len(frontmatter_errors)}")
 
     if missing:
         click.echo("Missing:")
@@ -163,53 +167,36 @@ def check() -> None:
         for path in unavailable:
             click.echo(f"  {path}")
 
+    if frontmatter_errors:
+        click.echo("Front matter errors:")
+        for path, error in frontmatter_errors:
+            click.echo(f"  {path}: {error}")
+
 
 @main.command()
 @click.argument("relative_path")
-def diff(relative_path: str) -> None:
-    """Show differences between local and packaged versions."""
+def show(relative_path: str) -> None:
+    """Display the contents of a local file in the .agent directory.
+
+    This reads files from the .agent directory root and subdirectories,
+    excluding installed package files in packages/.
+    """
     agent_dir = _require_agent_dir()
+    discovery = LocalFileDiscovery(agent_dir)
 
-    available = set(list_available_files())
-    if relative_path not in available:
-        _fail(f"Error: {relative_path} is not provided by dot-agent-kit.")
+    # Exception handling acceptable: read_file() provides detailed error messages
+    # for different failure modes (not found, is directory, in packages/).
+    # We catch to provide user-friendly CLI messages.
+    try:
+        content = discovery.read_file(relative_path)
+    except FileNotFoundError:
+        _fail(f"Error: {relative_path} not found in {agent_dir}")
+    except IsADirectoryError:
+        _fail(f"Error: {relative_path} is a directory.")
+    except ValueError as e:
+        _fail(f"Error: {e}")
 
-    local_path = agent_dir / relative_path
-    if not local_path.exists():
-        _fail(f"Error: {relative_path} does not exist locally.")
-
-    package_content = read_resource_file(relative_path)
-    local_content = local_path.read_text(encoding="utf-8")
-    if local_content == package_content:
-        click.echo(f"No differences for {relative_path}.")
-        return
-
-    diff_text = generate_diff(relative_path, local_content, package_content)
-    click.echo(diff_text)
-
-
-@main.command()
-def status() -> None:
-    """Show a summary of the .agent directory."""
-    agent_dir = _require_agent_dir()
-
-    config_path = get_config_path(agent_dir)
-    config = DotAgentConfig.load(config_path)
-    statuses = collect_statuses(agent_dir, config)
-
-    click.echo(f".agent directory: {agent_dir}")
-    click.echo(f"Configured version: {config.version}")
-    click.echo(f"Managed files: {len(config.managed_files)}")
-    click.echo(f"Excluded files: {len(config.exclude)}")
-    click.echo(f"Custom files: {len(config.custom_files)}")
-
-    out_of_date = [path for path, status in statuses.items() if status in {"missing", "different"}]
-    if out_of_date:
-        click.echo("Files requiring attention:")
-        for path in out_of_date:
-            click.echo(f"  {path}")
-    else:
-        click.echo("All managed files are up-to-date.")
+    click.echo(content)
 
 
 if __name__ == "__main__":
