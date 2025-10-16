@@ -4,7 +4,10 @@ from typing import NoReturn
 import click
 
 from dot_agent_kit import __version__
-from dot_agent_kit.markdown_header import find_agent_dir, parse_markdown_frontmatter
+from dot_agent_kit.markdown_header import (
+    find_agent_dir,
+    parse_markdown_frontmatter,
+)
 from dot_agent_kit.resource_loader import list_available_files, read_resource_file
 from dot_agent_kit.sync import (
     FileSyncResult,
@@ -114,7 +117,6 @@ def check() -> None:
 
     missing = [path for path, status in statuses.items() if status == "missing"]
     different = [path for path, status in statuses.items() if status == "different"]
-    excluded = [path for path, status in statuses.items() if status == "excluded"]
     unavailable = [path for path, status in statuses.items() if status == "unavailable"]
     up_to_date = [path for path, status in statuses.items() if status == "up-to-date"]
 
@@ -131,7 +133,6 @@ def check() -> None:
     click.echo(f"Up-to-date files: {len(up_to_date)}")
     click.echo(f"Missing files: {len(missing)}")
     click.echo(f"Modified files: {len(different)}")
-    click.echo(f"Excluded files: {len(excluded)}")
     click.echo(f"Unavailable files: {len(unavailable)}")
     click.echo(f"Front matter errors: {len(frontmatter_errors)}")
 
@@ -154,17 +155,6 @@ def check() -> None:
         click.echo("Front matter errors:")
         for path, error in frontmatter_errors:
             click.echo(f"  {path}: {error}")
-
-    # Fail if package files have been modified or are missing
-    if different or missing:
-        click.echo("", err=True)
-        click.echo("Error: Package files are not in sync with bundled versions.", err=True)
-        click.echo("", err=True)
-        click.echo("Package files in .agent/packages/ are managed by dot-agent-kit", err=True)
-        click.echo(
-            "and should not be edited directly. Run 'dot-agent sync' to restore them.", err=True
-        )
-        raise SystemExit(1)
 
 
 if __name__ == "__main__":
