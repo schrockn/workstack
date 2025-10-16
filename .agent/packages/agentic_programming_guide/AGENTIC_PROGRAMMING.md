@@ -1,3 +1,7 @@
+---
+description: "Best practices for AI-assisted development"
+---
+
 # Agentic Programming Best Practices
 
 Best practices for structuring code to be amenable to AI-assisted engineering.

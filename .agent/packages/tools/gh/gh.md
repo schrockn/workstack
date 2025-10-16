@@ -1,3 +1,8 @@
+---
+description: "GitHub CLI mental model and command reference"
+url: "https://cli.github.com/"
+---
+
 # GitHub CLI (`gh`) Mental Model
 
 **Last Updated**: 2025-10-13
