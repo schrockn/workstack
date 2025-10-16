@@ -1,179 +1,215 @@
 # dot-agent-kit
 
-dot-agent-kit is a CLI companion that manages the `.agent/` documentation directory in a repository. It installs the `dot-agent` command, ships curated mental-model documentation for tools like Graphite (`gt`), GitHub CLI (`gh`), and Workstack, and keeps local copies synchronized with the versions distributed by the package.
+dot-agent-kit helps you create and manage AI-optimized documentation in your projects, making AI assistants more effective at understanding your codebase and development environment.
+
+The `.agent/` directory contains documentation specifically written for AI consumption - structured knowledge about your tools, patterns, conventions, and architectural decisions. Unlike traditional documentation written for humans, these documents are optimized for how AI agents process and apply information.
+
+When an AI agent works with your codebase, it needs to understand not just your code but also your development tools, project conventions, and architectural patterns. Without this context, agents waste time rediscovering the same information in every session. The `.agent/` directory serves as a token cache - pre-computed understanding that agents can load immediately instead of deriving from scratch. This makes AI interactions faster, more consistent, and capable of handling more complex tasks.
+
+dot-agent-kit installs dot-agent, which manages the .agent directory. It has a package system, which installs existing curated docuemnts into your local .agent file, adn then CLI utilities for inspecting those files.
+
+## CLIs > MCPs for Local Development
+
+dot-agent also seeks to provide an improved experience for agentic use of CLIs. For local development, CLIs are simply more effective than Model Context Protocol (MCP) servers. CLIs are battle-tested, immediately available, require zero setup, and work exactly the same way whether a human or AI is using them. Even Anthropic acknowledges MCP's overhead - their documentation notes that MCP is designed for "persistent services" and "stateful connections," while simpler integrations often don't need this complexity.
+
+The real challenge with CLIs isn't execution - it's comprehension. Without proper context, agents waste dozens of turns discovering command patterns, understanding flags, and learning tool-specific workflows. This is where dot-agent-kit shines: instead of building complex server infrastructure, we provide agents with pre-computed, agent-optimized documentation of CLIs. A single markdown file containing command patterns, common workflows, and tool philosophy turns an agent from a confused beginner into an expert user instantly.
 
 ## Installation
 
+Getting started takes about 30 seconds. You'll need Python 3.13 or later:
+
 ```bash
 pip install dot-agent-kit
-# or
+# or if you're using uv
 uv add dot-agent-kit
 ```
 
-## Quick Start
+## Your First Setup
+
+Let's create your `.agent` directory. Navigate to your project root and run:
 
 ```bash
-# Initialize a repository with the default .agent layout
 dot-agent init
-
-# Update bundled documentation in the current .agent directory
-dot-agent sync
-
-# Preview updates without writing
-dot-agent sync --dry-run
-
-# List available documentation files
-dot-agent list
-
-# Display contents of a local file in .agent directory
-dot-agent show ARCHITECTURE.md
-
-# Review sync status and pending updates
-dot-agent check
 ```
 
-## Understanding the Package System
+This creates a new `.agent/` directory with AI-optimized documentation for development tools, architectural patterns, and programming best practices. Want to see what documentation is now available?
 
-### What is a Package?
+```bash
+dot-agent list
+```
 
-A **package** is a directory under `.agent/packages/` containing related documentation files. Packages organize curated documentation by theme or tool, making it easy for AI agents to discover and load relevant context.
+You'll see all the documentation files that AI agents can reference. Each file includes a description showing what knowledge it provides - from tool mental models like Graphite and GitHub CLI to broader patterns for agentic programming.
 
-**Package Structure:**
+As tools evolve and best practices improve, you can update your documentation:
+
+```bash
+dot-agent sync
+```
+
+Not sure what would change? Run `dot-agent sync --dry-run` first to preview updates without applying them.
+
+## How It Works
+
+The `.agent/` directory provides AI agents with structured, optimized documentation about your project. This includes both curated knowledge from dot-agent-kit and your own project-specific documentation.
+
+### AI-Optimized Documentation
+
+Unlike traditional documentation written for humans, `.agent` documents are structured for AI consumption. They emphasize patterns over prose, use clear hierarchies for rapid scanning, and include rich examples that agents can pattern-match against. This optimization means agents can quickly extract and apply knowledge without parsing through conversational text.
+
+The directory structure looks like this:
 
 ```
 .agent/
-  packages/                    # All installed packages live here
-    tools/                     # Namespace for CLI tool documentation
-      gt/                      # Package for Graphite CLI
-        gt.md                  # Documentation files
-      gh/                      # Package for GitHub CLI
+  packages/                    # Curated AI documentation from dot-agent-kit
+    tools/                     # Tool mental models
+      gt/                      # Graphite CLI patterns and concepts
+        gt.md
+      gh/                      # GitHub CLI workflows
         gh.md
-    agentic_programming_guide/ # Root-level package (no namespace)
+    agentic_programming_guide/ # Best practices for AI-assisted development
       AGENTIC_PROGRAMMING.md
+  ARCHITECTURE.md              # Your project's architectural decisions
+  PATTERNS.md                  # Your coding patterns and conventions
+  EXCEPTION_HANDLING.md        # Your error handling philosophy
 ```
 
-### Installed Packages vs Local Files
+### Installed vs Local Documentation
 
-**Installed Packages** (`packages/`):
+The `packages/` directory contains curated documentation that dot-agent-kit maintains. These include tool mental models, programming patterns, and best practices that apply across projects. When you run `dot-agent sync`, these files update to incorporate improvements and new knowledge.
 
-- Managed by `dot-agent-kit`
-- Synced from bundled resources, local paths, or git repositories
-- Should not be edited directly (changes will be overwritten on next sync)
-- Updated via `dot-agent sync`
+Your local documentation lives in the `.agent/` root directory. These files capture your project's unique patterns, architectural decisions, and conventions. They're never modified by dot-agent-kit, giving you full control over your project-specific knowledge.
 
-**Local Files** (`.agent/` root):
+### Your Configuration
 
-- User-created project-specific documentation
-- Never touched by `dot-agent sync`
-- Can be any markdown or text files (e.g., `ARCHITECTURE.md`, `CUSTOM_RULES.md`)
-- Read via `dot-agent show FILENAME.md`
+When you run `dot-agent check`, you can see the status of everything: what's up to date, what's been modified, and what updates are available. It's a good idea to run this before syncing to understand what will change.
 
-### Namespaces
+## Writing Effective AI Documentation
 
-Packages can be organized into **namespaces** for logical grouping:
+AI-optimized documentation differs from traditional human-focused docs. Here are the key principles:
 
-- **`tools/`**: Special namespace for CLI tool documentation
-  - Convention: `tools/{name}/` provides docs for CLI command `{name}`
-  - Example: `tools/gt/` contains documentation for the `gt` command
-  - Enables automatic tool detection by AI agents
+### Structure Over Narrative
 
-- **Custom namespaces**: You can create your own (e.g., `frameworks/`, `apis/`)
+Instead of explanatory paragraphs, use clear hierarchies and bullet points:
 
-- **Root-level packages**: Packages without a namespace (e.g., `agentic_programming_guide/`)
+```markdown
+## API Authentication
 
-**How namespaces work:**
+- Method: Bearer token in Authorization header
+- Token lifetime: 24 hours
+- Refresh endpoint: POST /auth/refresh
+- Rate limits: 100 requests/minute
+```
 
-- A directory is a namespace if it contains only subdirectories (no files)
-- Each subdirectory within a namespace is a separate package
-- Full package name format: `namespace/package` (e.g., `tools/gt`)
+### Rich Examples Over Descriptions
 
-### Tool Registry
+Show patterns through contrasting examples:
 
-The package system includes a **Tool Registry** that automatically detects CLI tool mentions and loads relevant documentation.
+````markdown
+## State Management
 
-**How it works:**
-
-1. Agent detects a tool mention in conversation (e.g., "use `gt submit`")
-2. Registry checks for matching package in `packages/tools/{tool-name}/`
-3. If found, loads documentation files for that tool
-4. Agent gains tool-specific context automatically
-
-**Supported detection:**
-
-- Word boundary matching: "use gt" → detects `gt`
-- Command examples: "`gt log`" → detects `gt`
-- Case-insensitive matching
-
-**Programmatic usage:**
+✅ GOOD: Check state before operations
 
 ```python
-from dot_agent_kit.packages.registry import ToolRegistry
-from pathlib import Path
-
-registry = ToolRegistry(Path(".agent"))
-
-# Detect tools mentioned in text
-tools = registry.detect_tool_mention("Use gt to submit your stack")
-# Returns: ["gt"]
-
-# Get tool context
-context = registry.get_tool_context("gt")
-# Returns: ToolContext with package info and file list
+if self.connection.is_open():
+    self.connection.send(data)
 ```
+````
 
-### Package Discovery
-
-The `PackageManager` automatically discovers all packages:
+❌ BAD: Assume state is valid
 
 ```python
-from dot_agent_kit.packages.manager import PackageManager
-from pathlib import Path
-
-manager = PackageManager(Path(".agent"))
-packages = manager.discover_packages()
-
-for name, pkg in packages.items():
-    print(f"{name}: {len(pkg.files)} files at {pkg.install_path}")
+self.connection.send(data)  # May fail if closed
 ```
 
-**Discovery algorithm:**
+````
 
-1. Scans `.agent/packages/` directory
-2. Identifies namespace directories (contain only subdirs, no files)
-3. Loads package metadata for each package directory
-4. Computes file hashes and metadata for all files in each package
+### Patterns and Anti-Patterns
+Document both what to do and what to avoid, with clear reasoning:
+```markdown
+## Testing Philosophy
 
-## Configuration File
+PATTERN: Use in-memory fakes for fast tests
+- Reason: Millisecond execution, no external dependencies
+- Example: FakeDatabase with injectable state
 
-Location: `.agent/.dot-agent-kit.yml`
+ANTI-PATTERN: Mock individual methods
+- Problem: Brittle tests that break with refactoring
+- Problem: Requires deep implementation knowledge
+````
 
-**Schema:**
+## Common Workflows
 
-```yaml
-version: "0.2.0" # dot-agent-kit version that last updated
-installed_files: # Files to install from bundled resources
-  - AGENTIC_PROGRAMMING.md
-  - tools/gt.md
-  - tools/gh.md
-  - tools/workstack.md
-exclude: [] # Patterns to skip during sync
-custom_files: # User-created files (tracked but never modified)
-  - ARCHITECTURE.md
-  - docs/guide.md
+### Starting Fresh
+
+When setting up a new project:
+
+```bash
+cd my-project
+dot-agent init
 ```
 
-**Fields:**
+This creates your initial `.agent/` directory with curated documentation for tools and development patterns. Your AI assistant immediately gains understanding of common tools and best practices.
 
-- **`version`**: Version of dot-agent-kit that last updated the directory
-- **`installed_files`**: List of bundled files to install (uses flat paths for backward compatibility with old structure)
-- **`exclude`**: File patterns to skip during sync operations
-- **`custom_files`**: User-created files that should be preserved across syncs
+### Evolving Your Knowledge Base
 
-**Backward compatibility:** The config supports both `installed_files` (new) and `managed_files` (old) keys.
+As your project grows, continuously capture important patterns and decisions:
 
-## Front Matter Support
+1. **When you discover a pattern** - Document it immediately in `.agent/PATTERNS.md`
+2. **When you make architectural decisions** - Add rationale to `.agent/ARCHITECTURE.md`
+3. **When you establish conventions** - Codify them in appropriate documentation
+4. **When AI agents struggle** - Create documentation to prevent future confusion
 
-Documentation files can include YAML front matter for metadata:
+### Keeping Documentation Current
+
+Both curated and local documentation need maintenance:
+
+```bash
+dot-agent check        # Review status of all documentation
+dot-agent sync         # Update curated packages to latest versions
+```
+
+The sync command only updates files in `packages/`. Your local documentation evolves through deliberate curation as your project grows.
+
+### Building Your Knowledge Base
+
+Beyond tool documentation, the `.agent/` directory should capture your project's unique patterns and decisions. This is where AI-optimized documentation really shines:
+
+```bash
+# Architectural decisions and rationale
+echo "# Architecture Decisions" > .agent/ARCHITECTURE.md
+
+# Project-specific patterns with examples
+echo "# Code Patterns" > .agent/PATTERNS.md
+
+# Exception handling philosophy
+echo "# Error Handling Conventions" > .agent/EXCEPTION_HANDLING.md
+
+# Testing strategies and examples
+echo "# Testing Guide" > .agent/TESTING.md
+```
+
+These documents should be written for AI consumption - emphasizing patterns over prose, including rich examples, and using clear hierarchical structure. For instance, your PATTERNS.md might contain:
+
+````markdown
+## Database Operations
+
+### Pattern: Always check existence before operations
+
+```python
+# ✅ CORRECT
+if user_id in database:
+    user = database[user_id]
+
+# ❌ WRONG - may raise KeyError
+user = database[user_id]
+```
+````
+
+This format helps AI agents quickly understand and apply your project's conventions.
+
+### Working with Front Matter
+
+Documentation files can include metadata using YAML front matter. This helps both you and the AI understand what each document contains:
 
 ```markdown
 ---
@@ -186,102 +222,22 @@ url: "https://graphite.dev/docs"
 ...
 ```
 
-**Supported fields:**
+The description appears when you run `dot-agent list`, making it easy to understand what knowledge is available. The URL provides a reference to the original documentation source.
 
-- `description`: Short description (shown in `dot-agent list` output)
-- `url`: Reference URL for external documentation
+## Command Reference
 
-**Validation:** Run `dot-agent check` to validate front matter syntax in all files.
+Here are all the commands at a glance:
 
-## Common Workflows
+- `dot-agent init` - Create a new `.agent/` directory with default packages
+- `dot-agent sync` - Update packages to their latest versions
+- `dot-agent sync --dry-run` - Preview what would change without applying updates
+- `dot-agent list` - Show all available documentation files
+- `dot-agent show <file>` - Display the contents of a local file
+- `dot-agent check` - Review the status of all files and pending updates
 
-### First Time Setup
+## Development Setup
 
-```bash
-cd my-project
-dot-agent init                    # Creates .agent/ with default packages
-```
-
-### Updating Installed Packages
-
-```bash
-dot-agent check                   # See what's out of date
-dot-agent sync --dry-run          # Preview changes
-dot-agent sync                    # Apply updates
-```
-
-### Working with Local Files
-
-```bash
-# Create custom documentation
-echo "# Project Architecture" > .agent/ARCHITECTURE.md
-echo "# Custom Rules" > .agent/CUSTOM_RULES.md
-
-# Read local files
-dot-agent show ARCHITECTURE.md
-
-# List everything (installed + local)
-dot-agent list
-```
-
-### Understanding What Changed
-
-```bash
-# Check status of all files
-dot-agent check
-
-# Shows:
-# - Up-to-date files
-# - Missing files (in config but not on disk)
-# - Modified files (local changes vs bundled version)
-# - Excluded files
-# - Unavailable files (in config but not in bundled resources)
-```
-
-## Local File Discovery
-
-The `LocalFileDiscovery` API helps discover user-created files in `.agent/`:
-
-```python
-from dot_agent_kit.local import LocalFileDiscovery
-from pathlib import Path
-
-discovery = LocalFileDiscovery(Path(".agent"))
-
-# Discover all local files (excludes packages/)
-local_files = discovery.discover_local_files()
-
-# Filter by pattern
-md_files = discovery.discover_local_files(pattern="*.md")
-
-# Read a local file
-content = discovery.read_file("ARCHITECTURE.md")
-
-# Categorize by directory
-categories = discovery.categorize_files(local_files)
-for category, files in categories.items():
-    print(f"{category}: {len(files)} files")
-```
-
-**What's discovered:**
-
-- All files in `.agent/` root and subdirectories
-- Excludes `packages/` (installed packages)
-- Excludes hidden files (starting with `.`)
-- Excludes `.dot-agent-kit.yml` config file
-
-## CLI Commands Reference
-
-| Command                    | Description                                              |
-| -------------------------- | -------------------------------------------------------- |
-| `dot-agent init`           | Initialize `.agent/` directory with default packages     |
-| `dot-agent sync`           | Update installed packages from bundled resources         |
-| `dot-agent sync --dry-run` | Preview sync changes without writing                     |
-| `dot-agent list`           | List all available documentation files with descriptions |
-| `dot-agent show FILE`      | Display contents of a local file (not in packages/)      |
-| `dot-agent check`          | Check sync status and validate front matter              |
-
-## Development
+If you're contributing to dot-agent-kit itself, here's how to get set up:
 
 ```bash
 uv run pytest packages/dot-agent-kit/tests
@@ -289,21 +245,8 @@ uv run ruff format packages/dot-agent-kit
 uv run pyright packages/dot-agent-kit/src
 ```
 
-The package targets Python 3.13 and follows the Workstack coding standards (LBYL exception handling, absolute imports, Click for CLI output).
+The codebase follows Workstack coding standards, using LBYL exception handling, absolute imports, and Click for CLI output.
 
-## Architecture Summary
+## Getting Help
 
-**Core Components:**
-
-- **`PackageManager`** (`packages/manager.py`) - Discovers and loads packages
-- **`ToolRegistry`** (`packages/registry.py`) - Maps CLI tools to packages
-- **`LocalFileDiscovery`** (`local.py`) - Discovers user-created files
-- **`DotAgentConfig`** (`config.py`) - Manages `.dot-agent-kit.yml` configuration
-- **`sync`** module (`sync.py`) - Handles file synchronization
-
-**Data Models:**
-
-- **`Package`** - Represents an installed package with namespace, name, path, and files
-- **`FileInfo`** - Metadata for a file within a package (hash, size, mtime)
-- **`LocalFile`** - Metadata for a user-created file in `.agent/` root
-- **`ToolContext`** - Context for a specific CLI tool (package + files)
+If something isn't working as expected, start by running `dot-agent check` to validate your setup. This will identify any issues with file structure or configuration.
