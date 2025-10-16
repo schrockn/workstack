@@ -194,9 +194,7 @@ class LocalFileDiscovery:
 
         return full_path.read_text(encoding="utf-8")
 
-    def categorize_files(
-        self, files: list[LocalFile]
-    ) -> dict[str, list[LocalFile]]:
+    def categorize_files(self, files: list[LocalFile]) -> dict[str, list[LocalFile]]:
         """Categorize files by their top-level directory.
 
         Args:

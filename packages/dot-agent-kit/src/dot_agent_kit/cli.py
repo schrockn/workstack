@@ -251,7 +251,12 @@ def status() -> None:
 
 @main.command()
 @click.option("--pattern", help="Glob pattern to filter files (e.g., '*.md', 'docs/*')")
-@click.option("--long", "long_format", is_flag=True, help="Show detailed output with size and modification time")
+@click.option(
+    "--long",
+    "long_format",
+    is_flag=True,
+    help="Show detailed output with size and modification time",
+)
 def inspect(pattern: str | None, long_format: bool) -> None:
     """List all local files in the .agent directory.
 
