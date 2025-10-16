@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from dot_agent_kit import list_available_files
 from dot_agent_kit.config import DotAgentConfig
+from dot_agent_kit.resource_loader import list_available_files
 from dot_agent_kit.sync import (
     _expand_installed_files,
     collect_statuses,

@@ -3,13 +3,14 @@ from typing import NoReturn
 
 import click
 
-from dot_agent_kit import __version__, list_available_files, read_resource_file
+from dot_agent_kit import __version__
 from dot_agent_kit.config import (
     DotAgentConfig,
     find_agent_dir,
     get_config_path,
     parse_markdown_frontmatter,
 )
+from dot_agent_kit.resource_loader import list_available_files, read_resource_file
 from dot_agent_kit.sync import (
     FileSyncResult,
     collect_statuses,

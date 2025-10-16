@@ -4,7 +4,8 @@ from typing import Any
 
 import yaml
 
-from dot_agent_kit import __version__, list_available_files
+from dot_agent_kit import __version__
+from dot_agent_kit.resource_loader import list_available_files
 
 CONFIG_FILENAME = ".dot-agent-kit.yml"
 
