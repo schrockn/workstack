@@ -10,7 +10,6 @@ from dot_agent_kit.config import (
     get_config_path,
     parse_markdown_frontmatter,
 )
-from dot_agent_kit.local import LocalFileDiscovery
 from dot_agent_kit.sync import (
     FileSyncResult,
     collect_statuses,
@@ -171,32 +170,6 @@ def check() -> None:
         click.echo("Front matter errors:")
         for path, error in frontmatter_errors:
             click.echo(f"  {path}: {error}")
-
-
-@main.command()
-@click.argument("relative_path")
-def show(relative_path: str) -> None:
-    """Display the contents of a local file in the .agent directory.
-
-    This reads files from the .agent directory root and subdirectories,
-    excluding installed package files in packages/.
-    """
-    agent_dir = _require_agent_dir()
-    discovery = LocalFileDiscovery(agent_dir)
-
-    # Exception handling acceptable: read_file() provides detailed error messages
-    # for different failure modes (not found, is directory, in packages/).
-    # We catch to provide user-friendly CLI messages.
-    try:
-        content = discovery.read_file(relative_path)
-    except FileNotFoundError:
-        _fail(f"Error: {relative_path} not found in {agent_dir}")
-    except IsADirectoryError:
-        _fail(f"Error: {relative_path} is a directory.")
-    except ValueError as e:
-        _fail(f"Error: {e}")
-
-    click.echo(content)
 
 
 if __name__ == "__main__":
