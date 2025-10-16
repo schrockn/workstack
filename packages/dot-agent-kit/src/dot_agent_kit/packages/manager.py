@@ -2,12 +2,9 @@
 
 from pathlib import Path
 
-from dot_agent_kit.packages.manifest import PackageManifest, get_manifest_path
 from dot_agent_kit.packages.models import (
     FileInfo,
     Package,
-    PackageStatus,
-    compute_file_hash,
     create_file_info,
 )
 
@@ -120,63 +117,13 @@ class PackageManager:
             file_info = create_file_info(item, pkg_dir)
             files[file_info.relative_path] = file_info
 
-        # Get source information from manifest
-        manifest_path = get_manifest_path(self.agent_dir)
-        manifest = PackageManifest.load(manifest_path)
-
-        source_info = manifest.packages.get(full_name)
-        source_type = source_info.source if source_info else "local"
-        version = source_info.version if source_info else None
-
         return Package(
             name=full_name,
             namespace=namespace,
             package_name=pkg_name,
-            source_type=source_type,
-            version=version,
             path=pkg_dir,
             files=files,
         )
-
-    def get_package_status(self, package_name: str) -> PackageStatus:
-        """Get the status of a package.
-
-        Args:
-            package_name: Full package name (e.g., "tools/gt")
-
-        Returns:
-            PackageStatus indicating the state of the package.
-        """
-        manifest_path = get_manifest_path(self.agent_dir)
-        manifest = PackageManifest.load(manifest_path)
-
-        if package_name not in manifest.packages:
-            return "unavailable"
-
-        namespace, pkg_name = _parse_package_name(package_name)
-        if namespace:
-            pkg_dir = self.packages_dir / namespace / pkg_name
-        else:
-            pkg_dir = self.packages_dir / pkg_name
-
-        if not pkg_dir.exists():
-            return "missing"
-
-        # Check if any files have been modified
-        source_info = manifest.packages[package_name]
-        if not source_info.file_hashes:
-            return "up-to-date"
-
-        for file_path, expected_hash in source_info.file_hashes.items():
-            local_path = pkg_dir / file_path
-            if not local_path.exists():
-                return "modified"
-
-            actual_hash = compute_file_hash(local_path)
-            if actual_hash != expected_hash:
-                return "modified"
-
-        return "up-to-date"
 
     def load_tool_package(self, cli_name: str) -> Package | None:
         """Load a package for a specific CLI tool.

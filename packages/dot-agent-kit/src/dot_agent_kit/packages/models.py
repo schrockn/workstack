@@ -1,9 +1,8 @@
 """Data models for the package system."""
 
 import hashlib
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Literal
 
 
 @dataclass(frozen=True, slots=True)
@@ -23,8 +22,6 @@ class Package:
     name: str
     namespace: str | None
     package_name: str
-    source_type: Literal["bundled", "local", "git"]
-    version: str | None
     path: Path
     files: dict[str, FileInfo]
 
@@ -41,32 +38,6 @@ class Package:
         if self.namespace:
             return f"{self.namespace}/{self.package_name}"
         return self.package_name
-
-
-@dataclass(frozen=True, slots=True)
-class PackageSource:
-    """Source information for a package in the manifest."""
-
-    source: Literal["bundled", "local", "git"]
-    version: str | None = None
-    path: str | None = None
-    url: str | None = None
-    ref: str | None = None
-    file_hashes: dict[str, str] = field(default_factory=dict)
-
-
-PackageStatus = Literal["up-to-date", "modified", "missing", "unavailable"]
-
-
-@dataclass(frozen=True, slots=True)
-class SyncResult:
-    """Result of syncing a package."""
-
-    package_name: str
-    status: Literal["success", "conflict", "error", "skipped"]
-    message: str
-    files_updated: int = 0
-    files_conflicted: list[str] = field(default_factory=list)
 
 
 def compute_file_hash(path: Path) -> str:

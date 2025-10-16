@@ -14,7 +14,6 @@ class ToolInfo:
 
     package_name: str
     cli_command: str
-    version: str | None
 
 
 @dataclass(frozen=True, slots=True)
@@ -132,7 +131,6 @@ class ToolRegistry:
                 ToolInfo(
                     package_name=pkg_name,
                     cli_command=cli_command,
-                    version=package.version,
                 )
             )
 

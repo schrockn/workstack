@@ -1,212 +1,72 @@
-# .agent - Agent-Optimized Documentation
+# .agent Directory Structure
 
-**⚠️ These files are maintained for AI coding assistants and may be regenerated from source code.**
+This directory contains curated documentation and context for AI agents.
 
-This directory contains comprehensive, agent-friendly documentation for the workstack codebase. While these files are currently version-controlled, they may be regenerated in the future to stay in sync with the codebase.
+## Directory Layout
 
----
+```
+.agent/
+  packages/               # Managed documentation packages
+    tools/               # CLI tool documentation
+      {tool-name}/       # Package for CLI tool {tool-name}
+        *.md            # Documentation files
+    {package-name}/      # Other documentation packages
+      *.md              # Documentation files
 
-## 🚀 Quick Start (Choose Your Path)
+  # Project-specific files (root level)
+  CUSTOM_RULES.md        # Your project-specific guidelines
+  PROJECT_STANDARDS.md   # Your coding standards
+  *.md                  # Any other project documentation
 
-### Path 1: Ultra-Fast Start (500 tokens)
+  .dot-agent-kit.yml     # Package manifest (managed by dot-agent)
+```
 
-**For experienced agents who know the codebase**
+## Package System
 
-1. Read **RULES_CARD.md** (~500 tokens)
-2. Start coding
+### Managed Packages (`packages/`)
 
-**Best for**: Quick refresher, tight token budget
+All directories under `packages/` are managed by `dot-agent-kit` and should not be edited directly:
 
----
+- **Bundled packages** are synced from dot-agent-kit releases
+- **Local packages** are copied from other locations
+- **Git packages** are pulled from external repositories
 
-### Path 2: Quick Start (4,000 tokens)
+To update managed packages, use `dot-agent sync`.
 
-**For new tasks on familiar codebase**
+### Tool Packages (`packages/tools/`)
 
-1. Read **CHEATSHEET.md** (~2,000 tokens) - Rules + common mistakes
-2. Read **GLOSSARY.md** (~2,000 tokens) - Terminology
-3. Start coding
+The `tools/` namespace has special meaning:
 
-**Best for**: Starting new feature, debugging issues
+- **Convention**: `packages/tools/{name}/` contains documentation for CLI tool `{name}`
+- **Example**: `packages/tools/gt/` contains documentation for the `gt` (Graphite) CLI
+- **Purpose**: Enables agents to discover tool documentation automatically
 
----
+When an agent detects mention of a CLI tool (like `gt`, `gh`, `workstack`), it can load the corresponding package from `packages/tools/{tool-name}/` for context.
 
-### Path 3: Comprehensive Start (8,000 tokens)
+### Other Packages
 
-**For first time working with codebase**
+Non-tool packages provide general curated documentation:
 
-1. Read **CHEATSHEET.md** (~2,000 tokens) - Rules overview
-2. Read **ARCHITECTURE.md** (~4,000 tokens) - System design
-3. Read **GLOSSARY.md** (~2,000 tokens) - Terminology
-4. Consult specific sections of **PATTERNS.md** as needed (~200-500 each)
+- `packages/agentic_programming_guide/` - Best practices for working with AI agents
+- `packages/{custom-package}/` - Any other curated content
 
-**Best for**: Learning the codebase, major refactoring
+## Project-Specific Files (Root Level)
 
----
+Files at the root of `.agent/` are **project-specific** and **never touched by sync**:
 
-### Path 4: On-Demand Details
+- Create your own guidelines: `CUSTOM_RULES.md`
+- Document your standards: `PROJECT_STANDARDS.md`
+- Add any project context as markdown files
 
-**After reading CHEATSHEET, consult as needed:**
+These files persist across package updates and are meant for your project's unique context.
 
-- **docs/PATTERNS.md** (~8,500 tokens) - Detailed pattern explanations
-- **docs/EXCEPTION_HANDLING.md** (~5,000 tokens) - Exception handling deep dive
-- **tools/gt.md** (~7,000 tokens) - Graphite (gt) mental model
-- **FEATURE_INDEX.md** (~3,000 tokens) - Find implementation locations
-- **docs/MODULE_MAP.md** - Module structure details
+## For AI Agents
 
----
+When working in a repository with a `.agent/` directory:
 
-## 📚 Document Index
+1. **Read this README** first to understand the structure
+2. **Check for project-specific files** at the root (CUSTOM_RULES.md, etc.)
+3. **Load tool packages** from `packages/tools/{name}/` when using that CLI tool
+4. **Reference other packages** as needed for general guidance
 
-### Quick References (Read First)
-
-| Document          | Tokens | Purpose                      | When to Read           |
-| ----------------- | ------ | ---------------------------- | ---------------------- |
-| **RULES_CARD.md** | ~500   | Ultra-compact rules          | Quick reminder         |
-| **CHEATSHEET.md** | ~2,000 | Rules + mistakes + templates | Every task             |
-| **GLOSSARY.md**   | ~2,000 | Terminology definitions      | When confused by terms |
-
-### Architecture & Design
-
-| Document                   | Tokens  | Purpose                         | When to Read                     |
-| -------------------------- | ------- | ------------------------------- | -------------------------------- |
-| **ARCHITECTURE.md**        | ~4,000  | System design, patterns, layers | Understanding structure          |
-| **AGENTIC_PROGRAMMING.md** | ~14,000 | Agentic programming practices   | Learning AI-assisted development |
-| **FEATURE_INDEX.md**       | ~3,000  | Feature → file mapping          | Finding implementations          |
-
-### Detailed References (As Needed)
-
-| Document                       | Tokens | Purpose                    | When to Read           |
-| ------------------------------ | ------ | -------------------------- | ---------------------- |
-| **docs/PATTERNS.md**           | ~8,500 | Detailed code patterns     | Learning how to code   |
-| **docs/EXCEPTION_HANDLING.md** | ~5,000 | Exception handling guide   | Understanding LBYL     |
-| **tools/gt.md**                | ~7,000 | Graphite (gt) mental model | Working with gt/stacks |
-| **docs/QUICK_REFERENCE.md**    | ~500   | One-line examples          | Ultra-quick lookup     |
-| **docs/MODULE_MAP.md**         | -      | Module organization        | Navigating codebase    |
-
-### Testing
-
-| Document            | Tokens | Purpose          | When to Read  |
-| ------------------- | ------ | ---------------- | ------------- |
-| **tests/CLAUDE.md** | ~3,000 | Testing patterns | Writing tests |
-
----
-
-## 🎯 Use Case Guide
-
-### "I need to add a new command"
-
-1. **CHEATSHEET.md** - See "Add Command" pattern
-2. **docs/PATTERNS.md** (CLI section) - Detailed examples
-3. **FEATURE_INDEX.md** - Find similar command to copy
-
-### "I'm getting test failures"
-
-1. **CHEATSHEET.md** - Check common mistakes
-2. Look at error in "Common Errors" table
-3. **docs/EXCEPTION_HANDLING.md** - If exception-related
-
-### "I need to understand the architecture"
-
-1. **GLOSSARY.md** - Learn terminology first
-2. **ARCHITECTURE.md** - System design
-3. **docs/MODULE_MAP.md** - Module details
-
-### "I want to understand a specific pattern"
-
-1. **CHEATSHEET.md** - Quick overview
-2. **docs/PATTERNS.md** - Full explanation with rationale
-
-### "I need to work with Graphite/gt commands"
-
-1. **tools/gt.md** - Complete gt mental model and command reference
-
----
-
-## 💡 Pro Tips
-
-### Token Optimization
-
-- Start with **RULES_CARD** or **CHEATSHEET** (saves 94-76% vs reading PATTERNS)
-- Read PATTERNS sections **individually** (~200-500 tokens each)
-- Use GLOSSARY as reference, don't memorize
-
-### First Time Here?
-
-Read in this order:
-
-1. CHEATSHEET.md (understand the rules)
-2. GLOSSARY.md (learn the terminology)
-3. ARCHITECTURE.md (see the big picture)
-4. Start coding with PATTERNS as reference
-
-### Experienced with Codebase?
-
-Read in this order:
-
-1. RULES_CARD.md (quick reminder)
-2. Code with CHEATSHEET as reference
-
----
-
-## 📖 Core Documentation
-
-### Quick References
-
-- **RULES_CARD.md** - Ultra-compact rules (500 tokens)
-- **CHEATSHEET.md** - Quick reference with common mistakes (2K tokens)
-- **GLOSSARY.md** - Terminology and concept definitions
-
-### Architecture
-
-- **ARCHITECTURE.md** - System architecture, design patterns, component relationships
-- **AGENTIC_PROGRAMMING.md** - Agentic programming patterns and best practices (14K tokens)
-- **FEATURE_INDEX.md** - Complete index of features with implementation locations
-- **docs/MODULE_MAP.md** - Module structure and exports
-
-### Patterns & Standards
-
-- **docs/PATTERNS.md** - Detailed code patterns and examples
-- **docs/EXCEPTION_HANDLING.md** - Complete exception handling guide
-- **docs/QUICK_REFERENCE.md** - One-line pattern examples
-
-### Testing
-
-- **tests/CLAUDE.md** - Testing patterns and practices
-
----
-
-## 🔍 Finding Information
-
-### "Where is feature X implemented?"
-
-→ **FEATURE_INDEX.md**
-
-### "What does term Y mean?"
-
-→ **GLOSSARY.md**
-
-### "How do I implement pattern Z?"
-
-→ **CHEATSHEET.md** (quick) or **docs/PATTERNS.md** (detailed)
-
-### "Why does this codebase do X differently?"
-
-→ **ARCHITECTURE.md** (design decisions)
-
-### "How do I write tests?"
-
-→ **tests/CLAUDE.md**
-
----
-
-## ⚠️ Important Notes
-
-- Always cross-reference with actual source code, as implementations may evolve
-- When in doubt, find similar existing code and copy its pattern
-- All documentation links to specific line numbers in source files where applicable
-- Token estimates are approximate - actual counts may vary ±10%
-
----
-
-**Remember**: The goal is token efficiency. Start small (RULES_CARD or CHEATSHEET), expand as needed.
+The package system helps you find relevant, curated documentation without cluttering your context with everything at once.

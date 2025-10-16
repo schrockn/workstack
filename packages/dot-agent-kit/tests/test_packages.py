@@ -4,35 +4,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from dot_agent_kit.packages.manager import PackageManager
-from dot_agent_kit.packages.manifest import PackageManifest, get_manifest_path
 from dot_agent_kit.packages.registry import ToolRegistry
-
-
-def test_package_manifest_default():
-    """Test default manifest creation."""
-    manifest = PackageManifest.default()
-    assert manifest.packages is not None
-    assert "tools/gt" in manifest.packages
-    assert "tools/gh" in manifest.packages
-    assert "tools/workstack" in manifest.packages
-    assert "agentic_programming_guide" in manifest.packages
-
-
-def test_package_manifest_save_load():
-    """Test saving and loading manifests."""
-    with TemporaryDirectory() as tmpdir:
-        agent_dir = Path(tmpdir) / ".agent"
-        agent_dir.mkdir()
-
-        manifest = PackageManifest.default()
-        manifest_path = get_manifest_path(agent_dir)
-        manifest.save(manifest_path)
-
-        assert manifest_path.exists()
-
-        loaded = PackageManifest.load(manifest_path)
-        assert loaded.version == manifest.version
-        assert len(loaded.packages) == len(manifest.packages)
 
 
 def test_package_manager_discover_empty():
