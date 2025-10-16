@@ -246,6 +246,37 @@ uv run pyright packages/dot-agent-kit/src
 
 The codebase follows Workstack coding standards, using LBYL exception handling, absolute imports, and Click for CLI output.
 
+### Contributing Documentation to Resources
+
+When adding or modifying documentation in `src/dot_agent_kit/resources/`, follow these rules:
+
+#### Internal Link Consistency
+
+All internal links must use relative paths within the resources directory:
+
+```markdown
+✅ CORRECT: See `../../agentic_programming_guide/AGENTIC_PROGRAMMING.md`
+❌ WRONG: See `.agent/packages/agentic_programming_guide/AGENTIC_PROGRAMMING.md`
+```
+
+Links should reflect the actual directory structure in `src/dot_agent_kit/resources/`, not the installed structure in user projects.
+
+#### Package Independence
+
+Packages should not reference other packages except for first-party packages:
+
+- **Tool packages** (tools/gh/, tools/gt/, tools/workstack/) - Must be independent, no cross-references
+- **First-party packages** (tools/dot_agent/, agentic_programming_guide/) - Can reference each other
+
+```markdown
+✅ ALLOWED: dot_agent can reference agentic_programming_guide
+✅ ALLOWED: agentic_programming_guide can reference dot_agent
+❌ FORBIDDEN: workstack cannot reference gt
+❌ FORBIDDEN: agentic_programming_guide cannot reference gt
+```
+
+This ensures packages remain decoupled and can be installed independently without creating dependency chains.
+
 ## Getting Help
 
 If something isn't working as expected, start by running `dot-agent check` to validate your setup. This will identify any issues with file structure or configuration.

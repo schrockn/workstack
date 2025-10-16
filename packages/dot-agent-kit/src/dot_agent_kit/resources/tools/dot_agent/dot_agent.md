@@ -235,4 +235,4 @@ The `.agent/` directory provides curated context for AI coding assistants:
 3. **Token Efficiency**: Pre-materialized knowledge reduces repeated discovery
 4. **Project Context**: Root-level files provide project-specific guidance
 
-See `.agent/packages/agentic_programming_guide/AGENTIC_PROGRAMMING.md` for comprehensive best practices.
+See `../../agentic_programming_guide/AGENTIC_PROGRAMMING.md` for comprehensive best practices.

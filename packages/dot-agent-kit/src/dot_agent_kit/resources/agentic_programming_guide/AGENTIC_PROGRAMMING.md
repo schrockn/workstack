@@ -382,8 +382,6 @@ When "parent branch not found" appears, run `gt sync`...
 
 This document provides enough context for agents to work effectively without searching for documentation or making incorrect assumptions based on Git's branching model. The focus remains on evergreen concepts unlikely to change between minor versions, ensuring documentation longevity.
 
-See `.agent/tools/graphite.md` in this repository for a complete example of tool mental model documentation.
-
 ### Maintenance Considerations
 
 Tool documentation requires ongoing attention. Focus on documenting stable, conceptual foundations rather than version-specific details. Update when tools introduce major conceptual changes, not minor feature additions. Refine based on patterns that prove useful in practice. Verify that external documentation links remain valid.

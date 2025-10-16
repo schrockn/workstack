@@ -809,8 +809,6 @@ workstack rm feature         # → git worktree remove path
 
 ### Graphite Integration
 
-**For comprehensive Graphite documentation**: See `.agent/tools/gt.md`
-
 When `use_graphite = true`, workstack integrates with Graphite:
 
 ```bash
@@ -1238,11 +1236,3 @@ else:
 - **Git Worktree Docs**: https://git-scm.com/docs/git-worktree
 - **Graphite CLI**: https://graphite.dev/
 - **GitHub CLI**: https://cli.github.com/
-
-### Internal Documentation (for contributors)
-
-- **[ARCHITECTURE.md](.agent/ARCHITECTURE.md)** - System design and patterns
-- **[GLOSSARY.md](.agent/GLOSSARY.md)** - Terminology reference
-- **[FEATURE_INDEX.md](.agent/FEATURE_INDEX.md)** - Feature → file mapping
-- **[CLAUDE.md](CLAUDE.md)** - Coding standards
-- **[tests/CLAUDE.md](tests/CLAUDE.md)** - Testing guidelines

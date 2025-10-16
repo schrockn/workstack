@@ -109,15 +109,15 @@ This separation keeps roles clear and prevents confusion.
 
 ### Scenario 2: Need Project-Specific Tool Notes
 
-**Problem**: Your project uses `gt` in a special way not covered by `packages/tools/gt/gt.md`.
+**Problem**: Your project uses `gt` in a special way not covered by the bundled tool documentation.
 
-**❌ Wrong approach**: Edit `packages/tools/gt/gt.md`.
+**❌ Wrong approach**: Edit the bundled tool documentation.
 
 **✅ Correct approach**:
 
 1. Create `.agent/PROJECT_GT_USAGE.md`
 2. Document your project-specific patterns
-3. Reference the package docs: "See `packages/tools/gt/gt.md` for general usage"
+3. Reference the package docs: "See bundled tool documentation for general usage"
 
 ### Scenario 3: Package File Is Outdated
 
@@ -255,5 +255,5 @@ This separation ensures consistent, reliable documentation while preserving your
 ## Additional Resources
 
 - CLI reference: See `dot_agent.md` in this directory
-- Agentic programming patterns: See `packages/agentic_programming_guide/AGENTIC_PROGRAMMING.md`
-- Tool-specific docs: See `packages/tools/{tool-name}/`
+- Agentic programming patterns: See `../../agentic_programming_guide/AGENTIC_PROGRAMMING.md`
+- Tool-specific docs: See `../` for available tool documentation
