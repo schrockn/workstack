@@ -50,7 +50,7 @@ def sync_file(
         return FileSyncResult(changed=False, message=message)
 
     package_content = read_resource_file(relative_path)
-    local_path = agent_dir / relative_path
+    local_path = agent_dir / "packages" / relative_path
 
     if not local_path.exists():
         message = f"Would create {relative_path}" if dry_run else f"Created {relative_path}"
@@ -138,7 +138,7 @@ def detect_status(agent_dir: Path, relative_path: str, available_resources: set[
     if relative_path not in available_resources:
         return "unavailable"
 
-    local_path = agent_dir / relative_path
+    local_path = agent_dir / "packages" / relative_path
     if not local_path.exists():
         return "missing"
 
