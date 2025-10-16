@@ -1,3 +1,8 @@
+---
+description: "Worktree management and parallel development"
+url: "https://github.com/dagster-io/workstack"
+---
+
 # Workstack Mental Model
 
 **Last Updated**: 2025-10-13

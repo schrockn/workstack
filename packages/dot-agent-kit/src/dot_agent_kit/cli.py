@@ -8,6 +8,7 @@ from dot_agent_kit.config import (
     DotAgentConfig,
     find_agent_dir,
     get_config_path,
+    parse_markdown_frontmatter,
 )
 from dot_agent_kit.sync import (
     FileSyncResult,
@@ -102,7 +103,14 @@ def list_files() -> None:
 
     click.echo("Available documentation files:")
     for file in files:
+        content = read_resource_file(file)
+        metadata, _ = parse_markdown_frontmatter(content)
+
         click.echo(f"  {file}")
+        if metadata.description:
+            click.echo(f"    {metadata.description}")
+        if metadata.url:
+            click.echo(f"    {metadata.url}")
 
 
 @main.command()
@@ -142,11 +150,22 @@ def check() -> None:
     unavailable = [path for path, status in statuses.items() if status == "unavailable"]
     up_to_date = [path for path, status in statuses.items() if status == "up-to-date"]
 
+    # Validate front matter in all available markdown files
+    frontmatter_errors: list[tuple[str, str]] = []
+    for file in list_available_files():
+        if file.endswith(".md"):
+            content = read_resource_file(file)
+            try:
+                parse_markdown_frontmatter(content)
+            except Exception as e:
+                frontmatter_errors.append((file, str(e)))
+
     click.echo(f"Up-to-date files: {len(up_to_date)}")
     click.echo(f"Missing files: {len(missing)}")
     click.echo(f"Modified files: {len(different)}")
     click.echo(f"Excluded files: {len(excluded)}")
     click.echo(f"Unavailable files: {len(unavailable)}")
+    click.echo(f"Front matter errors: {len(frontmatter_errors)}")
 
     if missing:
         click.echo("Missing:")
@@ -162,6 +181,11 @@ def check() -> None:
         click.echo("Unavailable (not shipped in this package):")
         for path in unavailable:
             click.echo(f"  {path}")
+
+    if frontmatter_errors:
+        click.echo("Front matter errors:")
+        for path, error in frontmatter_errors:
+            click.echo(f"  {path}: {error}")
 
 
 @main.command()
