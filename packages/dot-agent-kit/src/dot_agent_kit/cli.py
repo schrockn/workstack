@@ -45,8 +45,7 @@ def init() -> None:
     if agent_dir.exists():
         _fail(f"Error: {agent_dir} already exists")
 
-    tools_dir = agent_dir / "tools"
-    tools_dir.mkdir(parents=True)
+    agent_dir.mkdir(parents=True)
 
     config = DotAgentConfig.default()
     config_path = get_config_path(agent_dir)
