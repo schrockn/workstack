@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from dot_agent_kit import list_available_files
 from dot_agent_kit.config import DotAgentConfig
+from dot_agent_kit.resource_loader import list_available_files
 from dot_agent_kit.sync import (
     _expand_installed_files,
     collect_statuses,
@@ -56,26 +56,26 @@ def test_collect_statuses_detects_modified_file(tmp_path: Path) -> None:
 
 
 def test_expand_installed_files_handles_directory_pattern() -> None:
-    available_resources = {"tools/gt.md", "tools/gh.md", "tools/workstack.md"}
+    available_resources = {"tools/gt/gt.md", "tools/gh/gh.md", "tools/workstack/workstack.md"}
     installed_files = ("tools/",)
 
     expanded = _expand_installed_files(installed_files, available_resources)
 
     assert len(expanded) == 3
-    assert "tools/gh.md" in expanded
-    assert "tools/gt.md" in expanded
-    assert "tools/workstack.md" in expanded
+    assert "tools/gh/gh.md" in expanded
+    assert "tools/gt/gt.md" in expanded
+    assert "tools/workstack/workstack.md" in expanded
 
 
 def test_expand_installed_files_preserves_specific_files() -> None:
-    available_resources = {"tools/gt.md", "tools/gh.md", "docs/README.md"}
+    available_resources = {"tools/gt/gt.md", "tools/gh/gh.md", "docs/README.md"}
     installed_files = ("tools/", "docs/README.md")
 
     expanded = _expand_installed_files(installed_files, available_resources)
 
     assert len(expanded) == 3
-    assert "tools/gh.md" in expanded
-    assert "tools/gt.md" in expanded
+    assert "tools/gh/gh.md" in expanded
+    assert "tools/gt/gt.md" in expanded
     assert "docs/README.md" in expanded
 
 
