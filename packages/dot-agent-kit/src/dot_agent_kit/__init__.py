@@ -20,37 +20,17 @@ def get_resource_root() -> Traversable:
 
 
 def _resolve_resource(relative_path: str) -> Traversable:
-    """Resolve a relative path inside the bundled resources.
-
-    Handles both old flat paths (e.g., "AGENTIC_PROGRAMMING.md", "tools/gt.md")
-    and new package paths (e.g., "agentic_programming_guide/AGENTIC_PROGRAMMING.md").
-    """
+    """Resolve a relative path inside the bundled resources."""
     normalized = PurePosixPath(relative_path.strip("/"))
     if normalized.is_absolute() or ".." in normalized.parts or not normalized.parts:
         msg = f"Resource path escapes package resources: {relative_path}"
         raise ValueError(msg)
 
     root = get_resource_root()
-
-    # Try direct path first (new package structure)
     candidate = root.joinpath(str(normalized))
+
     if candidate.is_file() or candidate.is_dir():
         return candidate
-
-    # Handle old flat paths for backwards compatibility
-    if relative_path.startswith("tools/"):
-        # Convert "tools/gt.md" to "tools/gt/gt.md"
-        tool_file = relative_path[6:]  # Remove "tools/"
-        tool_name = tool_file.replace(".md", "")
-        package_path = f"tools/{tool_name}/{tool_file}"
-        candidate = root.joinpath(package_path)
-        if candidate.is_file():
-            return candidate
-    elif "/" not in relative_path and relative_path.endswith(".md"):
-        # Convert "AGENTIC_PROGRAMMING.md" to "agentic_programming_guide/AGENTIC_PROGRAMMING.md"
-        candidate = root.joinpath(f"agentic_programming_guide/{relative_path}")
-        if candidate.is_file():
-            return candidate
 
     msg = f"Resource not found: {relative_path}"
     raise FileNotFoundError(msg)
@@ -59,8 +39,7 @@ def _resolve_resource(relative_path: str) -> Traversable:
 def list_available_files() -> list[str]:
     """Return the list of relative resource file paths shipped with the package.
 
-    This function returns paths in the old flat format for backwards compatibility,
-    but reads from the new package structure.
+    Returns paths that match the actual package structure on disk.
     """
     root = get_resource_root()
     relative_paths: list[str] = []
@@ -70,7 +49,7 @@ def list_available_files() -> list[str]:
     if apg_dir.is_dir():
         for entry in apg_dir.iterdir():
             if entry.is_file() and entry.name.endswith(".md"):
-                relative_paths.append(entry.name)
+                relative_paths.append(f"agentic_programming_guide/{entry.name}")
 
     # Scan tools packages
     tools_dir = root.joinpath("tools")
@@ -79,7 +58,7 @@ def list_available_files() -> list[str]:
             if tool_pkg.is_dir():
                 for entry in tool_pkg.iterdir():
                     if entry.is_file() and entry.name.endswith(".md"):
-                        relative_paths.append(f"tools/{entry.name}")
+                        relative_paths.append(f"tools/{tool_pkg.name}/{entry.name}")
 
     return sorted(relative_paths)
 
