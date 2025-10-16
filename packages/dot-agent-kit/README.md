@@ -37,7 +37,7 @@ dot-agent check
 
 ## Configuration
 
-The tool writes `.agent/.dot-agent-kit.yml` to track which files are managed and the version of dot-agent-kit used the last time the folder was updated. Custom documentation can be added alongside the managed files; the CLI leaves entries listed under `custom_files` untouched.
+The tool writes `.agent/.dot-agent-kit.yml` to track which files are installed and the version of dot-agent-kit used the last time the folder was updated. Custom documentation can be added alongside the installed files; the CLI leaves entries listed under `custom_files` untouched.
 
 ## Development
 

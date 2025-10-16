@@ -6,7 +6,7 @@ This directory contains curated documentation and context for AI agents.
 
 ```
 .agent/
-  packages/               # Managed documentation packages
+  packages/               # Installed documentation packages
     tools/               # CLI tool documentation
       {tool-name}/       # Package for CLI tool {tool-name}
         *.md            # Documentation files
@@ -18,20 +18,20 @@ This directory contains curated documentation and context for AI agents.
   PROJECT_STANDARDS.md   # Your coding standards
   *.md                  # Any other project documentation
 
-  .dot-agent-kit.yml     # Package manifest (managed by dot-agent)
+  .dot-agent-kit.yml     # Package manifest (installed by dot-agent)
 ```
 
 ## Package System
 
-### Managed Packages (`packages/`)
+### Installed Packages (`packages/`)
 
-All directories under `packages/` are managed by `dot-agent-kit` and should not be edited directly:
+All directories under `packages/` are installed by `dot-agent-kit` and should not be edited directly:
 
 - **Bundled packages** are synced from dot-agent-kit releases
 - **Local packages** are copied from other locations
 - **Git packages** are pulled from external repositories
 
-To update managed packages, use `dot-agent sync`.
+To update installed packages, use `dot-agent sync`.
 
 ### Tool Packages (`packages/tools/`)
 

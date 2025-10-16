@@ -144,7 +144,7 @@ def extract(relative_path: str, force_overwrite: bool) -> None:
 
 @main.command()
 def check() -> None:
-    """Check if managed files are up-to-date."""
+    """Check if installed files are up-to-date."""
     agent_dir = _require_agent_dir()
 
     config_path = get_config_path(agent_dir)
@@ -235,7 +235,7 @@ def status() -> None:
 
     click.echo(f".agent directory: {agent_dir}")
     click.echo(f"Configured version: {config.version}")
-    click.echo(f"Managed files: {len(config.managed_files)}")
+    click.echo(f"Installed files: {len(config.installed_files)}")
     click.echo(f"Excluded files: {len(config.exclude)}")
     click.echo(f"Custom files: {len(config.custom_files)}")
     click.echo(f"Local files: {len(local_files)}")
@@ -246,7 +246,7 @@ def status() -> None:
         for path in out_of_date:
             click.echo(f"  {path}")
     else:
-        click.echo("All managed files are up-to-date.")
+        click.echo("All installed files are up-to-date.")
 
 
 @main.command()

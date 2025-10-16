@@ -136,10 +136,10 @@ workstack status    # Shows: "feature-a [feature-a]"
 | Term                | Definition                                              | Example                              |
 | ------------------- | ------------------------------------------------------- | ------------------------------------ |
 | **Worktree**        | Git's native feature for multiple working directories   | Created by `git worktree add`        |
-| **Workstack**       | A _managed_ worktree with config and environment        | Created by `workstack create`        |
+| **Workstack**       | A configured worktree with environment setup            | Created by `workstack create`        |
 | **Repo Root**       | Original git repository directory containing `.git/`    | `/Users/you/projects/workstack`      |
 | **Work Dir**        | Directory containing all workstacks for a specific repo | `~/worktrees/workstack/`             |
-| **Workstacks Root** | Top-level directory for all managed repos               | `~/worktrees/`                       |
+| **Workstacks Root** | Top-level directory for all configured repos            | `~/worktrees/`                       |
 | **Worktree Path**   | Absolute path to a specific workstack                   | `~/worktrees/workstack/my-feature/`  |
 | **Trunk Branch**    | Default branch of the repository (main/master)          | `main`                               |
 | **Stack**           | Graphite concept: linear chain of dependent branches    | main → feature-1 → feature-1-part-2  |
