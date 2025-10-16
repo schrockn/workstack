@@ -1,3 +1,4 @@
+from datetime import datetime
 from pathlib import Path
 from typing import NoReturn
 
@@ -10,6 +11,7 @@ from dot_agent_kit.config import (
     get_config_path,
     parse_markdown_frontmatter,
 )
+from dot_agent_kit.local import LocalFileDiscovery
 from dot_agent_kit.sync import (
     FileSyncResult,
     collect_statuses,
@@ -227,11 +229,16 @@ def status() -> None:
     config = DotAgentConfig.load(config_path)
     statuses = collect_statuses(agent_dir, config)
 
+    # Count local files
+    discovery = LocalFileDiscovery(agent_dir)
+    local_files = discovery.discover_local_files()
+
     click.echo(f".agent directory: {agent_dir}")
     click.echo(f"Configured version: {config.version}")
     click.echo(f"Managed files: {len(config.managed_files)}")
     click.echo(f"Excluded files: {len(config.exclude)}")
     click.echo(f"Custom files: {len(config.custom_files)}")
+    click.echo(f"Local files: {len(local_files)}")
 
     out_of_date = [path for path, status in statuses.items() if status in {"missing", "different"}]
     if out_of_date:
@@ -240,6 +247,141 @@ def status() -> None:
             click.echo(f"  {path}")
     else:
         click.echo("All managed files are up-to-date.")
+
+
+@main.command()
+@click.option("--pattern", help="Glob pattern to filter files (e.g., '*.md', 'docs/*')")
+@click.option("--long", "long_format", is_flag=True, help="Show detailed output with size and modification time")
+def inspect(pattern: str | None, long_format: bool) -> None:
+    """List all local files in the .agent directory.
+
+    This shows files in the .agent directory root and subdirectories,
+    excluding installed package files in packages/.
+    """
+    agent_dir = _require_agent_dir()
+    discovery = LocalFileDiscovery(agent_dir)
+    files = discovery.discover_local_files(pattern=pattern)
+
+    if not files:
+        if pattern:
+            click.echo(f"No local files match pattern: {pattern}")
+        else:
+            click.echo("No local files found in .agent directory.")
+        return
+
+    if long_format:
+        click.echo(f"Local files in {agent_dir}:\n")
+        for file in files:
+            size_kb = file.size / 1024
+            modified = datetime.fromtimestamp(file.modified_time).strftime("%Y-%m-%d %H:%M:%S")
+            click.echo(f"  {file.relative_path}")
+            click.echo(f"    Size: {size_kb:.1f} KB")
+            click.echo(f"    Modified: {modified}")
+            click.echo(f"    Type: {file.file_type}")
+            if file != files[-1]:
+                click.echo("")
+    else:
+        click.echo(f"Local files in {agent_dir}:\n")
+        categories = discovery.categorize_files(files)
+
+        for category in sorted(categories.keys()):
+            if category == "root":
+                click.echo("Root:")
+            else:
+                click.echo(f"{category}/:")
+
+            for file in categories[category]:
+                click.echo(f"  {file.relative_path}")
+
+            if category != sorted(categories.keys())[-1]:
+                click.echo("")
+
+
+@main.command()
+@click.argument("relative_path")
+def show(relative_path: str) -> None:
+    """Display the contents of a local file in the .agent directory.
+
+    This reads files from the .agent directory root and subdirectories,
+    excluding installed package files in packages/.
+    """
+    agent_dir = _require_agent_dir()
+    discovery = LocalFileDiscovery(agent_dir)
+
+    # Exception handling acceptable: read_file() provides detailed error messages
+    # for different failure modes (not found, is directory, in packages/).
+    # We catch to provide user-friendly CLI messages.
+    try:
+        content = discovery.read_file(relative_path)
+    except FileNotFoundError:
+        _fail(f"Error: {relative_path} not found in {agent_dir}")
+    except IsADirectoryError:
+        _fail(f"Error: {relative_path} is a directory. Use 'dot-agent inspect' to list files.")
+    except ValueError as e:
+        _fail(f"Error: {e}")
+
+    click.echo(content)
+
+
+@main.command()
+def tree() -> None:
+    """Show directory structure of the .agent directory.
+
+    Displays a tree view distinguishing local files from installed packages.
+    """
+    agent_dir = _require_agent_dir()
+    discovery = LocalFileDiscovery(agent_dir)
+
+    # Get all files including directories
+    files = discovery.discover_local_files(include_directories=True)
+
+    if not files:
+        click.echo("No local files found in .agent directory.")
+        return
+
+    click.echo(f"{agent_dir}/")
+
+    # Build tree structure
+    tree_dict: dict[str, list[str]] = {}
+    for file in files:
+        parts = Path(file.relative_path).parts
+        if len(parts) == 1:
+            if "." not in tree_dict:
+                tree_dict["."] = []
+            tree_dict["."].append(file.relative_path)
+        else:
+            parent = str(Path(*parts[:-1]))
+            if parent not in tree_dict:
+                tree_dict[parent] = []
+            tree_dict[parent].append(file.relative_path)
+
+    # Display root files first
+    if "." in tree_dict:
+        for item in sorted(tree_dict["."]):
+            file = discovery.get_file(item)
+            if file and file.is_directory:
+                click.echo(f"  {item}/")
+            else:
+                click.echo(f"  {item}")
+
+    # Display subdirectories
+    for parent in sorted(tree_dict.keys()):
+        if parent == ".":
+            continue
+
+        click.echo(f"  {parent}/")
+        for item in sorted(tree_dict[parent]):
+            relative_to_parent = Path(item).name
+            file = discovery.get_file(item)
+            if file and file.is_directory:
+                click.echo(f"    {relative_to_parent}/")
+            else:
+                click.echo(f"    {relative_to_parent}")
+
+    # Note about packages
+    packages_dir = agent_dir / "packages"
+    if packages_dir.exists():
+        click.echo("\n(packages/ directory not shown - contains installed package files)")
 
 
 if __name__ == "__main__":
