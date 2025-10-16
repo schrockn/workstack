@@ -156,6 +156,21 @@ def check() -> None:
         for path, error in frontmatter_errors:
             click.echo(f"  {path}: {error}")
 
+    # Fail if package files have been modified or are missing
+    if different or missing:
+        click.echo("", err=True)
+        click.echo("Error: Package files are not in sync with bundled versions.", err=True)
+        click.echo("", err=True)
+        click.echo(
+            "Package files in .agent/packages/ are managed by dot-agent-kit",
+            err=True,
+        )
+        click.echo(
+            "and should not be edited directly. Run 'dot-agent sync' to restore them.",
+            err=True,
+        )
+        raise SystemExit(1)
+
 
 if __name__ == "__main__":
     main()
