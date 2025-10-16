@@ -232,7 +232,6 @@ Here are all the commands at a glance:
 - `dot-agent sync` - Update packages to their latest versions
 - `dot-agent sync --dry-run` - Preview what would change without applying updates
 - `dot-agent list` - Show all available documentation files
-- `dot-agent show <file>` - Display the contents of a local file
 - `dot-agent check` - Review the status of all files and pending updates
 
 ## Development Setup
