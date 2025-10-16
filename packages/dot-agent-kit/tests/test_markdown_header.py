@@ -1,38 +1,4 @@
-from pathlib import Path
-
-from dot_agent_kit import __version__
-from dot_agent_kit.config import (
-    DotAgentConfig,
-    get_config_path,
-    parse_markdown_frontmatter,
-)
-
-
-def test_default_config_uses_package_version() -> None:
-    config = DotAgentConfig.default()
-    assert config.version == __version__
-    assert any(f.startswith("tools/") for f in config.installed_files)
-
-
-def test_save_and_reload_round_trip(tmp_path: Path) -> None:
-    agent_dir = tmp_path / ".agent"
-    agent_dir.mkdir()
-
-    config = DotAgentConfig.default()
-    config_path = get_config_path(agent_dir)
-
-    config.save(config_path)
-    loaded = DotAgentConfig.load(config_path)
-
-    assert loaded == config
-
-
-def test_load_handles_missing_file(tmp_path: Path) -> None:
-    config_path = tmp_path / ".agent" / ".dot-agent-kit.yml"
-    loaded = DotAgentConfig.load(config_path)
-
-    assert loaded.installed_files
-    assert loaded.exclude == ()
+from dot_agent_kit.markdown_header import parse_markdown_frontmatter
 
 
 def test_parse_frontmatter_with_valid_yaml() -> None:

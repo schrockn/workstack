@@ -4,12 +4,7 @@ from typing import NoReturn
 import click
 
 from dot_agent_kit import __version__
-from dot_agent_kit.config import (
-    DotAgentConfig,
-    find_agent_dir,
-    get_config_path,
-    parse_markdown_frontmatter,
-)
+from dot_agent_kit.markdown_header import find_agent_dir, parse_markdown_frontmatter
 from dot_agent_kit.resource_loader import list_available_files, read_resource_file
 from dot_agent_kit.sync import (
     FileSyncResult,
@@ -47,11 +42,7 @@ def init() -> None:
 
     agent_dir.mkdir(parents=True)
 
-    config = DotAgentConfig.default()
-    config_path = get_config_path(agent_dir)
-    config.save(config_path)
-
-    results = sync_all_files(agent_dir, config, force=False, dry_run=False)
+    results = sync_all_files(agent_dir, force=False, dry_run=False)
 
     click.echo(f"Initialized .agent/ directory at {agent_dir}")
     for _, result in results.items():
@@ -66,12 +57,8 @@ def sync(force_update: bool, dry_run_mode: bool) -> None:
     """Update tool documentation to latest versions."""
     agent_dir = _require_agent_dir()
 
-    config_path = get_config_path(agent_dir)
-    config = DotAgentConfig.load(config_path)
-
     results = sync_all_files(
         agent_dir,
-        config,
         force=force_update,
         dry_run=dry_run_mode,
     )
@@ -123,10 +110,7 @@ def check() -> None:
     """Check if installed files are up-to-date."""
     agent_dir = _require_agent_dir()
 
-    config_path = get_config_path(agent_dir)
-    config = DotAgentConfig.load(config_path)
-
-    statuses = collect_statuses(agent_dir, config)
+    statuses = collect_statuses(agent_dir)
 
     missing = [path for path, status in statuses.items() if status == "missing"]
     different = [path for path, status in statuses.items() if status == "different"]
@@ -170,6 +154,17 @@ def check() -> None:
         click.echo("Front matter errors:")
         for path, error in frontmatter_errors:
             click.echo(f"  {path}: {error}")
+
+    # Fail if package files have been modified or are missing
+    if different or missing:
+        click.echo("", err=True)
+        click.echo("Error: Package files are not in sync with bundled versions.", err=True)
+        click.echo("", err=True)
+        click.echo("Package files in .agent/packages/ are managed by dot-agent-kit", err=True)
+        click.echo(
+            "and should not be edited directly. Run 'dot-agent sync' to restore them.", err=True
+        )
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":
