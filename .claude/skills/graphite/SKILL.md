@@ -9,6 +9,7 @@ allowed-tools: Read, Grep, Glob, Bash
 ## When to Use This Skill
 
 Activate this skill when:
+
 - User mentions "gt", "graphite", "stack", or "stacked PRs"
 - Working with stack navigation (upstack/downstack)
 - Creating or managing dependent branches
@@ -20,6 +21,7 @@ Activate this skill when:
 **Graphite enables stacked pull requests**: breaking large features into small, dependent, reviewable changes.
 
 Key concepts:
+
 - **Stack**: Linear chain of dependent branches (main → feat-1 → feat-2 → feat-3)
 - **Parent/Child**: Each branch (except trunk) has exactly one parent
 - **Auto-restacking**: Changes to a branch automatically propagate upstack
@@ -28,6 +30,7 @@ Key concepts:
 ## Essential Commands Quick Reference
 
 ### Creating & Modifying
+
 ```bash
 gt create [name]           # Create new branch on current + commit
 gt modify                  # Amend current + restack children
@@ -35,6 +38,7 @@ gt submit --stack          # Push + create/update all PRs
 ```
 
 ### Navigation
+
 ```bash
 gt up / gt down            # Move through stack
 gt top / gt bottom         # Jump to ends
@@ -42,6 +46,7 @@ gt log                     # Visualize stack
 ```
 
 ### Maintenance
+
 ```bash
 gt sync                    # Update from remote + cleanup merged
 gt restack                 # Rebase stack to include parent changes
@@ -50,6 +55,7 @@ gt restack                 # Rebase stack to include parent changes
 ## Common Workflows
 
 ### 1. Creating a Stack
+
 ```bash
 gt checkout main
 gt create phase-1 -m "Add API endpoints"
@@ -64,6 +70,7 @@ gt submit --stack          # Submit all PRs
 ```
 
 ### 2. Responding to Review Feedback
+
 ```bash
 # Navigate to branch needing changes
 gt down                    # Move toward trunk
@@ -78,6 +85,7 @@ gt submit --stack          # Update all affected PRs
 ```
 
 ### 3. After PRs Merge
+
 ```bash
 gt sync                    # Fetches, rebases, prompts to delete merged
 ```
@@ -85,11 +93,13 @@ gt sync                    # Fetches, rebases, prompts to delete merged
 ## Workstack Integration
 
 Graphite metadata is stored in `.git/` and shared across all worktrees:
+
 - `.git/.graphite_cache_persist`: Branch relationships (parent/child graph)
 - `.git/.graphite_pr_info`: Cached GitHub PR information
 - `.git/.graphite_repo_config`: Repository config (trunk branch)
 
 **Workstack commands that use gt**:
+
 - `workstack list --stacks`: Shows stack relationships
 - `workstack tree`: Visualizes stacks
 - Code: `src/workstack/core/graphite_ops.py`
@@ -104,6 +114,7 @@ Graphite metadata is stored in `.git/` and shared across all worktrees:
 ## Detailed Documentation
 
 For comprehensive documentation including:
+
 - Complete command reference with all options
 - Metadata file formats and structures
 - Advanced workflow patterns
@@ -114,12 +125,12 @@ See: `.agent/packages/tools/gt/gt.md`
 
 ## Quick Troubleshooting
 
-| Issue | Solution |
-|-------|----------|
-| "Branch needs restacking" | Run `gt restack` |
-| Merge conflicts during sync | Resolve conflicts, run `gt continue` |
+| Issue                                     | Solution                                            |
+| ----------------------------------------- | --------------------------------------------------- |
+| "Branch needs restacking"                 | Run `gt restack`                                    |
+| Merge conflicts during sync               | Resolve conflicts, run `gt continue`                |
 | Multiple children, unsure which to follow | `gt up` prompts to select; `gt log` shows structure |
-| Stack visualization looks wrong | Run `gt sync` to refresh from GitHub |
+| Stack visualization looks wrong           | Run `gt sync` to refresh from GitHub                |
 
 ## Command Aliases
 
@@ -159,12 +170,14 @@ def load_graphite_metadata(git_dir: Path) -> dict:
 ## Integration with Workstack Worktrees
 
 When using gt with workstack:
+
 1. All worktrees share the same gt metadata (stored in common `.git/`)
 2. `gt log` shows all stacks across all worktrees
 3. Can work on separate stacks in parallel worktrees
 4. Use `workstack list --stacks` to see which worktree is on which stack
 
 Example workflow:
+
 ```bash
 # In main worktree: work on auth stack
 gt create auth-model
