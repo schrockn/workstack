@@ -40,6 +40,7 @@ build-backend = "hatchling.build"
 target-version = "py313"
 line-length = 100
 src = ["src"]
+exclude = [".claude/skills/"]
 
 [tool.ruff.lint]
 select = [
@@ -57,6 +58,7 @@ known-first-party = ["workstack", "workstack_dev", "dot_agent_kit"]
 pythonVersion = "3.13"
 typeCheckingMode = "standard"
 include = ["src", "packages/workstack-dev/src", "packages/dot-agent-kit/src"]
+exclude = [".claude/skills/"]
 venvPath = "."
 venv = ".venv"
 reportMissingImports = "warning"
