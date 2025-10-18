@@ -31,6 +31,10 @@
 | **Quick lookup**      | [.agent/docs/QUICK_REFERENCE.md](.agent/docs/QUICK_REFERENCE.md)       |
 | **Writing tests**     | [.agent/docs/TESTING.md](.agent/docs/TESTING.md)                       |
 
+## 📝 Terminology
+
+**dot-agent CLI**: When engineers refer to "dot agent" or "dot-agent" (without "kit"), they mean the `dot-agent` command-line tool installed by the `dot-agent-kit` Python package (located in `packages/dot-agent-kit/`). This CLI manages `.agent/` folders across repositories.
+
 ---
 
 ## 🔴 TOP 5 CRITICAL RULES (Most Violated)
