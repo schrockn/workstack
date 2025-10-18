@@ -22,10 +22,13 @@ The `make all-ci` target runs these checks in order:
 
 ### 1. Initial Run
 
-Start by running `make all-ci` to see the current state:
+Start by using the makefile-runner agent to run `make all-ci` and see the current state. Use the Task tool to invoke the makefile-runner agent:
 
-```bash
-make all-ci
+```
+Task tool with:
+- subagent_type: makefile-runner
+- description: "Run make all-ci"
+- prompt: "Run make all-ci to check the current CI state"
 ```
 
 ### 2. Parse Failures
@@ -44,20 +47,35 @@ Based on the failure type, apply appropriate fixes:
 
 #### Ruff Lint Failures
 
-```bash
-make fix  # Runs: uv run ruff check --fix --unsafe-fixes
+Use the makefile-runner agent via the Task tool:
+
+```
+Task tool with:
+- subagent_type: makefile-runner
+- description: "Run make fix"
+- prompt: "Run make fix to automatically fix lint errors"
 ```
 
 #### Ruff Format Failures
 
-```bash
-make format  # Runs: uv run ruff format
+Use the makefile-runner agent via the Task tool:
+
+```
+Task tool with:
+- subagent_type: makefile-runner
+- description: "Run make format"
+- prompt: "Run make format to fix code formatting"
 ```
 
 #### Prettier Failures
 
-```bash
-make prettier  # Runs: prettier --write '**/*.md'
+Use the makefile-runner agent via the Task tool:
+
+```
+Task tool with:
+- subagent_type: makefile-runner
+- description: "Run make prettier"
+- prompt: "Run make prettier to fix markdown formatting"
 ```
 
 #### Pyright Type Errors
@@ -75,10 +93,13 @@ make prettier  # Runs: prettier --write '**/*.md'
 
 ### 4. Verify Fix
 
-After applying fixes, run `make all-ci` again to verify:
+After applying fixes, use the makefile-runner agent to run `make all-ci` again to verify:
 
-```bash
-make all-ci
+```
+Task tool with:
+- subagent_type: makefile-runner
+- description: "Run make all-ci"
+- prompt: "Run make all-ci to verify all fixes"
 ```
 
 ### 5. Repeat Until Success
@@ -164,29 +185,30 @@ The code is ready for commit/PR.
 
 1. **Be systematic**: Fix one type of error at a time
 2. **Run full CI**: Always run full `make all-ci`, not individual checks
-3. **Track progress**: Use TodoWrite for every iteration
-4. **Don't guess**: Read files before making changes
-5. **Follow standards**: Adhere to CLAUDE.md coding standards
-6. **Fail gracefully**: Report clearly when stuck
-7. **Be efficient**: Use targeted fixes (don't reformat everything for one lint error)
+3. **Use makefile-runner**: Always use the Task tool with makefile-runner agent for ALL make commands
+4. **Track progress**: Use TodoWrite for every iteration
+5. **Don't guess**: Read files before making changes
+6. **Follow standards**: Adhere to CLAUDE.md coding standards
+7. **Fail gracefully**: Report clearly when stuck
+8. **Be efficient**: Use targeted fixes (don't reformat everything for one lint error)
 
 ## Example Flow
 
 ```
 Iteration 1:
-- Run make all-ci
+- Use Task tool with makefile-runner to run make all-ci
 - Found: 5 lint errors, 2 files need formatting
-- Fix: Run make fix && make format
+- Fix: Use Task tool with makefile-runner to run make fix, then make format
 - Result: 3 lint errors remain
 
 Iteration 2:
-- Run make all-ci
+- Use Task tool with makefile-runner to run make all-ci
 - Found: 3 lint errors (imports)
 - Fix: Edit files to fix import issues
 - Result: All lint/format pass, 2 type errors
 
 Iteration 3:
-- Run make all-ci
+- Use Task tool with makefile-runner to run make all-ci
 - Found: 2 pyright errors in switch.py:45 and switch.py:67
 - Fix: Add type annotations
 - Result: All checks pass
@@ -196,4 +218,6 @@ SUCCESS
 
 ## Begin Now
 
-Start by running `make all-ci` and begin the iterative fix process. Track your progress with TodoWrite and report your final status clearly.
+Start by using the Task tool with the makefile-runner agent to run `make all-ci` and begin the iterative fix process. Track your progress with TodoWrite and report your final status clearly.
+
+**Remember**: NEVER run make commands directly via Bash. Always use the Task tool with subagent_type: makefile-runner.
