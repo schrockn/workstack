@@ -8,6 +8,13 @@ from dot_agent_kit.markdown_header import (
     find_agent_dir,
     parse_markdown_frontmatter,
 )
+from dot_agent_kit.repo_metadata import get_repo_metadata
+from dot_agent_kit.repos import (
+    check_for_updates,
+    find_all_repos,
+    install_to_repo,
+    update_repo,
+)
 from dot_agent_kit.resource_loader import list_available_files, read_resource_file
 from dot_agent_kit.sync import (
     FileSyncResult,
@@ -170,6 +177,175 @@ def check() -> None:
             err=True,
         )
         raise SystemExit(1)
+
+
+@main.command()
+@click.argument("source", type=click.Path(exists=True, path_type=Path))
+@click.argument("target", type=click.Path(exists=True, path_type=Path))
+def install(source: Path, target: Path) -> None:
+    """Install .agent folder from SOURCE into TARGET repository.
+
+    SOURCE must be a .agent directory.
+    TARGET must be a repository directory without an existing .agent/ folder.
+
+    Example:
+        dot-agent install /path/to/template/.agent /path/to/project
+    """
+    # Validate and install
+    if not source.exists():
+        _fail(f"Error: Source path does not exist: {source}")
+
+    if not source.is_dir():
+        _fail(f"Error: Source path is not a directory: {source}")
+
+    if source.name != ".agent":
+        _fail(f"Error: Source must be a .agent directory, got: {source.name}")
+
+    if not target.exists():
+        _fail(f"Error: Target repository does not exist: {target}")
+
+    if not target.is_dir():
+        _fail(f"Error: Target repository is not a directory: {target}")
+
+    target_agent = target / ".agent"
+    if target_agent.exists():
+        _fail(f"Error: Target already has .agent/ directory: {target_agent}")
+
+    # Perform installation
+    install_to_repo(source, target)
+
+    click.echo(f"Installed .agent/ folder to {target}")
+    click.echo(f"  Source: {source}")
+
+    metadata = get_repo_metadata(target)
+    if metadata and metadata.installed_at:
+        click.echo(f"  Installed: {metadata.installed_at.strftime('%Y-%m-%d %H:%M:%S')}")
+
+
+@main.command()
+@click.option(
+    "--repo", type=click.Path(exists=True, path_type=Path), help="Specific repository to update"
+)
+@click.option("--all", "update_all", is_flag=True, help="Update all known repositories")
+def update(repo: Path | None, update_all: bool) -> None:
+    """Update .agent folders in specified or all repositories.
+
+    Use --repo to update a specific repository, or --all to update all known repositories.
+
+    Example:
+        dot-agent update --repo /path/to/project
+        dot-agent update --all
+    """
+    if not repo and not update_all:
+        _fail("Error: Must specify either --repo or --all")
+
+    if repo and update_all:
+        _fail("Error: Cannot specify both --repo and --all")
+
+    repos_to_update: list[Path] = []
+
+    if repo:
+        if not repo.exists():
+            _fail(f"Error: Repository does not exist: {repo}")
+        if not repo.is_dir():
+            _fail(f"Error: Repository is not a directory: {repo}")
+
+        repos_to_update.append(repo)
+    elif update_all:
+        all_repos = find_all_repos()
+        # Filter to only managed repos
+        for repo_path in all_repos:
+            metadata = get_repo_metadata(repo_path)
+            if metadata and metadata.managed:
+                repos_to_update.append(repo_path)
+
+        if not repos_to_update:
+            click.echo("No managed repositories found.")
+            return
+
+    # Update each repository
+    updated_count = 0
+    skipped_count = 0
+
+    for repo_path in repos_to_update:
+        metadata = get_repo_metadata(repo_path)
+        if not metadata:
+            click.echo(f"{repo_path}: No .agent/ folder found", err=True)
+            continue
+
+        if not metadata.managed:
+            click.echo(f"{repo_path}: Not managed (skipping)", err=True)
+            skipped_count += 1
+            continue
+
+        # Check if update is needed
+        if not check_for_updates(repo_path):
+            click.echo(f"{repo_path}: Already up to date")
+            skipped_count += 1
+            continue
+
+        # Perform update
+        update_repo(repo_path)
+        click.echo(f"{repo_path}: Updated")
+        updated_count += 1
+
+    click.echo("")
+    click.echo(f"Updated: {updated_count}")
+    click.echo(f"Skipped: {skipped_count}")
+
+
+@main.command()
+def repos() -> None:
+    """Show status of .agent folders across all repositories.
+
+    Displays all repositories with .agent/ folders, showing installation
+    date and whether updates are available.
+    """
+    all_repos = find_all_repos()
+
+    if not all_repos:
+        click.echo("No repositories with .agent/ folders found.")
+        return
+
+    click.echo("Repositories with .agent/ folders:")
+    click.echo("")
+
+    for repo_path in all_repos:
+        metadata = get_repo_metadata(repo_path)
+
+        # Get current branch if it's a git repo
+        git_dir = repo_path / ".git"
+        branch_info = ""
+        if git_dir.exists():
+            head_file = git_dir / "HEAD"
+            if head_file.exists():
+                head_content = head_file.read_text(encoding="utf-8").strip()
+                if head_content.startswith("ref: refs/heads/"):
+                    branch = head_content.replace("ref: refs/heads/", "")
+                    branch_info = f" ({branch})"
+
+        click.echo(f"{repo_path}{branch_info}")
+
+        if metadata:
+            if metadata.managed:
+                if metadata.installed_at:
+                    click.echo(
+                        f"  Installed: {metadata.installed_at.strftime('%Y-%m-%d %H:%M:%S')}"
+                    )
+
+                if metadata.source_url:
+                    click.echo(f"  Source: {metadata.source_url}")
+
+                if check_for_updates(repo_path):
+                    click.echo(click.style("  Status: Updates available", fg="yellow"))
+                else:
+                    click.echo(click.style("  Status: Up to date", fg="green"))
+            else:
+                click.echo(click.style("  Status: Not managed", dim=True))
+        else:
+            click.echo(click.style("  Status: No metadata", dim=True))
+
+        click.echo("")
 
 
 if __name__ == "__main__":
