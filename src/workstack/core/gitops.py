@@ -145,6 +145,19 @@ class GitOps(ABC):
         """
         ...
 
+    @abstractmethod
+    def get_commit_message(self, repo_root: Path, commit_sha: str) -> str | None:
+        """Get the commit message for a given commit SHA.
+
+        Args:
+            repo_root: Path to the git repository root
+            commit_sha: Commit SHA to query
+
+        Returns:
+            First line of commit message, or None if commit doesn't exist.
+        """
+        ...
+
 
 # ============================================================================
 # Production Implementation
@@ -357,6 +370,20 @@ class RealGitOps(GitOps):
 
         return result.stdout.strip()
 
+    def get_commit_message(self, repo_root: Path, commit_sha: str) -> str | None:
+        """Get the first line of commit message for a given commit SHA."""
+        result = subprocess.run(
+            ["git", "log", "-1", "--format=%s", commit_sha],
+            cwd=repo_root,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if result.returncode != 0:
+            return None
+
+        return result.stdout.strip()
+
 
 # ============================================================================
 # Dry-Run Wrapper
@@ -464,3 +491,7 @@ class DryRunGitOps(GitOps):
     def get_branch_head(self, repo_root: Path, branch: str) -> str | None:
         """Get branch head commit SHA (read-only, delegates to wrapped)."""
         return self._wrapped.get_branch_head(repo_root, branch)
+
+    def get_commit_message(self, repo_root: Path, commit_sha: str) -> str | None:
+        """Get commit message (read-only, delegates to wrapped)."""
+        return self._wrapped.get_commit_message(repo_root, commit_sha)
