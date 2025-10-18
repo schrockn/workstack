@@ -64,7 +64,7 @@ Creating a CLI skill follows a systematic seven-step process that gathers compre
 - Capture examples from help text
 - Identify command patterns (verb-noun, noun-verb, flat)
 
-**Reference:** Load `references/help_text_patterns.md` for detailed parsing guidance.
+**Reference:** Load `references/help-text-patterns.md` for detailed parsing guidance.
 
 **Actions:**
 
@@ -114,7 +114,7 @@ Creating a CLI skill follows a systematic seven-step process that gathers compre
 - Identify common user pain points
 - Discover undocumented features or gotchas
 
-**Reference:** Load `references/help_text_patterns.md` section "GitHub Repository Analysis" for detailed guidance.
+**Reference:** Load `references/help-text-patterns.md` section "GitHub Repository Analysis" for detailed guidance.
 
 **Actions:**
 
@@ -164,7 +164,7 @@ Creating a CLI skill follows a systematic seven-step process that gathers compre
 - Identify related commands
 - Note historical context or design rationale
 
-**Reference:** Load `references/help_text_patterns.md` section "Manual Page Parsing" for detailed guidance.
+**Reference:** Load `references/help-text-patterns.md` section "Manual Page Parsing" for detailed guidance.
 
 **Actions:**
 
@@ -253,7 +253,7 @@ Creating a CLI skill follows a systematic seven-step process that gathers compre
 - Organize content by user task/workflow
 - Determine skill structure (workflow-based, command-based, etc.)
 
-**Reference:** Load `references/skill_templates.md` for guidance.
+**Reference:** Load `references/skill-templates.md` for guidance.
 
 **Actions:**
 
@@ -283,7 +283,7 @@ Creating a CLI skill follows a systematic seven-step process that gathers compre
    - Integration patterns
    - Troubleshooting common issues
 
-5. **Choose skill structure** (load `references/skill_templates.md`)
+5. **Choose skill structure** (load `references/skill-templates.md`)
    - **Workflow-based**: For sequential, process-oriented tools
    - **Command-based**: For tools with many discrete operations
    - **Hybrid**: Combine patterns (most common)
@@ -419,7 +419,7 @@ Creating a CLI skill follows a systematic seven-step process that gathers compre
 - Subcommand organization: Grouped by domain/resource
 - Output options: `--json`, `--plain`, `--format`
 
-Load `references/help_text_patterns.md` for comprehensive parsing guidance including regex patterns, format variations, and special cases.
+Load `references/help-text-patterns.md` for comprehensive parsing guidance including regex patterns, format variations, and special cases.
 
 ### GitHub Analysis Strategies
 
@@ -446,7 +446,7 @@ Different CLI frameworks reveal structure differently:
 - **Commander (Node.js)**: Fluent API chains
 - **Clap (Rust)**: Struct definitions or builder pattern
 
-Load `references/help_text_patterns.md` section "GitHub Repository Analysis" for detailed code reading strategies.
+Load `references/help-text-patterns.md` section "GitHub Repository Analysis" for detailed code reading strategies.
 
 ### Mental Model Extraction
 
@@ -476,7 +476,7 @@ Load `references/help_text_patterns.md` section "GitHub Repository Analysis" for
 
 ### Choosing the Right Structure
 
-Load `references/skill_templates.md` for complete templates and examples.
+Load `references/skill-templates.md` for complete templates and examples.
 
 **Workflow-based** (use when):
 
@@ -593,7 +593,7 @@ Load `references/skill_templates.md` for complete templates and examples.
 - Link to related patterns
 - Mention prerequisites
 
-Load `references/skill_templates.md` for complete workflow pattern template and examples.
+Load `references/skill-templates.md` for complete workflow pattern template and examples.
 
 ## Integration with skill-creator
 
@@ -716,14 +716,14 @@ Before finalizing CLI skill:
 
 This skill includes two comprehensive reference documents:
 
-- **help_text_patterns.md** - Practical guidance for parsing help text, man pages, and GitHub repositories. Load when introspecting CLI tools for comprehensive information extraction.
+- **help-text-patterns.md** - Practical guidance for parsing help text, man pages, and GitHub repositories. Load when introspecting CLI tools for comprehensive information extraction.
 
-- **skill_templates.md** - Reusable templates for skill structure, command reference, workflows, and sections. Load when organizing material and structuring skill documentation.
+- **skill-templates.md** - Reusable templates for skill structure, command reference, workflows, and sections. Load when organizing material and structuring skill documentation.
 
 **Loading strategy:**
 
-- Load `help_text_patterns.md` during introspection steps (Steps 2-4)
-- Load `skill_templates.md` during organization and structure design (Step 6)
+- Load `help-text-patterns.md` during introspection steps (Steps 2-4)
+- Load `skill-templates.md` during organization and structure design (Step 6)
 
 These references ensure consistent, comprehensive CLI skill creation following modern best practices.
 ```

@@ -19,6 +19,8 @@
 | `from .module import`                       | → Use absolute imports only                                                  |
 | `print(...)` in CLI code                    | → Use `click.echo()`                                                         |
 | `subprocess.run(...)`                       | → Add `check=True`                                                           |
+| `make ...` or user says "make"              | → Use makefile-runner agent (Task tool) instead of Bash                      |
+| Prettier formatting issues                  | → Use `make prettier` (via makefile-runner agent)                            |
 | 4+ levels of indentation                    | → Extract helper functions                                                   |
 | Code in `__init__.py`                       | → Keep empty or docstring-only (except package entry points)                 |
 
