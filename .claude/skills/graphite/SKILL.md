@@ -232,6 +232,6 @@ When using gt with workstack:
 
 Contains detailed command reference and comprehensive mental model documentation:
 
-- `gt_reference.md` - Complete command reference, metadata format details, and advanced patterns
+- `gt-reference.md` - Complete command reference, metadata format details, and advanced patterns
 
 Load this reference when users need detailed information about specific gt commands, metadata structure, or complex workflow scenarios.
