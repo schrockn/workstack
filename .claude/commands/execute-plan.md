@@ -7,6 +7,7 @@ description: Execute the implementation plan from .PLAN.md or a specified file
 I'll now execute the implementation plan from the specified file (or `.PLAN.md` by default).
 
 **Command usage:**
+
 - `/execute-plan` - executes `.PLAN.md` from project root
 - `/execute-plan <file-path>` - executes plan from specified file path
 
@@ -67,6 +68,7 @@ First, let me read the plan to understand what needs to be implemented:
    - End with: "Plan execution complete. [Summary of what was implemented]"
 
 **If clarification is needed:**
+
 - Explain what has been completed so far
 - Clearly state what needs clarification
 - Suggest what information would help proceed
