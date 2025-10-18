@@ -205,8 +205,9 @@ This document describes the common patterns for slash commands, helping you choo
    - Generate detailed implementation plan
    - Review with user
 
-3. Use Task tool with subagent_type="haiku-plan-executor" to execute
+3. Execute the plan directly in the main conversation
    - Load plan from .PLAN.md
+   - Use TodoWrite to track phases
    - Execute steps systematically
    - Report completion
 ```
