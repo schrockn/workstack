@@ -124,6 +124,15 @@ Load `references/gh.md` and search for "gh api" section to provide:
 - JSON processing with `--jq`
 - Authentication details
 
+**For advanced GraphQL use cases**, load `references/graphql.md`:
+
+- Projects V2 management (no REST API exists)
+- Discussion API operations
+- Batch queries across multiple repos
+- Complex nested data retrieval
+- Advanced issue search
+- See [GraphQL API Reference](#graphql-api-reference) section below
+
 ### Release Management
 
 Load `references/gh.md` and search for "gh release" section to provide:
@@ -221,11 +230,74 @@ When users need advanced capabilities:
 
 1. **Aliases**: Custom commands via `gh alias set`
 2. **Extensions**: Third-party gh extensions
-3. **GraphQL**: Complex queries beyond REST API
+3. **GraphQL**: Complex queries beyond REST API (see [GraphQL API Reference](#graphql-api-reference))
 4. **Webhooks**: Trigger workflows (via API)
 5. **GitHub Actions**: Interact with workflows via `gh workflow`
 
 Load the relevant sections from `references/gh.md` for each advanced feature.
+
+### GraphQL API Reference
+
+When standard `gh` commands are insufficient, use GraphQL via `gh api graphql`. Load `references/graphql.md` for comprehensive GraphQL guidance.
+
+**When to Use GraphQL:**
+
+Use GraphQL when the porcelain commands (`gh pr`, `gh issue`, etc.) cannot accomplish the task:
+
+- **Projects V2**: No REST API exists - all operations require GraphQL
+  - Create/update projects
+  - Add items and update field values
+  - Query custom fields and project data
+
+- **Discussions**: No porcelain commands available
+  - Create/manage discussions
+  - Add comments and replies
+  - Query discussion categories
+
+- **Batch Operations**: Query multiple resources in one API call
+  - Compare multiple repositories
+  - Aggregate data across repos
+  - Reduce rate limit consumption
+
+- **Complex Queries**: Fetch nested data efficiently
+  - PR with reviews, comments, and status checks in one call
+  - Issue with timeline, reactions, and linked PRs
+  - Repository with open issues, PRs, and contributors
+
+- **Advanced Search**: Complex filtering beyond basic commands
+  - Multi-criteria issue/PR searches
+  - Boolean logic and date ranges
+  - Advanced sorting options
+
+- **Custom Fields**: Precise field selection
+  - Request only needed fields
+  - Optimize for performance
+  - Build custom data aggregations
+
+**GraphQL Resources:**
+
+- `references/graphql.md` - Complete GraphQL guide including:
+  - Use cases requiring GraphQL
+  - Common patterns (variables, pagination, batching, etc.)
+  - Complete examples (Projects V2, Discussions, batch queries)
+  - Best practices and troubleshooting
+
+- `references/graphql-schema-core.md` - Core schema types (load only when needed):
+  - Detailed field information for Repository, Issue, PullRequest, etc.
+  - Projects V2 field types and mutations
+  - Discussion types and operations
+  - Input types and enums
+
+**Loading Strategy:**
+
+1. Start with `references/graphql.md` for use cases and patterns
+2. Load `references/graphql-schema-core.md` only when detailed schema info is needed
+3. Use grep patterns to find specific sections:
+   - `Projects V2` - Project automation examples
+   - `Discussion` - Discussion API examples
+   - `Batch` - Batch query patterns
+   - `Pagination` - Cursor-based pagination
+   - `Example [0-9]` - Complete working examples
 
 ## Troubleshooting
 
@@ -255,5 +327,19 @@ When users ask "what can gh do?":
 ### references/
 
 - `gh.md` - Comprehensive GitHub CLI mental model and command reference (~1480 lines)
+  - Load for all standard gh command guidance
+  - Full workflow patterns and examples
+  - Integration patterns (workstack, git, CI/CD)
 
-This reference should be loaded whenever providing gh guidance to ensure accurate, detailed information.
+- `graphql.md` - GitHub GraphQL API comprehensive guide (~1000 lines)
+  - Load when porcelain commands are insufficient
+  - Use cases requiring GraphQL (Projects V2, Discussions, batch queries)
+  - Complete patterns and examples
+  - Best practices and troubleshooting
+
+- `graphql-schema-core.md` - Core GraphQL schema types (~500 lines)
+  - Load only when detailed schema info needed
+  - Detailed field definitions for core types
+  - Mutation input types and examples
+
+These references should be loaded as needed to ensure accurate, detailed information. Use progressive disclosure: start with the main reference, then load specialized GraphQL docs when needed.
