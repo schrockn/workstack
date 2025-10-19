@@ -8,10 +8,9 @@ Land a Graphite stack by sequentially squash-merging all PRs from the bottom of 
 
 ## What This Command Does
 
-1. **Validates workstack lineage**: Ensures you're in root workstack or a workstack with only itself and root in lineage
-2. **Navigates to stack bottom**: Moves to the first branch in the stack (up from main)
-3. **Iteratively merges PRs**: Squash-merges each PR, moves up, syncs, and restacks until reaching main
-4. **Reports progress**: Tracks each merge operation and final status
+1. **Navigates to stack bottom**: Moves to the first branch in the stack (up from main)
+2. **Iteratively merges PRs**: Squash-merges each PR, moves up, syncs, and restacks until reaching main
+3. **Reports progress**: Tracks each merge operation and final status
 
 ## Usage
 
@@ -25,41 +24,9 @@ This command takes no arguments and operates on the current branch's stack.
 
 When this command is invoked:
 
-### 1. Validate Workstack Lineage
+### 1. Navigate to Bottom of Stack
 
-**FIRST**: Check if the current workstack meets the requirements for landing a stack.
-
-Run this command to check workstack lineage:
-
-```bash
-workstack lineage
-```
-
-Parse the output to determine:
-
-- If you're in the root workstack (lineage shows only "root"), continue
-- If the lineage shows exactly two items (current workstack and root), continue
-- Otherwise, STOP and report error
-
-**Error handling for validation:**
-
-If lineage check fails:
-
-```
-Error: Cannot land stack from this workstack.
-
-This command only works when:
-1. You are in the root workstack, OR
-2. The current workstack only has itself and root in its lineage
-
-Current lineage: [show workstack lineage output]
-
-Please switch to root workstack or an appropriate workstack before landing the stack.
-```
-
-### 2. Navigate to Bottom of Stack
-
-Once validation passes, navigate to the bottom of the stack (the first branch up from main).
+Navigate to the bottom of the stack (the first branch up from main).
 
 Run this command repeatedly until you reach the bottom:
 
@@ -73,7 +40,7 @@ gt down
 - Graphite will indicate when you cannot go further down
 - Alternatively, check with `gt log short` to see stack structure
 
-### 3. Create Todo List for Tracking
+### 2. Create Todo List for Tracking
 
 Use TodoWrite to create a tracking structure:
 
@@ -85,7 +52,7 @@ Use TodoWrite to create a tracking structure:
 
 Mark step 1 as completed once you're at the bottom of the stack.
 
-### 4. Iterative Merge Loop
+### 3. Iterative Merge Loop
 
 **This is the main loop that processes each PR in the stack.**
 
@@ -93,7 +60,7 @@ Mark "Merge PRs and move up stack" as in_progress.
 
 For each branch in the stack (from bottom to top):
 
-#### Step 4a: Merge the Current PR
+#### Step 3a: Merge the Current PR
 
 Run:
 
@@ -116,7 +83,7 @@ If this command fails:
 - STOP the landing process (do not continue to next PR)
 - Ask user how to proceed
 
-#### Step 4b: Move Up the Stack
+#### Step 3b: Move Up the Stack
 
 Run:
 
@@ -131,7 +98,7 @@ This moves you to the next branch up in the stack.
 - You're now on the next branch in the stack
 - If you're now on main, the loop is complete
 
-#### Step 4c: Sync with Remote
+#### Step 3c: Sync with Remote
 
 Run:
 
@@ -153,7 +120,7 @@ If `gt sync -f` fails:
 - Ask user to resolve conflicts manually
 - STOP the landing process
 
-#### Step 4d: Check if Done
+#### Step 3d: Check if Done
 
 After syncing, check which branch you're on:
 
@@ -171,9 +138,9 @@ git branch --show-current
 
 **If the output is NOT "main":**
 
-- Continue to step 4e
+- Continue to step 3e
 
-#### Step 4e: Restack the Remaining Branches
+#### Step 3e: Restack the Remaining Branches
 
 Run:
 
@@ -195,9 +162,9 @@ If `gt restack` fails:
 - Ask user to resolve conflicts manually
 - STOP the landing process
 
-#### Step 4f: Loop Back
+#### Step 3f: Loop Back
 
-Go back to step 4a (merge the current PR) and repeat.
+Go back to step 3a (merge the current PR) and repeat.
 
 **Safeguard:** Track the number of iterations. If you've done more than 20 iterations, STOP and report:
 
@@ -258,14 +225,13 @@ All PRs have been squash-merged from bottom to top.
 
 **Actions taken:**
 
-1. Validated workstack lineage
-2. Navigated to bottom of stack
-3. Merged [N] PRs sequentially:
+1. Navigated to bottom of stack
+2. Merged [N] PRs sequentially:
    - [branch-1] → merged to main
    - [branch-2] → merged to main
    - [branch-3] → merged to main
    - ...
-4. Now on main branch
+3. Now on main branch
 
 **Final state:**
 
@@ -289,17 +255,12 @@ Current branch: feature-3
 Stack structure:
   main → feature-1 → feature-2 → feature-3 (you are here)
 
-# 1. Validate lineage
-$ workstack lineage
-root
-current-workspace
-
-# 2. Navigate to bottom
+# 1. Navigate to bottom
 $ gt down
 $ gt down
 Now on: feature-1
 
-# 3. Start merge loop
+# 2. Start merge loop
 $ gh pr merge -s  # Merge feature-1
 $ gt up           # Move to feature-2
 $ gt sync -f      # Sync with remote
