@@ -6,7 +6,6 @@ import click
 
 from workstack.cli.core import discover_repo_context, ensure_workstacks_dir
 from workstack.core.context import WorkstackContext
-from workstack.core.file_utils import atomic_write
 from workstack.core.global_config_ops import GlobalConfigOps
 from workstack.core.shell_ops import ShellOps
 
@@ -132,10 +131,35 @@ def get_shell_wrapper_content(shell: str) -> str:
     return wrapper_file.read_text(encoding="utf-8")
 
 
-def perform_shell_setup(shell_ops: ShellOps) -> bool:
-    """Interactively set up shell integration (completion + wrapper function).
+def print_shell_setup_instructions(
+    shell: str, rc_file: Path, completion_line: str, wrapper_content: str
+) -> None:
+    """Print formatted shell integration setup instructions for manual installation.
 
-    Returns True if setup was completed, False if skipped.
+    Args:
+        shell: The shell type (e.g., "zsh", "bash", "fish")
+        rc_file: Path to the shell's rc file (e.g., ~/.zshrc)
+        completion_line: The completion command to add (e.g., "source <(workstack completion zsh)")
+        wrapper_content: The full wrapper function content to add
+    """
+    click.echo("\n" + "━" * 60)
+    click.echo("Shell Integration Setup")
+    click.echo("━" * 60)
+    click.echo(f"\nDetected shell: {shell} ({rc_file})")
+    click.echo("\nAdd the following to your rc file:\n")
+    click.echo("# Workstack completion")
+    click.echo(f"{completion_line}\n")
+    click.echo("# Workstack shell integration")
+    click.echo(wrapper_content)
+    click.echo("\nThen reload your shell:")
+    click.echo(f"  source {rc_file}")
+    click.echo("━" * 60)
+
+
+def perform_shell_setup(shell_ops: ShellOps) -> bool:
+    """Print shell integration setup instructions for manual installation.
+
+    Returns True if instructions were printed, False if setup was skipped.
     """
     shell_info = shell_ops.detect_shell()
     if not shell_info:
@@ -144,68 +168,21 @@ def perform_shell_setup(shell_ops: ShellOps) -> bool:
 
     shell, rc_file = shell_info
 
-    # Resolve symlinks to real file before any operations
-    if rc_file.exists():
-        rc_file = rc_file.resolve()
-
     click.echo(f"\nDetected shell: {shell}")
     click.echo("Shell integration provides:")
     click.echo("  - Tab completion for workstack commands")
     click.echo("  - Automatic worktree activation on 'workstack switch'")
 
-    if not click.confirm("\nSet up shell integration?", default=True):
+    if not click.confirm("\nShow shell integration setup instructions?", default=True):
         click.echo("Skipping shell integration. You can run 'workstack init --shell' later.")
         return False
 
-    # Read existing content once
-    rc_content = ""
-    if rc_file.exists():
-        rc_content = rc_file.read_text(encoding="utf-8")
-
-    modifications: list[str] = []  # Track what we're adding
-
-    # Step 1: Check completion
-    click.echo(f"\n1. Setting up tab completion for {shell}...")
+    # Generate the instructions
     completion_line = f"source <(workstack completion {shell})"
-
-    if completion_line in rc_content:
-        click.echo("   ✓ Completion already configured")
-    else:
-        if click.confirm(f"   Add completion to {rc_file}?", default=True):
-            modifications.append(f"# Workstack completion\n{completion_line}")
-            click.echo("   ✓ Will add completion")
-        else:
-            click.echo("   To set up manually, add:")
-            click.echo(f"   {completion_line}")
-
-    # Step 2: Check wrapper
-    click.echo(f"\n2. Setting up auto-activation wrapper for {shell}...")
     wrapper_content = get_shell_wrapper_content(shell)
 
-    if "workstack shell integration" in rc_content.lower():
-        click.echo("   ✓ Wrapper already configured")
-    else:
-        if click.confirm(f"   Add wrapper function to {rc_file}?", default=True):
-            modifications.append(wrapper_content)
-            click.echo("   ✓ Will add wrapper")
-        else:
-            click.echo("   To set up manually, add:")
-            click.echo(f"\n{wrapper_content}")
-
-    # Write all modifications at once using atomic write
-    if modifications:
-        # Ensure trailing newline before adding modifications
-        if rc_content and not rc_content.endswith("\n"):
-            rc_content += "\n"
-
-        rc_content += "\n\n" + "\n\n".join(modifications) + "\n"
-
-        # Use atomic write context manager for clean, safe file update
-        with atomic_write(rc_file) as f:
-            f.write(rc_content)
-
-    click.echo("\n✓ Shell integration setup complete!")
-    click.echo(f"Run 'source {rc_file}' or start a new shell to activate.")
+    # Print the formatted instructions
+    print_shell_setup_instructions(shell, rc_file, completion_line, wrapper_content)
 
     return True
 
@@ -234,7 +211,7 @@ def perform_shell_setup(shell_ops: ShellOps) -> bool:
 @click.option(
     "--shell",
     is_flag=True,
-    help="Set up shell integration only (completion + auto-activation wrapper).",
+    help="Show shell integration setup instructions (completion + auto-activation wrapper).",
 )
 @click.pass_obj
 def init_cmd(
