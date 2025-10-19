@@ -30,10 +30,10 @@ description: |
   </example>
 
   <example>
-  Context: User wants to see stack log
-  user: "Show me the log for my current stack"
-  assistant: "I'll use the gt-runner agent to get your stack log."
-  <uses Task tool to launch gt-runner agent with command: "gt log short">
+  Context: User wants to see parent branch
+  user: "What's the parent of this branch?"
+  assistant: "I'll use the gt-runner agent to get the parent branch."
+  <uses Task tool to launch gt-runner agent with command: "gt parent">
   </example>
 
 model: haiku
@@ -75,8 +75,8 @@ You are a Graphite (gt) command execution and output parsing agent, optimized fo
 **Special handling for gt squash:**
 
 - If the command is `gt squash` or contains `squash`:
-  1. First get the parent branch: `gt branch --parent`
-  2. Count commits on current branch: `git rev-list --count HEAD ^$(git merge-base HEAD $(gt branch --parent))`
+  1. First get the parent branch: `gt parent`
+  2. Count commits on current branch: `git rev-list --count HEAD ^$(git merge-base HEAD $(gt parent))`
   3. If count equals 1:
      - DO NOT execute the squash command
      - Return success with informative message: "Branch has only 1 commit - squash not required"
@@ -95,12 +95,14 @@ You are a Graphite (gt) command execution and output parsing agent, optimized fo
 
 Based on the command, extract relevant structured data:
 
-- **gt log / gt log short**: Use `workstack graphite branches --format json` to get structured branch metadata with parent/child relationships, then format for display
+- **⚠️ gt log / gt log short**: NEVER use for extracting branch relationships - output is counterintuitive and confuses agents. For display only, return tree visualization as-is without parsing.
+- **gt parent**: Parse single parent branch name
+- **gt children**: Parse space-separated list of child branches
+- **gt branch info**: Parse structured output (Parent:, Children:, Commit: lines)
 - **gt submit**: PR URLs (look for github.com/_/pull/_ patterns)
 - **gt branch**: Current branch name
 - **gt ls**: List of branch names
 - **gt status**: File status information
-- **gt info**: Branch metadata
 - **Other commands**: Return raw output with minimal parsing
 
 ### Step 3: Return Structured Result
@@ -137,39 +139,60 @@ Format response as:
 
 ### Common Parsing Patterns
 
-**Stack Structure** (from gt log / gt log short):
+**Parent Branch Resolution** (recommended approach):
 
-Use `workstack graphite branches --format json` for reliable parsing:
+Use `gt parent` or `gt branch info` for the most reliable way to get parent branch information:
 
-1. Execute: `workstack graphite branches --format json`
+```bash
+# Option 1: Direct parent name (simplest)
+gt parent
 
-2. Parse JSON to get:
-   - Current branch (use `git branch --show-current`)
-   - Parent branch (from `parent` field)
-   - Children branches (from `children` array)
-   - Trunk branch (where `is_trunk: true`)
-
-3. Format output clearly:
-   - **Current branch**: [branch name]
-   - **Parent branch**: [parent name] (what this branch is based on)
-   - **Children branches**: [list] (branches based on this one)
-   - **Trunk**: [trunk name]
-
-Example JSON structure:
-
-```json
-{
-  "branches": [
-    {
-      "name": "test-coverage-1-status-system",
-      "parent": "terminal-first-agent-workflow",
-      "children": ["test-coverage-2-real-operations"],
-      "is_trunk": false,
-      "commit_sha": "ecaab4a..."
-    }
-  ]
-}
+# Option 2: Full branch info with parent, children, commit SHA
+gt branch info
 ```
+
+**Parsing `gt branch info` output**:
+
+```
+Branch: feature-branch
+Parent: main
+Children: child-1, child-2
+Commit: abc1234567890abcdef1234567890abcdef12
+```
+
+Extract parent: `gt branch info | grep "Parent:" | awk '{print $2}'`
+
+**Why this approach:**
+
+- Direct, machine-readable output from Graphite metadata
+- More reliable than parsing tree visualizations (`gt log short`)
+- More efficient than JSON parsing (`workstack graphite branches`)
+- Explicit parent information without heuristics
+- Clear error handling when parent cannot be determined
+
+**Children Branch Resolution**:
+
+Use `gt children` to get child branches directly:
+
+```bash
+# Get list of children
+gt children
+```
+
+**⚠️ CRITICAL: Stack Visualization vs Branch Relationships**
+
+**NEVER use `gt log short` for extracting parent/child relationships** - the output format is counterintuitive and confuses agents.
+
+**For display only**: `gt log short` tree visualization can be shown to users as-is without parsing.
+
+**For structured parent/child data**:
+
+- Use `gt parent` for parent branch name
+- Use `gt children` for child branch names
+- Use `gt branch info` for complete branch metadata (parent, children, commit SHA)
+- Use `git branch --show-current` for current branch name
+
+These commands provide explicit, machine-readable metadata without heuristics or tree parsing.
 
 **PR URLs** (from gt submit, gt pr, etc.):
 
@@ -325,13 +348,13 @@ Task(
 
 ### Common Scenarios
 
-**1. Check stack structure:**
+**1. Get parent branch:**
 
 ```python
 Task(
     subagent_type="gt-runner",
-    description="Show stack log",
-    prompt="Execute: gt log short"
+    description="Get parent branch",
+    prompt="Execute: gt parent"
 )
 ```
 
@@ -367,22 +390,22 @@ Task(
 
 ## Example Interactions
 
-### Example 1: Get Stack Log
+### Example 1: Get Branch Relationships
 
-**Input**: "Show me the stack log"
+**Input**: "Show me the current branch, parent, and children"
 
 **Actions**:
 
-1. Execute: `gt log short` to display tree
-2. Execute: `workstack graphite branches --format json` to get structured relationships
-3. Parse JSON and format clearly
+1. Execute: `git branch --show-current` for current branch
+2. Execute: `gt parent` for parent branch
+3. Execute: `gt children` for child branches
 
 **Output**:
 
 ```markdown
 ## Command
 
-`gt log short`
+Multiple commands executed: `git branch --show-current`, `gt parent`, `gt children`
 
 ## Status
 
@@ -393,11 +416,10 @@ Task(
 **Current branch**: test-coverage-1-status-system
 **Parent branch**: terminal-first-agent-workflow
 **Children branches**: test-coverage-2-real-operations
-**Trunk**: main
 
 ## Notes
 
-Used `workstack graphite branches --format json` to reliably parse branch relationships.
+Used native Graphite commands for explicit metadata access.
 Raw output omitted (successfully parsed)
 ```
 
@@ -508,7 +530,7 @@ Main agent should retry remaining branches or investigate repository performance
 
 **Actions**:
 
-1. Check commit count: `git rev-list --count HEAD ^$(git merge-base HEAD $(gt branch --parent))`
+1. Check commit count: `git rev-list --count HEAD ^$(git merge-base HEAD $(gt parent))`
 2. If result is "1", skip squash
 3. Return informative message
 
@@ -538,7 +560,7 @@ The current branch already has a single commit. Squashing is only needed when th
 
 **Actions**:
 
-1. Check commit count: `git rev-list --count HEAD ^$(git merge-base HEAD $(gt branch --parent))`
+1. Check commit count: `git rev-list --count HEAD ^$(git merge-base HEAD $(gt parent))`
 2. Result is "3" (multiple commits)
 3. Execute: `gt squash`
 

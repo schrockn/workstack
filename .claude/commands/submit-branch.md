@@ -27,7 +27,7 @@ Automatically create a git commit with a helpful summary message and submit the 
 
 ## Graphite Command Execution
 
-When executing gt commands in this workflow, use the `gt-runner` agent:
+**ALWAYS use the `gt-runner` agent for ALL gt commands in this workflow:**
 
 ```
 Task(
@@ -37,16 +37,11 @@ Task(
 )
 ```
 
-**When to use gt-runner:**
+This ensures:
 
-- Any gt command that produces output you need to parse
-- Commands where you need structured results (PR URLs, branch lists, etc.)
-- When output might pollute the context
-
-**When to use Bash directly:**
-
-- Simple gt commands with no output parsing needed
-- Commands explicitly allowed in permissions
+- Consistent execution and error handling
+- Proper output parsing without polluting context
+- Cost-optimized execution with Haiku model
 
 ## Implementation Steps
 
@@ -69,10 +64,10 @@ git commit -m "WIP: Prepare for submission"
 
 ### 2. Squash All Commits
 
-Combine all commits in the current branch into a single commit:
+Combine all commits in the current branch into a single commit using gt-runner:
 
-```bash
-gt squash
+```
+Task(subagent_type="gt-runner", description="Squash commits", prompt="Execute: gt squash")
 ```
 
 This creates a single commit containing all changes from the branch.
@@ -89,10 +84,10 @@ Use the git-diff-summarizer agent to analyze all changes and create a comprehens
 
 ### 4. Submit Branch
 
-Submit the current branch as a PR without interactive prompts:
+Submit the current branch as a PR without interactive prompts using gt-runner:
 
-```bash
-gt submit --publish --no-edit --restack
+```
+Task(subagent_type="gt-runner", description="Submit branch", prompt="Execute: gt submit --publish --no-edit --restack")
 ```
 
 Flags explained:
@@ -106,8 +101,8 @@ Flags explained:
 After submission, show:
 
 - Whether PR was created or updated
-- PR URL (extract from `gt` output)
-- Current branch status with `gt log short`
+- PR URL (from gt-runner output)
+- Current branch name
 
 ## Important Notes
 
@@ -141,10 +136,7 @@ Analyzing changes with git-diff-summarizer...
 ✓ Updating commit message with comprehensive summary
 
 Submitting branch...
-✓ PR created: #123 gt-tree-format
+✓ PR created: #123
 ✓ https://github.com/owner/repo/pull/123
-
-Current branch:
-◯ gt-tree-format (current)
-◉ main
+✓ Branch: gt-tree-format
 ```

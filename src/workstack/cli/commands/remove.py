@@ -167,9 +167,7 @@ def _remove_worktree(
                 branches_to_delete = _get_non_trunk_branches(ctx, repo.root, stack)
 
                 if not branches_to_delete:
-                    click.echo(
-                        "No branches to delete (all branches in stack are trunk branches)."
-                    )
+                    click.echo("No branches to delete (all branches in stack are trunk branches).")
 
     # Step 2: Display all planned operations
     if branches_to_delete or True:
