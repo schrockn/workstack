@@ -536,7 +536,9 @@ def test_git_collector_ahead_behind_with_upstream(tmp_path: Path) -> None:
     (local / "file.txt").write_text("content", encoding="utf-8")
     subprocess.run(["git", "add", "file.txt"], cwd=local, check=True)
     subprocess.run(["git", "commit", "-m", "Initial"], cwd=local, check=True)
-    subprocess.run(["git", "push", "origin", "main"], cwd=local, check=True, capture_output=True)
+    # Ensure we're on main branch (git init may create master or main depending on config)
+    subprocess.run(["git", "branch", "-M", "main"], cwd=local, check=True)
+    subprocess.run(["git", "push", "-u", "origin", "main"], cwd=local, check=True, capture_output=True)
 
     (local / "local.txt").write_text("local", encoding="utf-8")
     subprocess.run(["git", "add", "local.txt"], cwd=local, check=True)
