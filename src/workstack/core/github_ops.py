@@ -18,6 +18,118 @@ from dataclasses import dataclass
 from pathlib import Path
 
 
+def execute_gh_command(cmd: list[str], cwd: Path) -> str:
+    """Execute a gh CLI command and return stdout.
+
+    Args:
+        cmd: Command and arguments to execute
+        cwd: Working directory for command execution
+
+    Returns:
+        stdout from the command
+
+    Raises:
+        subprocess.CalledProcessError: If command fails
+        FileNotFoundError: If gh is not installed
+    """
+    result = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, check=True)
+    return result.stdout
+
+
+def parse_github_pr_list(json_str: str, include_checks: bool) -> dict[str, "PullRequestInfo"]:
+    """Parse gh pr list JSON output into PullRequestInfo objects.
+
+    Args:
+        json_str: JSON string from gh pr list command
+        include_checks: Whether check status is included in JSON
+
+    Returns:
+        Mapping of branch name to PullRequestInfo
+    """
+    prs_data = json.loads(json_str)
+    prs = {}
+
+    for pr in prs_data:
+        branch = pr["headRefName"]
+
+        # Only determine check status if we fetched it
+        checks_passing = None
+        if include_checks and "statusCheckRollup" in pr:
+            checks_passing = _determine_checks_status(pr["statusCheckRollup"])
+
+        # Parse owner and repo from GitHub URL
+        url = pr["url"]
+        parsed = _parse_github_pr_url(url)
+        if parsed is None:
+            # Skip PRs with malformed URLs (shouldn't happen in practice)
+            continue
+        owner, repo = parsed
+
+        prs[branch] = PullRequestInfo(
+            number=pr["number"],
+            state=pr["state"],
+            url=url,
+            is_draft=pr["isDraft"],
+            checks_passing=checks_passing,
+            owner=owner,
+            repo=repo,
+        )
+
+    return prs
+
+
+def parse_github_pr_status(json_str: str) -> tuple[str, int | None, str | None]:
+    """Parse gh pr status JSON output.
+
+    Args:
+        json_str: JSON string from gh pr list command for a specific branch
+
+    Returns:
+        Tuple of (state, pr_number, title)
+        - state: "OPEN", "MERGED", "CLOSED", or "NONE" if no PR exists
+        - pr_number: PR number or None if no PR exists
+        - title: PR title or None if no PR exists
+    """
+    prs_data = json.loads(json_str)
+
+    # If no PR exists for this branch
+    if not prs_data:
+        return ("NONE", None, None)
+
+    # Take the first (and should be only) PR
+    pr = prs_data[0]
+    return (pr["state"], pr["number"], pr["title"])
+
+
+def _determine_checks_status(check_rollup: list[dict]) -> bool | None:
+    """Determine overall CI checks status.
+
+    Returns:
+        None if no checks configured
+        True if all checks passed (SUCCESS, SKIPPED, or NEUTRAL)
+        False if any check failed or is pending
+    """
+    if not check_rollup:
+        return None
+
+    # GitHub check conclusions that should be treated as passing
+    passing_conclusions = {"SUCCESS", "SKIPPED", "NEUTRAL"}
+
+    for check in check_rollup:
+        status = check.get("status")
+        conclusion = check.get("conclusion")
+
+        # If any check is not completed, consider it failing
+        if status != "COMPLETED":
+            return False
+
+        # If any completed check didn't pass, consider it failing
+        if conclusion not in passing_conclusions:
+            return False
+
+    return True
+
+
 def _parse_github_pr_url(url: str) -> tuple[str, str] | None:
     """Parse owner and repo from GitHub PR URL.
 
@@ -99,6 +211,15 @@ class RealGitHubOps(GitHubOps):
     All GitHub operations execute actual gh commands via subprocess.
     """
 
+    def __init__(self, execute_fn=None):
+        """Initialize RealGitHubOps with optional command executor.
+
+        Args:
+            execute_fn: Optional function to execute commands (for testing).
+                       If None, uses execute_gh_command.
+        """
+        self._execute = execute_fn or execute_gh_command
+
     def get_prs_for_repo(
         self, repo_root: Path, *, include_checks: bool
     ) -> dict[str, PullRequestInfo]:
@@ -114,53 +235,17 @@ class RealGitHubOps(GitHubOps):
             if include_checks:
                 json_fields += ",statusCheckRollup"
 
-            # Fetch all PRs in one call for efficiency
-            result = subprocess.run(
-                [
-                    "gh",
-                    "pr",
-                    "list",
-                    "--state",
-                    "all",
-                    "--json",
-                    json_fields,
-                ],
-                cwd=repo_root,
-                capture_output=True,
-                text=True,
-                check=True,
-            )
-
-            prs_data = json.loads(result.stdout)
-            prs: dict[str, PullRequestInfo] = {}
-
-            for pr in prs_data:
-                branch = pr["headRefName"]
-
-                # Only determine check status if we fetched it
-                checks_passing = None
-                if include_checks:
-                    checks_passing = self._determine_checks_status(pr.get("statusCheckRollup", []))
-
-                # Parse owner and repo from GitHub URL
-                url = pr["url"]
-                parsed = _parse_github_pr_url(url)
-                if parsed is None:
-                    # Skip PRs with malformed URLs (shouldn't happen in practice)
-                    continue
-                owner, repo = parsed
-
-                prs[branch] = PullRequestInfo(
-                    number=pr["number"],
-                    state=pr["state"],
-                    url=url,
-                    is_draft=pr["isDraft"],
-                    checks_passing=checks_passing,
-                    owner=owner,
-                    repo=repo,
-                )
-
-            return prs
+            cmd = [
+                "gh",
+                "pr",
+                "list",
+                "--state",
+                "all",
+                "--json",
+                json_fields,
+            ]
+            stdout = self._execute(cmd, repo_root)
+            return parse_github_pr_list(stdout, include_checks)
 
         except (subprocess.CalledProcessError, FileNotFoundError, json.JSONDecodeError):
             # gh not installed, not authenticated, or JSON parsing failed
@@ -196,55 +281,12 @@ class RealGitHubOps(GitHubOps):
 
                 click.echo(f"$ {' '.join(cmd)}")
 
-            result = subprocess.run(
-                cmd,
-                cwd=repo_root,
-                capture_output=True,
-                text=True,
-                check=True,
-            )
-
-            prs_data = json.loads(result.stdout)
-
-            # If no PR exists for this branch
-            if not prs_data:
-                return ("NONE", None, None)
-
-            # Take the first (and should be only) PR
-            pr = prs_data[0]
-            return (pr["state"], pr["number"], pr["title"])
+            stdout = self._execute(cmd, repo_root)
+            return parse_github_pr_status(stdout)
 
         except (subprocess.CalledProcessError, FileNotFoundError, json.JSONDecodeError):
             # gh not installed, not authenticated, or JSON parsing failed
             return ("NONE", None, None)
-
-    def _determine_checks_status(self, check_rollup: list[dict]) -> bool | None:
-        """Determine overall CI checks status.
-
-        Returns:
-            None if no checks configured
-            True if all checks passed (SUCCESS, SKIPPED, or NEUTRAL)
-            False if any check failed or is pending
-        """
-        if not check_rollup:
-            return None
-
-        # GitHub check conclusions that should be treated as passing
-        passing_conclusions = {"SUCCESS", "SKIPPED", "NEUTRAL"}
-
-        for check in check_rollup:
-            status = check.get("status")
-            conclusion = check.get("conclusion")
-
-            # If any check is not completed, consider it failing
-            if status != "COMPLETED":
-                return False
-
-            # If any completed check didn't pass, consider it failing
-            if conclusion not in passing_conclusions:
-                return False
-
-        return True
 
 
 # ============================================================================

@@ -19,6 +19,119 @@ from workstack.core.github_ops import PullRequestInfo, _parse_github_pr_url
 from workstack.core.gitops import GitOps
 
 
+def execute_gt_command(cmd: list[str], cwd: Path) -> str:
+    """Execute a gt CLI command and return stdout.
+
+    Args:
+        cmd: Command and arguments to execute
+        cwd: Working directory for command execution
+
+    Returns:
+        stdout from the command
+
+    Raises:
+        subprocess.CalledProcessError: If command fails
+        FileNotFoundError: If gt is not installed
+    """
+    result = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, check=True)
+    return result.stdout
+
+
+def parse_graphite_pr_info(json_str: str) -> dict[str, PullRequestInfo]:
+    """Parse Graphite's .graphite_pr_info JSON into PullRequestInfo objects.
+
+    Args:
+        json_str: JSON string from .graphite_pr_info file
+
+    Returns:
+        Mapping of branch name to PullRequestInfo
+    """
+    data = json.loads(json_str)
+    prs = {}
+
+    for pr in data.get("prInfos", []):
+        branch = pr["headRefName"]
+
+        graphite_url = pr["url"]
+        github_url = _graphite_url_to_github_url(graphite_url)
+        parsed = _parse_github_pr_url(github_url)
+        if parsed is None:
+            continue
+        owner, repo = parsed
+
+        prs[branch] = PullRequestInfo(
+            number=pr["prNumber"],
+            state=pr["state"],
+            url=github_url,
+            is_draft=pr["isDraft"],
+            checks_passing=None,  # CI status not available from Graphite cache
+            owner=owner,
+            repo=repo,
+        )
+
+    return prs
+
+
+def parse_graphite_cache(
+    json_str: str, git_branch_heads: dict[str, str]
+) -> dict[str, BranchMetadata]:
+    """Parse Graphite's .graphite_cache_persist JSON into BranchMetadata objects.
+
+    Args:
+        json_str: JSON string from .graphite_cache_persist file
+        git_branch_heads: Mapping of branch name to commit SHA from git
+
+    Returns:
+        Mapping of branch name to BranchMetadata
+    """
+    cache_data = json.loads(json_str)
+    branches_data: list[tuple[str, dict[str, object]]] = cache_data.get("branches", [])
+
+    result = {}
+    for branch_name, info in branches_data:
+        if not isinstance(info, dict):
+            continue
+
+        # Get commit SHA from git (not stored in cache)
+        commit_sha = git_branch_heads.get(branch_name, "")
+
+        parent = info.get("parentBranchName")
+        if not isinstance(parent, str | None):
+            parent = None
+
+        children_raw = info.get("children", [])
+        if not isinstance(children_raw, list):
+            children_raw = []
+        children = [c for c in children_raw if isinstance(c, str)]
+
+        is_trunk = info.get("validationResult") == "TRUNK"
+
+        result[branch_name] = BranchMetadata(
+            name=branch_name,
+            parent=parent,
+            children=children,
+            is_trunk=is_trunk,
+            commit_sha=commit_sha,
+        )
+
+    return result
+
+
+def _graphite_url_to_github_url(graphite_url: str) -> str:
+    """Convert Graphite URL to GitHub URL.
+
+    Input: https://app.graphite.dev/github/pr/dagster-io/workstack/42
+    Output: https://github.com/dagster-io/workstack/pull/42
+    """
+    parts = graphite_url.split("/")
+    if len(parts) >= 8 and parts[2] == "app.graphite.dev":
+        owner = parts[5]
+        repo = parts[6]
+        pr_number = parts[7]
+        return f"https://github.com/{owner}/{repo}/pull/{pr_number}"
+    return graphite_url
+
+
 class GraphiteOps(ABC):
     """Abstract interface for Graphite operations.
 
@@ -93,6 +206,15 @@ class RealGraphiteOps(GraphiteOps):
     All Graphite operations execute actual gt commands via subprocess.
     """
 
+    def __init__(self, execute_fn=None):
+        """Initialize RealGraphiteOps with optional command executor.
+
+        Args:
+            execute_fn: Optional function to execute commands (for testing).
+                       If None, uses execute_gt_command.
+        """
+        self._execute = execute_fn or execute_gt_command
+
     def get_graphite_url(self, owner: str, repo: str, pr_number: int) -> str:
         """Get Graphite PR URL for a pull request.
 
@@ -146,46 +268,10 @@ class RealGraphiteOps(GraphiteOps):
             return {}
 
         try:
-            data = json.loads(pr_info_file.read_text(encoding="utf-8"))
+            json_str = pr_info_file.read_text(encoding="utf-8")
+            return parse_graphite_pr_info(json_str)
         except (json.JSONDecodeError, OSError):
             return {}
-
-        prs: dict[str, PullRequestInfo] = {}
-        for pr in data.get("prInfos", []):
-            branch = pr["headRefName"]
-
-            graphite_url = pr["url"]
-            github_url = self._graphite_url_to_github_url(graphite_url)
-            parsed = _parse_github_pr_url(github_url)
-            if parsed is None:
-                continue
-            owner, repo = parsed
-
-            prs[branch] = PullRequestInfo(
-                number=pr["prNumber"],
-                state=pr["state"],
-                url=github_url,
-                is_draft=pr["isDraft"],
-                checks_passing=None,
-                owner=owner,
-                repo=repo,
-            )
-
-        return prs
-
-    def _graphite_url_to_github_url(self, graphite_url: str) -> str:
-        """Convert Graphite URL to GitHub URL.
-
-        Input: https://app.graphite.dev/github/pr/dagster-io/workstack/42
-        Output: https://github.com/dagster-io/workstack/pull/42
-        """
-        parts = graphite_url.split("/")
-        if len(parts) >= 8 and parts[2] == "app.graphite.dev":
-            owner = parts[5]
-            repo = parts[6]
-            pr_number = parts[7]
-            return f"https://github.com/{owner}/{repo}/pull/{pr_number}"
-        return graphite_url
 
     def get_all_branches(self, git_ops: GitOps, repo_root: Path) -> dict[str, BranchMetadata]:
         """Get all gt-tracked branches with metadata.
@@ -202,39 +288,21 @@ class RealGraphiteOps(GraphiteOps):
             return {}
 
         try:
-            cache_data = json.loads(cache_file.read_text(encoding="utf-8"))
+            json_str = cache_file.read_text(encoding="utf-8")
+            # Get all branch heads from git for enrichment
+            git_branch_heads = {}
+            # This is a bit inefficient but matches original behavior
+            # In reality, could be optimized by getting all refs at once
+            branches_data = json.loads(json_str).get("branches", [])
+            for branch_name, _ in branches_data:
+                if isinstance(branch_name, str):
+                    commit_sha = git_ops.get_branch_head(repo_root, branch_name)
+                    if commit_sha:
+                        git_branch_heads[branch_name] = commit_sha
+
+            return parse_graphite_cache(json_str, git_branch_heads)
         except (json.JSONDecodeError, OSError):
             return {}
-
-        branches_data: list[tuple[str, dict[str, object]]] = cache_data.get("branches", [])
-
-        result: dict[str, BranchMetadata] = {}
-        for branch_name, info in branches_data:
-            if not isinstance(info, dict):
-                continue
-
-            commit_sha = git_ops.get_branch_head(repo_root, branch_name) or ""
-
-            parent = info.get("parentBranchName")
-            if not isinstance(parent, str | None):
-                parent = None
-
-            children_raw = info.get("children", [])
-            if not isinstance(children_raw, list):
-                children_raw = []
-            children = [c for c in children_raw if isinstance(c, str)]
-
-            is_trunk = info.get("validationResult") == "TRUNK"
-
-            result[branch_name] = BranchMetadata(
-                name=branch_name,
-                parent=parent,
-                children=children,
-                is_trunk=is_trunk,
-                commit_sha=commit_sha,
-            )
-
-        return result
 
 
 class DryRunGraphiteOps(GraphiteOps):
