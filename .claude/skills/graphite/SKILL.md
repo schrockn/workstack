@@ -75,14 +75,17 @@ All gt metadata is stored in the shared `.git` directory (accessible across work
 | `gt split`   | Split current branch into multiple single-commit branches |
 | `gt log`     | Visualize stack structure                                 |
 
-### Branch Management
+### Branch Info & Management
 
-| Command               | Purpose                                    |
-| --------------------- | ------------------------------------------ |
-| `gt track [branch]`   | Start tracking branch with gt (set parent) |
-| `gt untrack [branch]` | Stop tracking branch with gt               |
-| `gt delete [name]`    | Delete branch and update metadata          |
-| `gt rename [name]`    | Rename branch and update metadata          |
+| Command               | Purpose                                         |
+| --------------------- | ----------------------------------------------- |
+| `gt branch info`      | Show branch info (parent, children, commit SHA) |
+| `gt parent`           | Show parent branch name                         |
+| `gt children`         | Show children branch names                      |
+| `gt track [branch]`   | Start tracking branch with gt (set parent)      |
+| `gt untrack [branch]` | Stop tracking branch with gt                    |
+| `gt delete [name]`    | Delete branch and update metadata               |
+| `gt rename [name]`    | Rename branch and update metadata               |
 
 ## Workflow Patterns
 
@@ -202,6 +205,8 @@ gt submit --stack
 
 4. **Don't forget to `gt sync` after merges**: Stale branches accumulate and metadata gets outdated
 
+5. **⚠️ NEVER use `gt log short` for branch status**: The output format is counterintuitive and confuses agents. Use `gt branch info`, `gt parent`, or `gt children` for explicit metadata access instead
+
 ## Quick Decision Tree
 
 **When to use gt commands:**
@@ -210,6 +215,8 @@ gt submit --stack
 - **Edit current branch** → `gt modify` (auto-restacks children)
 - **Navigate stack** → `gt up/down/top/bottom` (move through chain)
 - **View structure** → `gt log` (see visualization)
+- **Get parent branch** → `gt branch info` (parse "Parent:" line)
+- **Get branch relationships** → `gt parent` / `gt children` (quick access)
 - **Submit PRs** → `gt submit --stack` (create/update all PRs)
 - **After merges** → `gt sync` (clean up + rebase)
 - **Reorganize** → `gt move` (change parent)

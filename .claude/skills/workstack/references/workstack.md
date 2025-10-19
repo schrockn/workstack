@@ -909,7 +909,9 @@ workstack sync              # Run gt repo sync + cleanup
 
 **Graphite commands used:**
 
-- `gt log short --steps 1` - Get parent/child relationships
+- `gt parent` - Get parent branch
+- `gt children` - Get child branches
+- `gt branch info` - Get complete branch metadata
 - `gt repo sync` - Sync with remote
 - `gt ls` - List tracked branches
 
@@ -972,14 +974,17 @@ workstack graphite branches --format tree --stack feature-a
 **When to use:**
 
 - Need JSON output for scripts or tools
-- Need full branch metadata (parent, children, trunk status)
+- Need full branch metadata across ALL branches simultaneously
 - Building automation that consumes Graphite data
 
 **When NOT to use:**
 
+- Getting parent/child for a single branch → Use `gt parent`, `gt children`, or `gt branch info`
 - Interactive terminal work → Use native `gt` commands instead
 - Creating branches → Use `gt create`
 - Submitting PRs → Use `gt submit`
+
+**Recommended practice**: For parent/child relationships, always prefer `gt parent`, `gt children`, and `gt branch info` over parsing `workstack graphite branches` output. They are faster, simpler, and more reliable.
 
 ### GitHub Integration
 

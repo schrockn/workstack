@@ -554,30 +554,54 @@ gt log long                       # Detailed view
 - Indentation shows parent-child relationships
 - Shows PR status, age, and URLs
 
-#### `gt info [branch]`
+#### `gt branch info` / `gt info [branch]`
 
-Display information about a branch.
+Display information about a branch. **This is the recommended way to get parent branch information programmatically.**
 
 ```bash
-gt info                           # Current branch
+gt branch info                    # Current branch
+gt info                           # Alias for current branch
 gt info feature-name              # Specific branch
 ```
 
-**Output**:
+**Output format**:
 
-- Branch name
-- Parent branch
-- Children branches
-- Commit SHA
-- PR info (if exists)
+```
+Branch: feature-branch
+Parent: main
+Children: feature-child-1, feature-child-2
+Commit: abc1234567890abcdef1234567890abcdef12
+PR: #123 (https://app.graphite.dev/github/pr/owner/repo/123)
+```
+
+**Key insight**: The "Parent:" line provides explicit, machine-readable parent branch information without requiring tree visualization parsing or heuristics. This is the most reliable way to determine a branch's parent.
+
+**Parsing parent branch**:
+
+```bash
+# Get parent branch name
+parent=$(gt branch info | grep "Parent:" | awk '{print $2}')
+
+# Use for diff operations
+git diff "$parent...HEAD"
+```
+
+**Why this approach is superior**:
+
+- Direct output from Graphite's metadata
+- No ambiguity or tree-parsing heuristics needed
+- Clear error handling when parent cannot be determined
+- More maintainable than parsing `gt log short` visualization
 
 #### `gt parent`
 
-Show the parent of the current branch.
+Show the parent of the current branch (shorthand).
 
 ```bash
-gt parent                         # Show parent branch name
+gt parent                         # Show parent branch name only
 ```
+
+**Note**: `gt parent` provides just the name, while `gt branch info` provides full context. Use `gt branch info` when you need reliable parent information for automation.
 
 #### `gt children`
 
@@ -1309,6 +1333,38 @@ workstack list --stacks
 3. **Auto-restacking**: Changes propagate upstack automatically
 4. **Shared metadata**: All worktrees see the same gt metadata
 5. **PR mapping**: Each branch = one PR, base = parent branch
+
+### Parent Branch Resolution (Critical Pattern)
+
+**Best practice**: Use `gt branch info` to get parent branch information programmatically.
+
+```bash
+# Parse parent from gt branch info
+parent=$(gt branch info | grep "Parent:" | awk '{print $2}')
+
+# Use for diffs
+git diff "$parent...HEAD"
+```
+
+**Why this is superior to alternatives**:
+
+1. **Direct metadata access**: Reads from `.graphite_cache_persist` explicitly
+2. **No heuristics**: Tree parsing (`gt log short`) requires interpreting visual structure
+3. **No ambiguity**: "Parent:" line is always present for tracked branches
+4. **Clear errors**: Missing line means branch not tracked or no parent (trunk)
+5. **Maintainable**: Less brittle than parsing tree visualization
+
+**Avoid these patterns**:
+
+- ❌ Parsing `gt log short` tree visualization
+- ❌ Using `git merge-base` when Graphite is available
+- ❌ Guessing or inferring parent branches
+
+**When to fall back to git commands**:
+
+- Branch not tracked by Graphite (`gt track` first)
+- Graphite not installed or initialized
+- Need merge-base for non-stack operations
 
 ### When to Use gt Commands
 

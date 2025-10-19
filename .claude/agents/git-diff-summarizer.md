@@ -75,25 +75,49 @@ When analyzing standard git diffs:
 
 When working with Graphite stacks:
 
-- **ALWAYS check if Graphite is being used** by running `gt log short` first
-- If `gt` is available and the current branch is tracked by Graphite:
-  - Use `gt log short` to identify the parent branch name
-  - The parent is the branch directly below the current branch in the stack
-  - Use `git diff <parent-branch>...HEAD` to compare against the parent
-  - This respects Graphite's explicit parent-child relationships
-- **DO NOT use `git merge-base`** when Graphite is available - Graphite already tracks parent relationships explicitly
-- Understand that branches are organized in vertical stacks
+- **ALWAYS use Graphite commands** to determine parent relationships
+- Graphite tracks explicit parent-child relationships that must be respected
 - Compare a branch with its immediate parent (downstack)
 - Reference `.claude/skills/graphite/SKILL.md` for Graphite mental models if available
 - Recognize that stack changes should be cohesive and focused
 
-**Graphite Detection and Parent Resolution:**
+**Graphite Parent Resolution (REQUIRED):**
 
-1. First, check if `gt` is available: `which gt`
-2. If available, run: `gt log short`
-3. Parse the output to find the current branch (marked with `●`) and its parent (the branch directly below it in the output)
-4. If parent found, use: `git diff <parent>...HEAD`
-5. If `gt` is not available or branch is not tracked, fall back to traditional git methods
+1. Run: `gt branch info`
+2. Parse the output to find the line starting with "Parent:"
+3. Extract the parent branch name from that line
+4. Use `git diff <parent>...HEAD` to compare against the parent
+
+**Example `gt branch info` output:**
+
+```
+terminal-first-agent-workflow
+3 minutes ago
+
+Parent: main
+
+commit abc123...
+```
+
+**If `gt branch info` fails or doesn't produce a "Parent:" line, STOP and report an error:**
+
+```
+Error: Unable to determine parent branch from Graphite.
+
+This agent requires Graphite (gt) to analyze stack-based branches.
+Please ensure:
+1. Graphite is installed and available
+2. The current branch is tracked by Graphite
+3. Run 'gt branch info' to verify branch metadata
+
+If this is not a Graphite stack, please specify the commit range explicitly.
+```
+
+**DO NOT:**
+
+- Fall back to `git merge-base` or other heuristics
+- Parse `gt log short` tree visualization (the tree structure doesn't directly show parent-child relationships)
+- Guess or infer parent branches
 
 ## Output Format
 

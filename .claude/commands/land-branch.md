@@ -61,31 +61,33 @@ git branch --show-current
 
 **Store the branch name for use in status messages.**
 
-Next, get branch metadata:
+Next, get branch metadata using native gt commands:
 
 ```bash
-workstack graphite branches --format json
+# Get parent branch
+gt parent
+
+# Get children branches
+gt children
 ```
 
-**Parse the JSON output to extract:**
+**Parse the outputs:**
 
-- Current branch's parent name (from `"parent"` field)
-- Current branch's children array (from `"children"` field)
+- Parent: `gt parent` returns just the parent branch name (e.g., "main")
+- Children: `gt children` returns space-separated list of child branch names (e.g., "next-feature" or "")
 
-**Example JSON structure:**
+**Example outputs:**
 
-```json
-{
-  "branches": [
-    {
-      "name": "feature-branch",
-      "parent": "main",
-      "children": ["next-feature"],
-      "is_trunk": false,
-      "commit_sha": "abc123"
-    }
-  ]
-}
+```bash
+$ gt parent
+main
+
+$ gt children
+next-feature
+
+# Or for a branch with no children:
+$ gt children
+# (no output)
 ```
 
 ### Step 2: Validate Parent is Main
