@@ -11,7 +11,6 @@ Architecture:
 import json
 import subprocess
 import sys
-import warnings
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any
@@ -21,39 +20,28 @@ from workstack.core.github_ops import PullRequestInfo, _parse_github_pr_url
 from workstack.core.gitops import GitOps
 
 
-def read_graphite_json_file(file_path: Path, description: str) -> dict[str, Any] | None:
-    """Read and parse a Graphite JSON file with error handling.
+def read_graphite_json_file(file_path: Path, description: str) -> dict[str, Any]:
+    """Read and parse a Graphite JSON file.
 
     Args:
-        file_path: Path to the JSON file
+        file_path: Path to the JSON file (must exist)
         description: Human-readable description for error messages
             (e.g., "Graphite cache", "Graphite PR info")
 
     Returns:
-        Parsed JSON dict, or None if file doesn't exist or error occurs
+        Parsed JSON dict
+
+    Raises:
+        FileNotFoundError: If file doesn't exist
+        OSError: If file cannot be read
+        json.JSONDecodeError: If JSON is invalid
 
     Note:
-        Emits warnings for parse/read errors to inform user of cache issues
-        without crashing the application.
+        Callers must check file_path.exists() before calling if they want
+        to handle missing files gracefully.
     """
-    if not file_path.exists():
-        return None
-
-    try:
-        json_str = file_path.read_text(encoding="utf-8")
-        return json.loads(json_str)
-    except json.JSONDecodeError as e:
-        warnings.warn(
-            f"Cannot parse {description} at {file_path}: Invalid JSON ({e})",
-            stacklevel=2,
-        )
-        return None
-    except OSError as e:
-        warnings.warn(
-            f"Cannot read {description} at {file_path}: {e}",
-            stacklevel=2,
-        )
-        return None
+    json_str = file_path.read_text(encoding="utf-8")
+    return json.loads(json_str)
 
 
 def parse_graphite_pr_info(json_str: str) -> dict[str, PullRequestInfo]:
@@ -270,9 +258,10 @@ class RealGraphiteOps(GraphiteOps):
             return {}
 
         pr_info_file = git_dir / ".graphite_pr_info"
-        data = read_graphite_json_file(pr_info_file, "Graphite PR info")
-        if data is None:
+        if not pr_info_file.exists():
             return {}
+
+        data = read_graphite_json_file(pr_info_file, "Graphite PR info")
 
         # parse_graphite_pr_info expects JSON string, so convert back
         return parse_graphite_pr_info(json.dumps(data))
@@ -288,9 +277,10 @@ class RealGraphiteOps(GraphiteOps):
             return {}
 
         cache_file = git_dir / ".graphite_cache_persist"
-        data = read_graphite_json_file(cache_file, "Graphite cache")
-        if data is None:
+        if not cache_file.exists():
             return {}
+
+        data = read_graphite_json_file(cache_file, "Graphite cache")
 
         # Get all branch heads from git for enrichment
         git_branch_heads = {}

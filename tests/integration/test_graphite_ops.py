@@ -1,7 +1,10 @@
 """Integration tests for GraphiteOps with minimal mocking."""
 
+import json
 from pathlib import Path
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 from tests.conftest import load_fixture
 from workstack.core.graphite_ops import RealGraphiteOps
@@ -56,7 +59,7 @@ def test_graphite_ops_get_prs_file_not_exists():
 
 
 def test_graphite_ops_get_prs_json_error():
-    """Test handling of malformed JSON in .graphite_pr_info."""
+    """Test that malformed JSON in .graphite_pr_info raises JSONDecodeError."""
     mock_git_ops = MagicMock()
     mock_git_ops.get_git_common_dir.return_value = Path("/test/.git")
 
@@ -68,9 +71,8 @@ def test_graphite_ops_get_prs_json_error():
         mock_read_text.return_value = "not valid json"
 
         ops = RealGraphiteOps()
-        result = ops.get_prs_from_graphite(mock_git_ops, Path("/test"))
-
-    assert result == {}
+        with pytest.raises(json.JSONDecodeError):
+            ops.get_prs_from_graphite(mock_git_ops, Path("/test"))
 
 
 def test_graphite_ops_get_all_branches():
@@ -125,7 +127,7 @@ def test_graphite_ops_get_all_branches_no_cache():
 
 
 def test_graphite_ops_get_all_branches_json_error():
-    """Test handling of malformed JSON in .graphite_cache_persist."""
+    """Test that malformed JSON in .graphite_cache_persist raises JSONDecodeError."""
     mock_git_ops = MagicMock()
     mock_git_ops.get_git_common_dir.return_value = Path("/test/.git")
 
@@ -137,9 +139,8 @@ def test_graphite_ops_get_all_branches_json_error():
         mock_read_text.return_value = "not valid json"
 
         ops = RealGraphiteOps()
-        result = ops.get_all_branches(mock_git_ops, Path("/test"))
-
-    assert result == {}
+        with pytest.raises(json.JSONDecodeError):
+            ops.get_all_branches(mock_git_ops, Path("/test"))
 
 
 def test_graphite_url_construction():

@@ -185,9 +185,10 @@ def _load_graphite_branch_graph(
 
     # Check if Graphite cache file exists and parse
     cache_file = git_dir / ".graphite_cache_persist"
-    cache_data = read_graphite_json_file(cache_file, "Graphite cache")
-    if cache_data is None:
+    if not cache_file.exists():
         return None
+
+    cache_data = read_graphite_json_file(cache_file, "Graphite cache")
 
     branches_data = cache_data.get("branches", [])
 
