@@ -24,194 +24,62 @@ This command safely lands a single branch from a Graphite stack by:
 
 This command takes no arguments and operates on the current branch.
 
-## Graphite Command Execution
-
-When executing gt commands in this workflow, use the `gt-runner` agent:
-
-```
-Task(
-    subagent_type="gt-runner",
-    description="[Short description]",
-    prompt="Execute: gt [command]"
-)
-```
-
-**When to use gt-runner:**
-
-- Any gt command that produces output you need to parse
-- Commands where you need structured results (PR URLs, branch lists, etc.)
-- When output might pollute the context
-
-**When to use Bash directly:**
-
-- Simple gt commands with no output parsing needed
-- Commands explicitly allowed in permissions
-
 ## Implementation Steps
 
 When this command is invoked:
 
-### Step 1: Get Current Branch and Metadata
+### Step 1: Execute land-branch command
 
-First, get the current branch name:
-
-```bash
-git branch --show-current
-```
-
-**Store the branch name for use in status messages.**
-
-Next, get branch metadata using native gt commands:
+Run the workstack-dev command with JSON output:
 
 ```bash
-# Get parent branch
-gt parent
-
-# Get children branches
-gt children
+workstack-dev land-branch --format json
 ```
 
-**Parse the outputs:**
+This command encapsulates all the validation and execution logic in Python, returning a structured JSON result.
 
-- Parent: `gt parent` returns just the parent branch name (e.g., "main")
-- Children: `gt children` returns space-separated list of child branch names (e.g., "next-feature" or "")
+### Step 2: Parse and display result
 
-**Example outputs:**
+Parse the JSON output to determine success or failure:
 
-```bash
-$ gt parent
-main
+**On success (`success: true`):**
 
-$ gt children
-next-feature
+Display the success message to the user. The JSON will include:
 
-# Or for a branch with no children:
-$ gt children
-# (no output)
+```json
+{
+  "success": true,
+  "pr_number": 123,
+  "branch_name": "feature-branch",
+  "child_branch": "next-feature",
+  "message": "Successfully merged PR #123 for branch feature-branch"
+}
 ```
 
-### Step 2: Validate Parent is Main
+If `child_branch` is not null, inform the user they can run `/land-branch` again.
 
-**Check that the parent branch is exactly "main".**
+**On failure (`success: false`):**
 
-If `parent !== "main"`, report error and exit:
+Display the error message from the JSON response and exit with error status. The JSON will include:
 
-```
-Error: Branch must be exactly one level up from main
-
-Current branch: {branch_name}
-Parent branch: {parent} (expected: main)
-
-Please navigate to a branch that branches directly from main.
-```
-
-### Step 3: Check PR Exists and is Open
-
-Run:
-
-```bash
-gh pr view --json state,number
-```
-
-**Parse JSON to check:**
-
-- Command succeeds (PR exists)
-- `state` field is `"OPEN"`
-
-**If no PR exists (command fails):**
-
-```
-Error: No pull request found for this branch
-
-Please create a PR first using: gt submit
-```
-
-**If PR is not open:**
-
-```
-Error: Pull request is not open (state: {state})
-
-This command only works with open pull requests.
-```
-
-### Step 4: Validate Linear Stack
-
-**Check the children array from Step 1.**
-
-**Valid cases:**
-
-- `children = []` (last branch in stack)
-- `children = ["single-branch"]` (exactly one child)
-
-**If `len(children) > 1`, report error and exit:**
-
-```
-Error: Branch has multiple children (not a linear stack)
-
-Children: {child1}, {child2}, {child3}
-
-This command only works with linear stacks. Please use a branch with 0 or 1 children.
-```
-
-### Step 5: Merge the PR
-
-Run:
-
-```bash
-gh pr merge -s
-```
-
-This squash-merges the PR to main and closes it.
-
-**If the command fails, report error and exit:**
-
-```
-Error: Failed to merge PR
-
-{output from gh pr merge}
-
-Please resolve the issue and try again.
-```
-
-### Step 6: Navigate to Child Branch (if exists)
-
-**If `children = []` (no children):**
-
-```
-✓ Successfully merged PR #{pr_number} for branch {branch_name}
-✓ Stack complete! No more branches to land.
-```
-
-**If `children = ["single-branch"]` (one child):**
-
-Run:
-
-```bash
-workstack up
-```
-
-This navigates to the child branch in the Graphite stack.
-
-Then output:
-
-```
-✓ Successfully merged PR #{pr_number} for branch {branch_name}
-✓ Navigated to child branch: {child_branch_name}
-
-You can now run /land-branch again to merge the next PR in the stack.
+```json
+{
+  "success": false,
+  "error_type": "parent_not_main",
+  "message": "Detailed error message...",
+  "details": {
+    "current_branch": "feature-branch",
+    "parent_branch": "other-feature"
+  }
+}
 ```
 
 ## TodoWrite Structure
 
 When executing this command, create these todos:
 
-1. "Get current branch name and metadata" / "Getting current branch name and metadata"
-2. "Validate parent is main" / "Validating parent is main"
-3. "Check PR exists and is open" / "Checking PR exists and is open"
-4. "Validate linear stack (0-1 children)" / "Validating linear stack"
-5. "Merge PR with gh pr merge -s" / "Merging PR with gh pr merge -s"
-6. "Navigate to child branch if exists" / "Navigating to child branch"
-7. "Report final status" / "Reporting final status"
+1. "Execute workstack-dev land-branch" / "Executing workstack-dev land-branch"
+2. "Parse result and display to user" / "Parsing result and displaying to user"
 
 Start with todo 1 as `in_progress`, rest as `pending`. Mark each as `completed` immediately after finishing.
 
