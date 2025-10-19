@@ -219,36 +219,35 @@ except Exception:
 When you need exception handling for resource management or cleanup at error boundaries, **encapsulate it in a context manager**. This keeps business logic clean while properly handling necessary exceptions:
 
 ```python
-# ✅ GOOD: Exception handling encapsulated in context manager
+# ✅ GOOD: Exception handling encapsulated in context manager (example pattern)
 from contextlib import contextmanager
-import os
-import tempfile
 from pathlib import Path
 
 @contextmanager
-def atomic_write(target_path: Path):
-    """Atomically write to a file with automatic cleanup on error."""
-    target_path = Path(target_path)
-    temp_fd, temp_path = tempfile.mkstemp(dir=target_path.parent)
+def worktree_analysis_boundary(worktree_path: Path):
+    """Error boundary for individual worktree analysis.
 
+    Allows batch analysis to continue even if one worktree fails.
+    Acceptable because: individual worktree failures shouldn't crash
+    entire multi-worktree operation.
+    """
     try:
-        with os.fdopen(temp_fd, "w", encoding="utf-8") as f:
-            yield f
-        os.rename(temp_path, target_path)
-    except (OSError, IOError):
-        # Cleanup is an acceptable use of exception handling at error boundaries
-        try:
-            os.unlink(temp_path)
-        except FileNotFoundError:
-            pass  # File never created if mkstemp failed
-        raise
+        yield
+    except (subprocess.CalledProcessError, FileNotFoundError) as e:
+        # Error boundary: provide default behavior for failures
+        click.echo(f"Warning: Skipping {worktree_path.name}: {e}", err=True)
+        # Operation continues with other worktrees
 
 # ✅ Business logic remains clean and exception-free
-def update_config(config_path: Path, new_content: str) -> None:
-    """Update configuration file atomically."""
-    with atomic_write(config_path) as f:
-        f.write(new_content)
-    click.echo(f"Updated {config_path}")
+def analyze_all_worktrees() -> dict[Path, str]:
+    """Analyze all worktrees, skipping any that fail."""
+    results = {}
+    for wt_path in get_worktree_paths():
+        with worktree_analysis_boundary(wt_path):
+            # This might fail, but won't crash entire operation
+            branch = get_current_branch(wt_path)
+            results[wt_path] = branch
+    return results
 ```
 
 **Benefits:**

@@ -1,6 +1,5 @@
 """Tests for the init command."""
 
-import tempfile
 from pathlib import Path
 
 from click.testing import CliRunner
@@ -12,32 +11,6 @@ from tests.fakes.graphite_ops import FakeGraphiteOps
 from tests.fakes.shell_ops import FakeShellOps
 from workstack.cli.cli import cli
 from workstack.core.context import WorkstackContext
-
-
-def create_isolated_shell_rc(shell: str, initial_content: str = "") -> Path:
-    """Create an isolated shell rc file in a temporary directory.
-
-    Args:
-        shell: Shell type ('bash', 'zsh', or 'fish')
-        initial_content: Initial content to write to the file
-
-    Returns:
-        Path to the created rc file in an isolated temp directory
-    """
-    temp_dir = Path(tempfile.mkdtemp(prefix=f"test_shell_{shell}_"))
-
-    if shell == "bash":
-        rc_file = temp_dir / ".bashrc"
-    elif shell == "zsh":
-        rc_file = temp_dir / ".zshrc"
-    elif shell == "fish":
-        rc_file = temp_dir / ".config" / "fish" / "config.fish"
-        rc_file.parent.mkdir(parents=True, exist_ok=True)
-    else:
-        raise ValueError(f"Unsupported shell: {shell}")
-
-    rc_file.write_text(initial_content, encoding="utf-8")
-    return rc_file
 
 
 def test_init_creates_global_config_first_time() -> None:
@@ -714,12 +687,10 @@ def test_init_first_time_offers_shell_setup() -> None:
         git_dir.mkdir()
 
         workstacks_root = cwd / "workstacks"
+        bashrc = Path.home() / ".bashrc"
 
         git_ops = FakeGitOps(git_common_dirs={cwd: git_dir})
         global_config_ops = FakeGlobalConfigOps(exists=False)
-
-        # Create isolated bashrc in temporary directory
-        bashrc = create_isolated_shell_rc("bash")
 
         test_ctx = WorkstackContext(
             git_ops=git_ops,
@@ -747,12 +718,10 @@ def test_init_shell_flag_only_setup() -> None:
         git_dir.mkdir()
 
         workstacks_root = cwd / "workstacks"
+        bashrc = Path.home() / ".bashrc"
 
         git_ops = FakeGitOps(git_common_dirs={cwd: git_dir})
         global_config_ops = FakeGlobalConfigOps(exists=True, workstacks_root=workstacks_root)
-
-        # Create isolated bashrc in temporary directory
-        bashrc = create_isolated_shell_rc("bash")
 
         test_ctx = WorkstackContext(
             git_ops=git_ops,
@@ -782,12 +751,10 @@ def test_init_detects_bash_shell() -> None:
         git_dir.mkdir()
 
         workstacks_root = cwd / "workstacks"
+        bashrc = Path.home() / ".bashrc"
 
         git_ops = FakeGitOps(git_common_dirs={cwd: git_dir})
         global_config_ops = FakeGlobalConfigOps(exists=False)
-
-        # Create isolated bashrc in temporary directory
-        bashrc = create_isolated_shell_rc("bash")
 
         test_ctx = WorkstackContext(
             git_ops=git_ops,
@@ -818,12 +785,10 @@ def test_init_detects_zsh_shell() -> None:
         git_dir.mkdir()
 
         workstacks_root = cwd / "workstacks"
+        zshrc = Path.home() / ".zshrc"
 
         git_ops = FakeGitOps(git_common_dirs={cwd: git_dir})
         global_config_ops = FakeGlobalConfigOps(exists=False)
-
-        # Create isolated zshrc in temporary directory
-        zshrc = create_isolated_shell_rc("zsh")
 
         test_ctx = WorkstackContext(
             git_ops=git_ops,
@@ -854,12 +819,10 @@ def test_init_detects_fish_shell() -> None:
         git_dir.mkdir()
 
         workstacks_root = cwd / "workstacks"
+        fish_config = Path.home() / ".config" / "fish" / "config.fish"
 
         git_ops = FakeGitOps(git_common_dirs={cwd: git_dir})
         global_config_ops = FakeGlobalConfigOps(exists=False)
-
-        # Create isolated fish config in temporary directory
-        fish_config = create_isolated_shell_rc("fish")
 
         test_ctx = WorkstackContext(
             git_ops=git_ops,
@@ -909,8 +872,8 @@ def test_init_skips_unknown_shell() -> None:
         assert "Unable to detect shell" in result.output
 
 
-def test_init_adds_completion_to_rc_file() -> None:
-    """Test that init adds completion line to rc file."""
+def test_init_prints_completion_instructions() -> None:
+    """Test that init prints completion instructions."""
     runner = CliRunner()
     with runner.isolated_filesystem():
         cwd = Path.cwd()
@@ -918,12 +881,10 @@ def test_init_adds_completion_to_rc_file() -> None:
         git_dir.mkdir()
 
         workstacks_root = cwd / "workstacks"
+        bashrc = Path.home() / ".bashrc"
 
         git_ops = FakeGitOps(git_common_dirs={cwd: git_dir})
         global_config_ops = FakeGlobalConfigOps(exists=False)
-
-        # Create isolated bashrc in temporary directory
-        bashrc = create_isolated_shell_rc("bash", "# Existing content\n")
 
         test_ctx = WorkstackContext(
             git_ops=git_ops,
@@ -934,21 +895,23 @@ def test_init_adds_completion_to_rc_file() -> None:
             dry_run=False,
         )
 
-        # Accept shell setup and both prompts (completion and wrapper)
+        # Accept shell setup to see instructions
         result = runner.invoke(
             cli,
             ["init"],
             obj=test_ctx,
-            input=f"{workstacks_root}\ny\ny\ny\n",
+            input=f"{workstacks_root}\ny\n",
         )
 
         assert result.exit_code == 0, result.output
-        bashrc_content = bashrc.read_text(encoding="utf-8")
-        assert "workstack completion" in bashrc_content
+        # Verify instructions are printed, not file written
+        assert "Shell Integration Setup" in result.output
+        assert "# Workstack completion" in result.output
+        assert "source <(workstack completion bash)" in result.output
 
 
-def test_init_adds_wrapper_to_rc_file() -> None:
-    """Test that init adds wrapper function to rc file."""
+def test_init_prints_wrapper_instructions() -> None:
+    """Test that init prints wrapper function instructions."""
     runner = CliRunner()
     with runner.isolated_filesystem():
         cwd = Path.cwd()
@@ -956,12 +919,10 @@ def test_init_adds_wrapper_to_rc_file() -> None:
         git_dir.mkdir()
 
         workstacks_root = cwd / "workstacks"
+        bashrc = Path.home() / ".bashrc"
 
         git_ops = FakeGitOps(git_common_dirs={cwd: git_dir})
         global_config_ops = FakeGlobalConfigOps(exists=False)
-
-        # Create isolated bashrc in temporary directory
-        bashrc = create_isolated_shell_rc("bash", "# Existing content\n")
 
         test_ctx = WorkstackContext(
             git_ops=git_ops,
@@ -972,17 +933,19 @@ def test_init_adds_wrapper_to_rc_file() -> None:
             dry_run=False,
         )
 
-        # Accept shell setup and both prompts
+        # Accept shell setup to see instructions
         result = runner.invoke(
             cli,
             ["init"],
             obj=test_ctx,
-            input=f"{workstacks_root}\ny\ny\ny\n",
+            input=f"{workstacks_root}\ny\n",
         )
 
         assert result.exit_code == 0, result.output
-        bashrc_content = bashrc.read_text(encoding="utf-8")
-        assert "workstack" in bashrc_content
+        # Verify wrapper instructions are printed
+        assert "Shell Integration Setup" in result.output
+        assert "# Workstack shell integration" in result.output
+        assert "workstack()" in result.output
 
 
 def test_init_skips_shell_if_declined() -> None:
@@ -994,13 +957,10 @@ def test_init_skips_shell_if_declined() -> None:
         git_dir.mkdir()
 
         workstacks_root = cwd / "workstacks"
+        bashrc = Path.home() / ".bashrc"
 
         git_ops = FakeGitOps(git_common_dirs={cwd: git_dir})
         global_config_ops = FakeGlobalConfigOps(exists=False)
-
-        # Create isolated bashrc in temporary directory
-        original_content = "# Existing content\n"
-        bashrc = create_isolated_shell_rc("bash", original_content)
 
         test_ctx = WorkstackContext(
             git_ops=git_ops,
@@ -1020,9 +980,9 @@ def test_init_skips_shell_if_declined() -> None:
         )
 
         assert result.exit_code == 0, result.output
-        bashrc_content = bashrc.read_text(encoding="utf-8")
-        # Should not modify bashrc
-        assert bashrc_content == original_content
+        # Verify no instructions were printed when declined
+        assert "Shell Integration Setup" not in result.output
+        assert "Skipping shell integration" in result.output
 
 
 def test_init_not_in_git_repo_fails() -> None:

@@ -227,7 +227,7 @@ The `tree` command shows:
 
 ```bash
 workstack init                   # Initialize in repository
-workstack init --shell           # Set up shell integration (completion + auto-activation)
+workstack init --shell           # Show shell integration setup instructions
 workstack init --list-presets    # List available config presets
 workstack init --repo            # Initialize repo config only (skip global)
 workstack config list            # Show all configuration
@@ -410,7 +410,7 @@ Requires Graphite CLI (`gt`) and GitHub CLI (`gh`) installed.
 | `--preset NAME`  | Config template (auto/generic/dagster/etc) |
 | `--list-presets` | List available presets and exit            |
 | `--repo`         | Initialize repo config only (skip global)  |
-| `--shell`        | Set up shell integration only              |
+| `--shell`        | Show shell integration setup instructions  |
 
 ### Environment Variables
 
