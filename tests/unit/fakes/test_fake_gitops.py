@@ -1,4 +1,8 @@
-"""Unit tests for FakeGitOps behavior."""
+"""Tests for FakeGitOps test infrastructure.
+
+These tests verify that FakeGitOps correctly simulates git behavior,
+tracks mutations, and provides reliable test doubles for CLI tests.
+"""
 
 from pathlib import Path
 
