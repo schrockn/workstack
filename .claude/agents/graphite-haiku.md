@@ -183,12 +183,14 @@ Commands are executed with a 60-second timeout to prevent hanging on slow operat
 ## Notes
 
 Command exceeded 60-second timeout. This may indicate:
+
 - Very large repository with slow git operations
 - Network issues (for commands that interact with GitHub)
 - Command waiting for user input (should not happen with non-interactive commands)
 ```
 
 Main agent should investigate root cause and consider:
+
 - Breaking command into smaller operations
 - Checking repository size/performance
 - Verifying command is non-interactive
@@ -356,9 +358,10 @@ Raw output omitted (simple successful command)
 Not in a git repository
 
 ## Raw Output
-
 ```
+
 fatal: not a git repository (or any of the parent directories): .git
+
 ```
 
 ## Notes
