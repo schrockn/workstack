@@ -23,24 +23,24 @@ Quick reference for locating feature implementations, tests, and related code.
 
 ## Core Features
 
-| Feature            | Implementation                                                      | Tests                                                                  | Notes                               |
-| ------------------ | ------------------------------------------------------------------- | ---------------------------------------------------------------------- | ----------------------------------- |
-| Create worktree    | `src/workstack/cli/commands/create.py`                              | `tests/commands/test_plan.py`                                          | Plan file support, branch creation  |
-| Switch worktree    | `src/workstack/cli/commands/switch.py`                              | `tests/commands/test_switch.py`                                        | Shell activation, env loading       |
-| List worktrees     | `src/workstack/cli/commands/list.py`                                | `tests/commands/list/test_basic.py`                                    | PR status optional, graphite stacks |
-| Remove worktree    | `src/workstack/cli/commands/remove.py`                              | `tests/commands/test_rm.py`                                            | Branch deletion, force flag         |
-| Rename worktree    | `src/workstack/cli/commands/rename.py`                              | `tests/commands/test_rename.py`                                        | Directory move + git update         |
-| Tree visualization | `src/workstack/cli/commands/tree.py`<br>`src/workstack/cli/tree.py` | `tests/commands/test_tree.py`                                          | Graphite stack hierarchy            |
-| Move worktree      | `src/workstack/cli/commands/move.py`                                | `tests/test_move.py`                                                   | Move/swap branches across worktrees |
-| Jump to branch     | `src/workstack/cli/commands/jump.py`                                | `tests/commands/test_jump.py`                                          | Navigate between stack branches     |
-| Status overview    | `src/workstack/cli/commands/status.py`                              | `tests/commands/test_status.py`<br>`tests/status/test_orchestrator.py` | Aggregate repo/worktree status      |
-| Initialize config  | `src/workstack/cli/commands/init.py`                                | N/A                                                                    | Presets, shell integration          |
-| Manage config      | `src/workstack/cli/commands/config.py`                              | N/A                                                                    | Get/set/list operations             |
-| Prepare recovery   | `src/workstack/cli/commands/prepare_cwd_recovery.py`                | `tests/commands/test_prepare_cwd_recovery.py`                          | Print shell snippet for PWD restore |
-| Garbage collection | `src/workstack/cli/commands/gc.py`                                  | N/A                                                                    | Merged PR identification            |
-| Graphite branches  | `src/workstack/cli/commands/gt.py`                                  | `tests/commands/graphite/test_gt_branches.py`                          | Machine-readable branch metadata    |
-| Sync with graphite | `src/workstack/cli/commands/sync.py`                                | `tests/test_sync.py`                                                   | PR detection, cleanup               |
-| Shell completion   | `src/workstack/cli/commands/completion.py`                          | `tests/commands/test_completion.py`                                    | Bash/zsh/fish support               |
+| Feature            | Implementation                                                      | Tests                                                                  | Notes                                            |
+| ------------------ | ------------------------------------------------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------ |
+| Create worktree    | `src/workstack/cli/commands/create.py`                              | `tests/commands/test_plan.py`                                          | Plan file support, branch creation               |
+| Switch worktree    | `src/workstack/cli/commands/switch.py`                              | `tests/commands/test_switch.py`                                        | Shell activation, env loading                    |
+| List worktrees     | `src/workstack/cli/commands/list.py`                                | `tests/commands/list/test_basic.py`                                    | PR status optional, graphite stacks              |
+| Remove worktree    | `src/workstack/cli/commands/remove.py`                              | `tests/commands/test_rm.py`                                            | Branch deletion, force flag                      |
+| Rename worktree    | `src/workstack/cli/commands/rename.py`                              | `tests/commands/test_rename.py`                                        | Directory move + git update                      |
+| Tree visualization | `src/workstack/cli/commands/tree.py`<br>`src/workstack/cli/tree.py` | `tests/commands/test_tree.py`                                          | Graphite stack hierarchy                         |
+| Move worktree      | `src/workstack/cli/commands/move.py`                                | `tests/test_move.py`                                                   | Move/swap branches across worktrees              |
+| Jump to branch     | `src/workstack/cli/commands/jump.py`                                | `tests/commands/test_jump.py`                                          | Navigate between stack branches                  |
+| Status overview    | `src/workstack/cli/commands/status.py`                              | `tests/commands/test_status.py`<br>`tests/status/test_orchestrator.py` | Aggregate repo/worktree status                   |
+| Initialize config  | `src/workstack/cli/commands/init.py`                                | N/A                                                                    | Presets, shell integration                       |
+| Manage config      | `src/workstack/cli/commands/config.py`                              | N/A                                                                    | Get/set/list operations                          |
+| Prepare recovery   | `src/workstack/cli/commands/prepare_cwd_recovery.py`                | `tests/commands/test_prepare_cwd_recovery.py`                          | Print shell snippet for PWD restore              |
+| Garbage collection | `src/workstack/cli/commands/gc.py`                                  | N/A                                                                    | Merged PR identification                         |
+| Graphite branches  | `src/workstack/cli/commands/gt.py`                                  | `tests/commands/graphite/test_gt_branches.py`                          | `workstack graphite` - machine-readable metadata |
+| Sync with graphite | `src/workstack/cli/commands/sync.py`                                | `tests/test_sync.py`                                                   | PR detection, cleanup                            |
+| Shell completion   | `src/workstack/cli/commands/completion.py`                          | `tests/commands/test_completion.py`                                    | Bash/zsh/fish support                            |
 
 ---
 

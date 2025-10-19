@@ -1,5 +1,9 @@
 # Workstack Coding Standards
 
+> **Note**: This is unreleased, completely private software. We can break backwards
+> compatibility completely at will based on preferences of the engineer developing
+> the product.
+
 <!-- AGENT NOTICE: This file is loaded automatically. Read FULLY before writing code. -->
 <!-- Priority sections: BEFORE WRITING CODE (line 6), TOP 5 CRITICAL RULES (line 35) -->
 

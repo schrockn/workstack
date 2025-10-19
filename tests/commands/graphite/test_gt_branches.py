@@ -1,4 +1,4 @@
-"""Unit tests for workstack gt branches command."""
+"""Unit tests for workstack graphite branches command."""
 
 import json
 from pathlib import Path
@@ -10,13 +10,13 @@ from tests.fakes.context import create_test_context
 from tests.fakes.gitops import FakeGitOps
 from tests.fakes.global_config_ops import FakeGlobalConfigOps
 from tests.fakes.graphite_ops import FakeGraphiteOps
-from workstack.cli.commands.gt import gt_branches_cmd
+from workstack.cli.commands.gt import graphite_branches_cmd
 from workstack.cli.core import RepoContext
 from workstack.core.branch_metadata import BranchMetadata
 
 
-def test_gt_branches_text_format(tmp_path: Path) -> None:
-    """Test gt branches command with default text format."""
+def test_graphite_branches_text_format(tmp_path: Path) -> None:
+    """Test graphite branches command with default text format."""
     # Arrange: Set up branch metadata
     branches = {
         "main": BranchMetadata(
@@ -62,7 +62,7 @@ def test_gt_branches_text_format(tmp_path: Path) -> None:
     # Act: Execute command with default text format
     with patch("workstack.cli.commands.gt.discover_repo_context", return_value=repo):
         with runner.isolated_filesystem(temp_dir=tmp_path):
-            result = runner.invoke(gt_branches_cmd, [], obj=ctx, catch_exceptions=False)
+            result = runner.invoke(graphite_branches_cmd, [], obj=ctx, catch_exceptions=False)
 
     # Assert: Verify success and text output (sorted branch names)
     assert result.exit_code == 0
@@ -70,8 +70,8 @@ def test_gt_branches_text_format(tmp_path: Path) -> None:
     assert lines == ["feat-1", "feat-2", "main"]
 
 
-def test_gt_branches_json_format(tmp_path: Path) -> None:
-    """Test gt branches command with JSON format."""
+def test_graphite_branches_json_format(tmp_path: Path) -> None:
+    """Test graphite branches command with JSON format."""
     # Arrange: Set up branch metadata
     branches = {
         "main": BranchMetadata(
@@ -110,7 +110,7 @@ def test_gt_branches_json_format(tmp_path: Path) -> None:
     with patch("workstack.cli.commands.gt.discover_repo_context", return_value=repo):
         with runner.isolated_filesystem(temp_dir=tmp_path):
             result = runner.invoke(
-                gt_branches_cmd, ["--format", "json"], obj=ctx, catch_exceptions=False
+                graphite_branches_cmd, ["--format", "json"], obj=ctx, catch_exceptions=False
             )
 
     # Assert: Verify success and JSON output
@@ -135,8 +135,8 @@ def test_gt_branches_json_format(tmp_path: Path) -> None:
     assert feat_branch["commit_sha"] == "def456"
 
 
-def test_gt_branches_empty(tmp_path: Path) -> None:
-    """Test gt branches command with no branches."""
+def test_graphite_branches_empty(tmp_path: Path) -> None:
+    """Test graphite branches command with no branches."""
     # Arrange: Empty branch data
     graphite_ops = FakeGraphiteOps(branches={})
     global_config_ops = FakeGlobalConfigOps(use_graphite=True)
@@ -157,15 +157,15 @@ def test_gt_branches_empty(tmp_path: Path) -> None:
     # Act: Execute command with default text format - empty should give empty output
     with patch("workstack.cli.commands.gt.discover_repo_context", return_value=repo):
         with runner.isolated_filesystem(temp_dir=tmp_path):
-            result = runner.invoke(gt_branches_cmd, [], obj=ctx, catch_exceptions=False)
+            result = runner.invoke(graphite_branches_cmd, [], obj=ctx, catch_exceptions=False)
 
     # Assert: Verify empty output with success
     assert result.exit_code == 0
     assert result.output.strip() == ""
 
 
-def test_gt_branches_graphite_disabled(tmp_path: Path) -> None:
-    """Test gt branches command fails when graphite is disabled."""
+def test_graphite_branches_graphite_disabled(tmp_path: Path) -> None:
+    """Test graphite branches command fails when graphite is disabled."""
     # Arrange: Graphite disabled
     graphite_ops = FakeGraphiteOps()
     global_config_ops = FakeGlobalConfigOps(use_graphite=False)
@@ -183,15 +183,15 @@ def test_gt_branches_graphite_disabled(tmp_path: Path) -> None:
 
     # Act: Execute command - should fail before discover_repo_context
     with runner.isolated_filesystem(temp_dir=tmp_path):
-        result = runner.invoke(gt_branches_cmd, [], obj=ctx, catch_exceptions=False)
+        result = runner.invoke(graphite_branches_cmd, [], obj=ctx, catch_exceptions=False)
 
     # Assert: Verify error (fails before discovery, so no need to mock)
     assert result.exit_code == 1
     assert "Graphite not enabled" in result.output
 
 
-def test_gt_branches_multiple_children(tmp_path: Path) -> None:
-    """Test gt branches command with branch that has multiple children."""
+def test_graphite_branches_multiple_children(tmp_path: Path) -> None:
+    """Test graphite branches command with branch that has multiple children."""
     # Arrange: Main with multiple children
     branches = {
         "main": BranchMetadata(
@@ -235,7 +235,7 @@ def test_gt_branches_multiple_children(tmp_path: Path) -> None:
     with patch("workstack.cli.commands.gt.discover_repo_context", return_value=repo):
         with runner.isolated_filesystem(temp_dir=tmp_path):
             result = runner.invoke(
-                gt_branches_cmd, ["--format", "json"], obj=ctx, catch_exceptions=False
+                graphite_branches_cmd, ["--format", "json"], obj=ctx, catch_exceptions=False
             )
 
     # Assert: Verify multiple children properly serialized
@@ -246,8 +246,8 @@ def test_gt_branches_multiple_children(tmp_path: Path) -> None:
     assert set(main_branch["children"]) == {"feat-1", "feat-2"}
 
 
-def test_gt_branches_linear_stack(tmp_path: Path) -> None:
-    """Test gt branches command with a linear stack."""
+def test_graphite_branches_linear_stack(tmp_path: Path) -> None:
+    """Test graphite branches command with a linear stack."""
     # Arrange: Linear stack: main -> feat-1 -> feat-2
     branches = {
         "main": BranchMetadata(
@@ -291,7 +291,7 @@ def test_gt_branches_linear_stack(tmp_path: Path) -> None:
     with patch("workstack.cli.commands.gt.discover_repo_context", return_value=repo):
         with runner.isolated_filesystem(temp_dir=tmp_path):
             result = runner.invoke(
-                gt_branches_cmd, ["--format", "json"], obj=ctx, catch_exceptions=False
+                graphite_branches_cmd, ["--format", "json"], obj=ctx, catch_exceptions=False
             )
 
     # Assert: Verify linear stack
