@@ -168,6 +168,10 @@ def perform_shell_setup(shell_ops: ShellOps) -> bool:
 
     shell, rc_file = shell_info
 
+    # Resolve symlinks to show the real file path in instructions
+    if rc_file.exists():
+        rc_file = rc_file.resolve()
+
     click.echo(f"\nDetected shell: {shell}")
     click.echo("Shell integration provides:")
     click.echo("  - Tab completion for workstack commands")

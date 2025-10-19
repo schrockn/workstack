@@ -317,6 +317,15 @@ class RealGitOps(GitOps):
         cmd.append(str(path))
         subprocess.run(cmd, cwd=repo_root, check=True)
 
+        # Clean up git worktree metadata to prevent permission issues during test cleanup
+        # This prunes stale administrative files left behind after worktree removal
+        subprocess.run(
+            ["git", "worktree", "prune"],
+            cwd=repo_root,
+            check=True,
+            capture_output=True,
+        )
+
     def checkout_branch(self, cwd: Path, branch: str) -> None:
         """Checkout a branch in the given directory."""
         subprocess.run(
