@@ -5,13 +5,13 @@ Graphite dependency relationships. All functions are pure (no I/O) except
 for the entry point which loads data via WorkstackContext.
 """
 
-import json
 from dataclasses import dataclass
 from pathlib import Path
 
 import click
 
 from workstack.core.context import WorkstackContext
+from workstack.core.graphite_ops import read_graphite_json_file
 
 
 @dataclass(frozen=True)
@@ -183,13 +183,13 @@ def _load_graphite_branch_graph(
     if git_dir is None:
         return None
 
-    # Check if Graphite cache file exists
+    # Check if Graphite cache file exists and parse
     cache_file = git_dir / ".graphite_cache_persist"
     if not cache_file.exists():
         return None
 
-    # Parse JSON
-    cache_data = json.loads(cache_file.read_text(encoding="utf-8"))
+    cache_data = read_graphite_json_file(cache_file, "Graphite cache")
+
     branches_data = cache_data.get("branches", [])
 
     # Build relationship maps

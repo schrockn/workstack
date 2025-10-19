@@ -1,4 +1,3 @@
-import json
 import shutil
 from pathlib import Path
 
@@ -14,6 +13,7 @@ from workstack.cli.core import (
 from workstack.cli.graphite import get_branch_stack
 from workstack.core.context import WorkstackContext, create_context
 from workstack.core.gitops import GitOps
+from workstack.core.graphite_ops import read_graphite_json_file
 
 
 def _try_git_worktree_remove(git_ops: GitOps, repo_root: Path, wt_path: Path) -> bool:
@@ -69,20 +69,22 @@ def _find_worktree_branch(ctx: WorkstackContext, repo_root: Path, wt_path: Path)
 def _get_non_trunk_branches(ctx: WorkstackContext, repo_root: Path, stack: list[str]) -> list[str]:
     """Filter out trunk branches from a stack.
 
-    Returns empty list if git directory cannot be found or cache is missing.
-    Prints warning messages for error conditions.
+    Raises:
+        ValueError: If git directory cannot be found
+        FileNotFoundError: If Graphite cache is missing
+        OSError: If cache cannot be read
+        json.JSONDecodeError: If cache is invalid JSON
     """
     git_dir = ctx.git_ops.get_git_common_dir(repo_root)
     if git_dir is None:
-        click.echo("Warning: Could not find git directory. Cannot delete stack.", err=True)
-        return []
+        raise ValueError("Could not find git directory")
 
     cache_file = git_dir / ".graphite_cache_persist"
     if not cache_file.exists():
-        click.echo("Warning: Graphite cache not found. Cannot delete stack.", err=True)
-        return []
+        raise FileNotFoundError(f"Graphite cache not found: {cache_file}")
 
-    cache_data = json.loads(cache_file.read_text(encoding="utf-8"))
+    cache_data = read_graphite_json_file(cache_file, "Graphite cache")
+
     branches_data = cache_data.get("branches", [])
 
     trunk_branches = {
@@ -92,27 +94,6 @@ def _get_non_trunk_branches(ctx: WorkstackContext, repo_root: Path, stack: list[
     }
 
     return [b for b in stack if b not in trunk_branches]
-
-
-def _get_branches_to_delete(
-    ctx: WorkstackContext, repo_root: Path, worktree_branch: str
-) -> list[str] | None:
-    """Get list of branches to delete for a worktree's stack.
-
-    Returns:
-        None if deletion should be skipped (warnings already printed)
-        Empty list if no branches to delete
-        List of branch names if branches should be deleted
-    """
-    stack = get_branch_stack(ctx, repo_root, worktree_branch)
-    if stack is None:
-        click.echo(
-            f"Warning: Branch {worktree_branch} is not tracked by Graphite. Cannot delete stack.",
-            err=True,
-        )
-        return None
-
-    return _get_non_trunk_branches(ctx, repo_root, stack)
 
 
 def _remove_worktree(
@@ -183,29 +164,12 @@ def _remove_worktree(
                     err=True,
                 )
             else:
-                # Filter out trunk branches
-                git_dir = ctx.git_ops.get_git_common_dir(repo.root)
-                if git_dir is None:
+                branches_to_delete = _get_non_trunk_branches(ctx, repo.root, stack)
+
+                if not branches_to_delete:
                     click.echo(
-                        "Warning: Could not find git directory. Cannot delete stack.", err=True
+                        "No branches to delete (all branches in stack are trunk branches)."
                     )
-                else:
-                    cache_file = git_dir / ".graphite_cache_persist"
-                    cache_data = json.loads(cache_file.read_text(encoding="utf-8"))
-                    branches_data = cache_data.get("branches", [])
-
-                    trunk_branches = {
-                        branch_name
-                        for branch_name, info in branches_data
-                        if info.get("validationResult") == "TRUNK"
-                    }
-
-                    branches_to_delete = [b for b in stack if b not in trunk_branches]
-
-                    if not branches_to_delete:
-                        click.echo(
-                            "No branches to delete (all branches in stack are trunk branches)."
-                        )
 
     # Step 2: Display all planned operations
     if branches_to_delete or True:
