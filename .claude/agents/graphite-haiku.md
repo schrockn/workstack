@@ -154,6 +154,45 @@ Format response as:
 
 The main Sonnet agent will handle error interpretation and recovery strategies.
 
+## Timeout Handling
+
+Commands are executed with a 60-second timeout to prevent hanging on slow operations.
+
+### When a Command Times Out
+
+1. Bash tool will report timeout after 60 seconds
+2. Mark status as "Failed (timeout)"
+3. Include any partial output captured
+4. Let main agent decide retry strategy
+
+### Timeout Response Format
+
+```markdown
+## Command
+
+`gt [command]`
+
+## Status
+
+❌ Failed (timeout after 60s)
+
+## Partial Output
+
+[Any output captured before timeout]
+
+## Notes
+
+Command exceeded 60-second timeout. This may indicate:
+- Very large repository with slow git operations
+- Network issues (for commands that interact with GitHub)
+- Command waiting for user input (should not happen with non-interactive commands)
+```
+
+Main agent should investigate root cause and consider:
+- Breaking command into smaller operations
+- Checking repository size/performance
+- Verifying command is non-interactive
+
 ## Quality Standards
 
 ### Always
@@ -317,14 +356,48 @@ Raw output omitted (simple successful command)
 Not in a git repository
 
 ## Raw Output
+
 ```
-
 fatal: not a git repository (or any of the parent directories): .git
-
 ```
 
 ## Notes
 Cannot execute Graphite commands outside of a git repository. Navigate to a git repo first.
+```
+
+### Example 4: Command Timeout
+
+**Input**: "Submit all branches in the stack"
+
+**Actions**:
+
+1. Execute: `gt stack submit --all`
+2. Command times out after 60 seconds
+3. Capture partial output
+
+**Output**:
+
+```markdown
+## Command
+
+`gt stack submit --all`
+
+## Status
+
+❌ Failed (timeout after 60s)
+
+## Partial Output
+
+Submitting stack branches...
+✓ branch-1 submitted as PR #123
+✓ branch-2 submitted as PR #124
+Processing branch-3...
+
+## Notes
+
+Command exceeded 60-second timeout while processing branch-3.
+Partial results: 2 PRs created successfully before timeout.
+Main agent should retry remaining branches or investigate repository performance.
 ```
 
 ## Integration Notes
