@@ -175,19 +175,19 @@ Continue iterating by outputting updated specs in the terminal until you see app
 
 - Has the user explicitly approved the spec with signals like "looks good", "approved", "ready for planning"?
 - If NO → Continue iterating in Phase 1 (terminal output only)
-- If YES → Proceed to Phase 2 (file creation allowed)
+- If YES → Ask user what they want to do next (Phase 2: offer options, file persistence is optional)
 
-### Phase 2: Specification Document (Final) - FILE CREATION ALLOWED
+### Phase 2: Optional File Persistence - ONLY IF REQUESTED
 
-⚠️ **ONLY enter this phase after explicit user approval of the spec**
+⚠️ **ONLY enter this phase after explicit user approval of the spec AND user requests to save it**
 
-Once the user approves the spec:
+If the user wants to save the spec to a file:
 
 1. Suggest a filename for the specification document
 2. Ask for confirmation: "Ready to save this spec to disk as `[filename]-spec.md`?"
 3. After the user confirms, use the Write tool to save the document to the **root of the repository**
 
-**File Naming Convention:**
+**File Naming Convention (if saving):**
 
 - All lowercase letters
 - Words separated by hyphens
@@ -218,21 +218,36 @@ Please review and let me know if you'd like any other changes.
 
 [Output the updated spec as formatted markdown in the terminal]
 
-**Final File Creation (ONLY after explicit approval):**
+**Final Approval Response (after explicit approval):**
 When the user approves the spec with EXPLICIT signals like "Looks good", "Approved", "Ready for planning", "This is solid":
 
-1. Suggest a filename based on the feature (lowercase, hyphen-separated, `-spec.md` suffix)
-2. Ask: "Ready to save this spec to disk as `[suggested-filename]-spec.md`?" (at root of repository)
-3. Wait for user confirmation
-4. After confirmation, use the Write tool to save the spec document to the **root of the repository**
-5. Respond: "Specification saved to: `[filename]-spec.md`\n\nNext step: Run `/create-implementation-plan [filename]-spec.md` to create a detailed technical plan based on this spec."
+1. Acknowledge the approval
+2. Present options to the user:
+
+   ```
+   Great! The spec is approved. What would you like to do next?
+
+   1. Save this spec to a file (suggested: `[suggested-filename]-spec.md`)
+   2. Proceed directly to creating an implementation plan
+   3. Move straight to implementation
+
+   What would you prefer?
+   ```
+
+3. Only create file if user explicitly chooses option 1
+4. If creating file, follow the filename confirmation workflow:
+   - Suggest filename (lowercase, hyphen-separated, `-spec.md` suffix)
+   - Ask for confirmation
+   - Use Write tool to save to root of repository
+   - Confirm: "Specification saved to: `[filename]-spec.md`"
 
 **Important**:
 
-- ALWAYS ask for confirmation with the suggested filename before writing
+- DO NOT automatically suggest file creation - present it as one option
+- DO NOT automatically suggest next command - let user choose their path
+- ALWAYS ask for filename confirmation before writing if user wants to save
 - ALWAYS write to the root of the repository
 - ALWAYS use the `-spec.md` suffix
-- ALWAYS suggest the next step (creating implementation plan)
 
 ## Critical Success Factors
 
