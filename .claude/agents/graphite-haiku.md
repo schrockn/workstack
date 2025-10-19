@@ -73,23 +73,29 @@ Based on the command, extract relevant structured data:
 Format response as:
 
 ```markdown
-## Command Executed
+## Command
 
 `gt [command]`
 
-## Result
+## Status
 
-[Success|Failure]
+✅ Success | ❌ Failed
 
-## Output
+## Parsed Output
 
-[Parsed structured data or raw output]
+[Structured data extracted from command]
 
-## Details
+## Raw Output (include only when meeting criteria)
+```
 
-- Branch: [current branch if applicable]
-- Stack Position: [position in stack if applicable]
-- Additional Info: [any relevant context]
+[Raw output - include based on criteria in Quality Standards section]
+
+```
+
+## Notes
+
+[Any relevant context, warnings, suggestions]
+[State "Raw output omitted (reason)" if omitted]
 ```
 
 ## Output Parsing Patterns
@@ -155,10 +161,31 @@ The main Sonnet agent will handle error interpretation and recovery strategies.
 - Execute the command exactly as provided by main agent
 - Capture complete output (stdout + stderr)
 - Parse output to extract structured data when possible
-- Include raw output in response
+- Include raw output selectively (see inclusion criteria below)
 - Check exit codes for success/failure
 - Use Bash tool with clear descriptions
 - Return results in consistent markdown format
+
+### Raw Output Inclusion Criteria
+
+**Include raw output when:**
+
+- Command failed (always include error details)
+- Output is short (< 50 lines)
+- Parsing was ambiguous or incomplete
+- Complex output that might need main agent review
+- Unusual warnings or messages present
+
+**Omit raw output when:**
+
+- Simple successful commands with clear parsed output (e.g., `gt branch --name`)
+- Parsed output fully captures all relevant information
+- Output is very long (> 50 lines) and successfully parsed
+
+**For long outputs (> 50 lines):**
+
+- Include first 10 and last 10 lines with "... (X lines truncated)" marker
+- Or omit entirely if parsing is complete and successful
 
 ### Never
 
@@ -189,10 +216,10 @@ Always structure your response as:
 
 [Structured data extracted from command]
 
-## Raw Output
+## Raw Output (conditional - see guidelines)
 ```
 
-[Complete raw output from command]
+[Raw output only when needed - see inclusion criteria below]
 
 ```
 
@@ -228,16 +255,10 @@ Always structure your response as:
 - abc1234 (feature-branch) Add new feature
 - def5678 (main) Initial commit
 
-## Raw Output
-```
-
-abc1234 (feature-branch) Add new feature
-def5678 (main) Initial commit
-
-```
-
 ## Notes
+
 Current branch: feature-branch, 1 commit ahead of main
+Raw output omitted (successfully parsed, 2 lines)
 ```
 
 ### Example 2: Get Current Branch
@@ -265,13 +286,9 @@ Current branch: feature-branch, 1 commit ahead of main
 
 Current branch: feature-branch
 
-## Raw Output
-```
+## Notes
 
-feature-branch
-
-```
-
+Raw output omitted (simple successful command)
 ```
 
 ### Example 3: Command Failure
