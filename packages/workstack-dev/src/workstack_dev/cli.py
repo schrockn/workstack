@@ -13,6 +13,7 @@ from workstack_dev.commands.completion.command import command as completion_cmd
 from workstack_dev.commands.create_agents_symlinks.command import (
     command as create_agents_cmd,
 )
+from workstack_dev.commands.land_branch.command import command as land_branch_cmd
 from workstack_dev.commands.publish_to_pypi.command import command as publish_cmd
 from workstack_dev.commands.reserve_pypi_name.command import (
     command as reserve_pypi_name_cmd,
@@ -30,5 +31,6 @@ cli.add_command(clean_cache_cmd, name="clean-cache")
 cli.add_command(codex_review_cmd, name="codex-review")
 cli.add_command(completion_cmd, name="completion")
 cli.add_command(create_agents_cmd, name="create-agents-symlinks")
+cli.add_command(land_branch_cmd, name="land-branch")
 cli.add_command(publish_cmd, name="publish-to-pypi")
 cli.add_command(reserve_pypi_name_cmd, name="reserve-pypi-name")

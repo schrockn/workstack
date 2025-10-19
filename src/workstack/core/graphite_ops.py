@@ -11,6 +11,7 @@ Architecture:
 import json
 import subprocess
 import sys
+import warnings
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any
@@ -34,14 +35,21 @@ def read_graphite_json_file(file_path: Path, description: str) -> dict[str, Any]
     Raises:
         FileNotFoundError: If file doesn't exist
         OSError: If file cannot be read
-        json.JSONDecodeError: If JSON is invalid
+        json.JSONDecodeError: If JSON is invalid (warning emitted before raising)
 
     Note:
         Callers must check file_path.exists() before calling if they want
         to handle missing files gracefully.
+
+        When JSON parsing fails, a UserWarning is emitted before the
+        JSONDecodeError is re-raised to provide context about the failure.
     """
     json_str = file_path.read_text(encoding="utf-8")
-    return json.loads(json_str)
+    try:
+        return json.loads(json_str)
+    except json.JSONDecodeError:
+        warnings.warn(f"Cannot parse {description} at {file_path}: Invalid JSON", stacklevel=2)
+        raise
 
 
 def parse_graphite_pr_info(json_str: str) -> dict[str, PullRequestInfo]:
