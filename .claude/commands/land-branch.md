@@ -185,8 +185,10 @@ Please resolve the issue and try again.
 Run:
 
 ```bash
-workstack jump {child_branch_name}
+workstack up
 ```
+
+This navigates to the child branch in the Graphite stack.
 
 Then output:
 
@@ -217,7 +219,7 @@ Start with todo 1 as `in_progress`, rest as `pending`. Mark each as `completed` 
 - **Branch must be exactly one level up from main** (parent must be "main")
 - **PR must be open** before running this command
 - **No explicit rebase** - `gh pr merge` will validate mergeability
-- **Use `workstack jump`** for navigation (not `gt checkout`) to maintain consistency
+- **Use `workstack up`** for navigation to automatically move to the child branch in the stack
 
 ## Error Handling
 

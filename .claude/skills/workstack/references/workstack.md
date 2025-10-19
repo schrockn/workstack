@@ -380,6 +380,39 @@ workstack create --plan plan.md my-feature
 # 3. .PLAN.md is gitignored (not committed)
 ```
 
+#### `workstack jump`
+
+Jump to a branch by finding which worktree contains it.
+
+```bash
+# Jump to a branch (finds the worktree containing it)
+workstack jump feature/user-auth
+
+# With script output for shell integration
+workstack jump my-feature --script
+```
+
+**How it works:**
+
+1. Searches all worktrees for the specified branch in their Graphite stack lineage
+2. If exactly one worktree contains the branch, switches to it and checks out the branch
+3. If multiple worktrees contain the branch:
+   - If exactly one has it directly checked out, uses that one
+   - Otherwise, shows disambiguation error
+
+**Requirements:**
+
+- Graphite must be enabled
+- Branch must exist in at least one worktree's stack
+
+**Use cases:**
+
+- "I know the branch name, find me the right worktree"
+- Quick navigation when you don't remember which worktree has a branch
+- Switching between features by branch name rather than worktree name
+
+**Note:** If the branch exists in the stack lineage of multiple worktrees and none have it checked out, you'll need to use `workstack switch <worktree-name>` to disambiguate first.
+
 ### Listing & Viewing
 
 #### `workstack list` / `workstack ls`
@@ -462,7 +495,7 @@ workstack tree
 
 #### `workstack switch`
 
-Switch to a different worktree.
+Switch to a different worktree by name.
 
 ```bash
 # Switch to named worktree
@@ -470,31 +503,7 @@ workstack switch my-feature
 
 # Switch to repo root
 workstack switch root
-
-# Navigate up in Graphite stack (to child branch)
-workstack switch --up
-
-# Navigate down in Graphite stack (to parent branch)
-workstack switch --down
 ```
-
-**Stack navigation example:**
-
-```bash
-# Current stack: main -> feature-1 -> feature-2 -> feature-3
-# You are in: feature-2
-
-workstack switch --up       # → feature-3
-workstack switch --down     # → feature-2
-workstack switch --down     # → feature-1
-workstack switch --down     # → root (main)
-```
-
-**Requirements for stack navigation:**
-
-- Graphite must be enabled
-- Target branch must have an existing worktree
-- Shows helpful message if worktree doesn't exist
 
 **What happens on switch:**
 
@@ -504,6 +513,77 @@ workstack switch --down     # → root (main)
 4. Runs activation script if configured
 
 **Shell integration required**: `workstack init --shell` sets up shell function that evaluates output.
+
+#### `workstack up`
+
+Move to child branch in Graphite stack.
+
+```bash
+# Navigate to child branch's worktree
+workstack up
+
+# With script output for shell integration
+workstack up --script
+```
+
+**How it works:**
+
+1. Determines the child branch of your current branch in the Graphite stack
+2. Finds the worktree containing that child branch
+3. Switches to that worktree and activates its environment
+
+**Requirements:**
+
+- Graphite must be enabled
+- Current branch must have a child in the stack
+- Child branch must have an existing worktree
+
+**Example:**
+
+```bash
+# Current stack: main -> feature-1 -> feature-2 -> feature-3
+# You are in: feature-2
+
+workstack up       # → Switches to feature-3's worktree
+```
+
+**Use case:** Navigate up the dependency chain when working on stacked PRs.
+
+#### `workstack down`
+
+Move to parent branch in Graphite stack.
+
+```bash
+# Navigate to parent branch's worktree
+workstack down
+
+# With script output for shell integration
+workstack down --script
+```
+
+**How it works:**
+
+1. Determines the parent branch of your current branch in the Graphite stack
+2. Finds the worktree containing that parent branch
+3. Switches to that worktree and activates its environment
+
+**Requirements:**
+
+- Graphite must be enabled
+- Current branch must have a parent in the stack
+- Parent branch must have an existing worktree (or navigates to root for trunk)
+
+**Example:**
+
+```bash
+# Current stack: main -> feature-1 -> feature-2 -> feature-3
+# You are in: feature-2
+
+workstack down     # → Switches to feature-1's worktree
+workstack down     # → Switches to root (main)
+```
+
+**Use case:** Navigate down the dependency chain or return to earlier work in a stack.
 
 ### Managing Worktrees
 
@@ -700,8 +780,8 @@ workstack create feature-base-part-2 --from-current-branch
 
 # Navigate stack
 workstack switch feature-base
-workstack switch --up        # Move to feature-base-part-2
-workstack switch --down      # Back to feature-base
+workstack up                 # Move to feature-base-part-2
+workstack down               # Back to feature-base
 
 # View stack structure
 workstack list --stacks
@@ -815,8 +895,9 @@ When `use_graphite = true`, workstack integrates with Graphite:
 
 ```bash
 # Stack navigation
-workstack switch --up        # Navigate to child branch
-workstack switch --down      # Navigate to parent branch
+workstack up                 # Navigate to child branch
+workstack down               # Navigate to parent branch
+workstack jump <branch>      # Jump to specific branch
 
 # Stack visualization
 workstack list --stacks      # Show stack structure
@@ -1015,7 +1096,7 @@ workstack tree
 # └─ api-v2-auth [@api-v2-auth]
 
 ws api-v2              # Base
-ws --up                # → api-v2-auth
+workstack up           # → api-v2-auth
 ```
 
 ### Example 4: Environment Isolation

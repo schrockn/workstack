@@ -99,7 +99,8 @@ Load `references/workstack.md` and search for "workstack create" section to prov
 Load `references/workstack.md` and search for "workstack switch" section to provide:
 
 - Basic switching: `workstack switch <name>`
-- Stack navigation: `--up` and `--down` for Graphite stacks
+- Stack navigation: `workstack up` and `workstack down` for Graphite stacks
+- Jump to branch: `workstack jump <branch>` to find and switch to a branch
 - Return to root: `workstack switch root`
 - Environment activation details
 
@@ -151,7 +152,7 @@ When users need configuration help:
 When users mention Graphite or stacked diffs:
 
 - Load the Graphite Integration section from `references/workstack.md`
-- Explain stack navigation: `workstack switch --up/--down`
+- Explain stack navigation: `workstack up`, `workstack down`, `workstack jump <branch>`
 - Show stack visualization: `workstack list --stacks`, `workstack tree`
 - Reference the separate Graphite (gt) documentation for deeper gt concepts
 
