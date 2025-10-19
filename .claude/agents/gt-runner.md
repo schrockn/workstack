@@ -141,6 +141,7 @@ Use `workstack graphite branches --format json` for reliable parsing:
    - **Trunk**: [trunk name]
 
 Example JSON structure:
+
 ```json
 {
   "branches": [
