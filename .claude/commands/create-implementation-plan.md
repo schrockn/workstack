@@ -2,40 +2,97 @@
 description: Create an implementation plan using the implementation-planner agent
 ---
 
-## ⚠️ PLANNING-ONLY MODE ACTIVE
+## ⚠️ TECHNICAL PLANNING MODE ACTIVE
 
-I'll help you create an implementation plan using the specialized planning agent. This workflow is designed for **planning only** - no code will be written until the plan is finalized and saved to disk.
+I'll help you create a detailed technical implementation plan. This workflow focuses on:
+
+- **Specific file paths** and directory structure
+- **Class/function names** and module organization
+- **Design patterns** and technical approaches
+- **Concrete implementation details**
+
+### Command Usage
+
+**Option 1: Plan from specification file**
+
+```
+/create-implementation-plan <spec-file>
+```
+
+Creates a technical plan based on an existing `-spec.md` file.
+
+**Option 2: Plan from conversational description**
+
+```
+/create-implementation-plan
+```
+
+Creates a technical plan directly from your description.
 
 ### How This Works
 
-1. **You provide context** about what needs to be built
-2. **The agent creates a plan** (displayed in terminal for review)
-3. **We iterate together** until the plan is perfect
-4. **Plan is saved to disk** as a markdown file
-5. **Then (and only then)** implementation can begin
+**Phase 1: Technical Planning (Iterative)**
 
-### Provide Your Planning Context
+1. **You provide context** (spec file or description)
+2. **Agent creates technical plan** (displayed in terminal)
+3. **We iterate together** until the plan is complete
+4. **Plan is saved to disk** as a `-plan.md` file
 
-You can share:
+**Phase 2: Implementation**
+
+- After saving, run `/execute-implementation-plan <plan-file>` to implement
+
+### What to Provide
+
+**If you have a spec file:**
+
+- Provide the path to your `-spec.md` file
+- Agent will read it and create a technical plan based on the conceptual design
+
+**If working from scratch:**
 
 - A feature you want to implement
-- An error message or bug to fix
-- Performance issues to optimize
-- A refactoring goal
-- Any relevant context or requirements
+- Technical requirements or constraints
+- Performance goals or optimization targets
+- Refactoring objectives
+- Any relevant context
 
 **What would you like to plan?**
 
 ---
 
-**IMPORTANT AGENT INSTRUCTIONS:**
+**AGENT INSTRUCTIONS:**
 
 When invoking the implementation-planner agent:
+
+**Step 1: Detect Mode**
+
+- Check if user provided a spec file argument (ends with `-spec.md`)
+- If spec file provided: Read it first, extract key information, create plan based on spec
+- If no spec file: Create plan from conversational description
+
+**Step 2: Planning Phase**
 
 1. **DO NOT write any code during planning phase**
 2. **DO NOT use Edit, Write, or any modification tools**
 3. **ONLY output the plan to terminal for iterative review**
 4. **ONLY persist to disk after explicit user approval**
-5. The agent should remain in "Phase 1: Human-Readable Planning" mode until the user explicitly approves with signals like "looks good", "approved", or "ready to implement"
+5. Remain in "Phase 1: Human-Readable Planning" mode until explicit approval
 
-The goal is to create a comprehensive implementation plan that will be saved as a `.md` file at the repository root, which can then guide future implementation work.
+**Step 3: File Creation (After Approval)**
+
+- Suggest filename with `-plan.md` suffix
+- Ask for confirmation before writing
+- Save to repository root
+- Suggest running `/execute-implementation-plan <filename>` as next step
+
+**Example invocation:**
+
+```
+Task tool with:
+- subagent_type: "implementation-planner"
+- description: "Create technical implementation plan"
+- prompt: "[If spec file: 'Read and create plan from <spec-file>'] [If conversational: '<user description>']"
+```
+
+The goal is to create a detailed technical implementation plan saved as a `-plan.md` file at the repository root.

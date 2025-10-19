@@ -8,8 +8,8 @@ I'll now execute the implementation plan from the specified file (or `.PLAN.md` 
 
 **Command usage:**
 
-- `/execute-plan` - executes `.PLAN.md` from project root
-- `/execute-plan <file-path>` - executes plan from specified file path
+- `/execute-implementation-plan` - executes `.PLAN.md` from project root
+- `/execute-implementation-plan <file-path>` - executes plan from specified file path
 
 First, let me read the plan to understand what needs to be implemented:
 
