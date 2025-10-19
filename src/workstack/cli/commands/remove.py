@@ -194,7 +194,8 @@ def _remove_worktree(
                     cache_data = read_graphite_json_file(cache_file, "Graphite cache")
                     if cache_data is None:
                         click.echo(
-                            "Warning: Graphite cache not found or invalid. Cannot determine trunk branches.",
+                            "Warning: Graphite cache not found or invalid. "
+                            "Cannot determine trunk branches.",
                             err=True,
                         )
                         # Continue without filtering trunk branches - delete all requested branches

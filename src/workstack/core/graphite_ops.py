@@ -26,7 +26,8 @@ def read_graphite_json_file(file_path: Path, description: str) -> dict[str, Any]
 
     Args:
         file_path: Path to the JSON file
-        description: Human-readable description for error messages (e.g., "Graphite cache", "Graphite PR info")
+        description: Human-readable description for error messages
+            (e.g., "Graphite cache", "Graphite PR info")
 
     Returns:
         Parsed JSON dict, or None if file doesn't exist or error occurs
