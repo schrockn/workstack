@@ -30,6 +30,7 @@
 | `gt ...` or user says "gt" or "graphite"    | → Use gt-runner agent (Task tool) for execution, graphite skill for knowledge |
 | 4+ levels of indentation                    | → Extract helper functions                                                    |
 | Code in `__init__.py`                       | → Keep empty or docstring-only (except package entry points)                  |
+| Tests for speculative features              | → **FORBIDDEN** - Only test actively implemented code (TDD is fine)           |
 
 ## 📚 Quick Reference
 
@@ -197,6 +198,43 @@ import ...
 - Use early returns and guard clauses
 - No default arguments without explanatory comments
 - Use context managers directly in `with` statements
+
+### Testing
+
+🔴 **MUST**: Only write tests for code being actively implemented
+🔴 **FORBIDDEN**: Writing tests for speculative or "maybe later" features
+
+**TDD is explicitly allowed and encouraged:**
+
+- Write test → implement feature → refactor is a valid workflow
+- The key is that you're actively working on the feature NOW
+
+**What's forbidden:**
+
+- Test stubs for features planned for future sprints/milestones
+- "Let's add placeholder tests for ideas we're considering"
+- Tests for hypothetical features not currently being built
+
+**Rationale:**
+
+- Speculative tests create maintenance burden without validation value
+- Planned features often change significantly before implementation
+- Test code should validate actual behavior, not wishful thinking
+
+```python
+# ❌ WRONG - Speculative test for future feature
+# def test_feature_we_might_add_next_month():
+#     """Placeholder for feature we're considering."""
+#     pass
+
+# ✅ CORRECT - TDD for feature being implemented RIGHT NOW
+def test_new_feature_im_building_today():
+    """Test for feature I'm about to implement."""
+    result = feature_function()  # Will implement after this test
+    assert result == expected_value
+```
+
+**See**: [.agent/docs/TESTING.md](.agent/docs/TESTING.md) for comprehensive testing guidance.
 
 ### Planning and Documentation
 
