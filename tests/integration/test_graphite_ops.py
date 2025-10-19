@@ -3,6 +3,8 @@
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from tests.conftest import load_fixture
 from workstack.core.graphite_ops import RealGraphiteOps
 
@@ -63,6 +65,10 @@ def test_graphite_ops_get_prs_json_error():
     with (
         patch.object(Path, "exists") as mock_exists,
         patch.object(Path, "read_text") as mock_read_text,
+        pytest.warns(
+            UserWarning,
+            match=r"Cannot parse Graphite PR info at /test/\.git/\.graphite_pr_info: Invalid JSON",
+        ),
     ):
         mock_exists.return_value = True
         mock_read_text.return_value = "not valid json"
@@ -132,6 +138,13 @@ def test_graphite_ops_get_all_branches_json_error():
     with (
         patch.object(Path, "exists") as mock_exists,
         patch.object(Path, "read_text") as mock_read_text,
+        pytest.warns(
+            UserWarning,
+            match=(
+                r"Cannot parse Graphite cache at /test/\.git/\.graphite_cache_persist: "
+                r"Invalid JSON"
+            ),
+        ),
     ):
         mock_exists.return_value = True
         mock_read_text.return_value = "not valid json"
