@@ -73,6 +73,9 @@ class FakeGitOps(GitOps):
         branch_heads: dict[str, str] | None = None,
         commit_messages: dict[str, str] | None = None,
         staged_repos: set[Path] | None = None,
+        file_statuses: dict[Path, tuple[list[str], list[str], list[str]]] | None = None,
+        ahead_behind: dict[tuple[Path, str], tuple[int, int]] | None = None,
+        recent_commits: dict[Path, list[dict[str, str]]] | None = None,
     ) -> None:
         """Create FakeGitOps with pre-configured state.
 
@@ -84,6 +87,9 @@ class FakeGitOps(GitOps):
             branch_heads: Mapping of branch name -> commit SHA
             commit_messages: Mapping of commit SHA -> commit message
             staged_repos: Set of repo roots that should report staged changes
+            file_statuses: Mapping of cwd -> (staged, modified, untracked) files
+            ahead_behind: Mapping of (cwd, branch) -> (ahead, behind) counts
+            recent_commits: Mapping of cwd -> list of commit info dicts
         """
         self._worktrees = worktrees or {}
         self._current_branches = current_branches or {}
@@ -92,6 +98,9 @@ class FakeGitOps(GitOps):
         self._branch_heads = branch_heads or {}
         self._commit_messages = commit_messages or {}
         self._repos_with_staged_changes: set[Path] = staged_repos or set()
+        self._file_statuses = file_statuses or {}
+        self._ahead_behind = ahead_behind or {}
+        self._recent_commits = recent_commits or {}
 
         # Mutation tracking
         self._deleted_branches: list[str] = []
@@ -217,6 +226,19 @@ class FakeGitOps(GitOps):
     def get_commit_message(self, repo_root: Path, commit_sha: str) -> str | None:
         """Get the commit message for a given commit SHA."""
         return self._commit_messages.get(commit_sha)
+
+    def get_file_status(self, cwd: Path) -> tuple[list[str], list[str], list[str]]:
+        """Get lists of staged, modified, and untracked files."""
+        return self._file_statuses.get(cwd, ([], [], []))
+
+    def get_ahead_behind(self, cwd: Path, branch: str) -> tuple[int, int]:
+        """Get number of commits ahead and behind tracking branch."""
+        return self._ahead_behind.get((cwd, branch), (0, 0))
+
+    def get_recent_commits(self, cwd: Path, *, limit: int = 5) -> list[dict[str, str]]:
+        """Get recent commit information."""
+        commits = self._recent_commits.get(cwd, [])
+        return commits[:limit]
 
     @property
     def deleted_branches(self) -> list[str]:

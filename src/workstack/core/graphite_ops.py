@@ -214,6 +214,27 @@ class GraphiteOps(ABC):
         """
         ...
 
+    @abstractmethod
+    def get_branch_stack(self, git_ops: GitOps, repo_root: Path, branch: str) -> list[str] | None:
+        """Get the linear graphite stack for a given branch.
+
+        This function builds the linear chain of branches that the given branch belongs to.
+        The chain includes:
+        - All ancestor branches from current up to trunk
+        - All descendant branches from current down to the leaf
+
+        Args:
+            git_ops: GitOps instance for accessing git common directory and branch heads
+            repo_root: Repository root directory
+            branch: Name of the branch to get the stack for
+
+        Returns:
+            List of branch names in the stack, ordered from trunk to leaf
+            (e.g., ["main", "feature-1", "feature-2", "feature-3"]).
+            Returns None if branch is not tracked by graphite
+        """
+        ...
+
 
 class RealGraphiteOps(GraphiteOps):
     """Production implementation using gt CLI.
@@ -302,6 +323,56 @@ class RealGraphiteOps(GraphiteOps):
         # parse_graphite_cache expects JSON string, so convert back
         return parse_graphite_cache(json.dumps(data), git_branch_heads)
 
+    def get_branch_stack(self, git_ops: GitOps, repo_root: Path, branch: str) -> list[str] | None:
+        """Get the linear graphite stack for a given branch."""
+        # Get all branch metadata
+        all_branches = self.get_all_branches(git_ops, repo_root)
+        if not all_branches:
+            return None
+
+        # Check if the requested branch exists
+        if branch not in all_branches:
+            return None
+
+        # Build parent-child map for traversal
+        branch_info: dict[str, dict[str, str | list[str] | None]] = {}
+        for name, metadata in all_branches.items():
+            branch_info[name] = {
+                "parent": metadata.parent,
+                "children": metadata.children,
+            }
+
+        # Traverse DOWN to collect ancestors (current → parent → ... → trunk)
+        ancestors: list[str] = []
+        current = branch
+        while current in branch_info:
+            ancestors.append(current)
+            parent = branch_info[current]["parent"]
+            if parent is None or parent not in branch_info:
+                break
+            current = parent
+
+        # Reverse to get [trunk, ..., parent, current]
+        ancestors.reverse()
+
+        # Traverse UP to collect descendants (current → child → ... → leaf)
+        descendants: list[str] = []
+        current = branch
+        while True:
+            children = branch_info[current]["children"]
+            if not children:
+                break
+            # Follow the first child for linear stack
+            first_child = children[0]
+            if first_child not in branch_info:
+                break
+            descendants.append(first_child)
+            current = first_child
+
+        # Combine ancestors and descendants
+        # ancestors already contains the current branch
+        return ancestors + descendants
+
 
 class DryRunGraphiteOps(GraphiteOps):
     """Wrapper that prints dry-run messages instead of executing destructive operations.
@@ -338,6 +409,10 @@ class DryRunGraphiteOps(GraphiteOps):
     def get_all_branches(self, git_ops: GitOps, repo_root: Path) -> dict[str, BranchMetadata]:
         """Get all branches metadata (read-only, delegates to wrapped)."""
         return self._wrapped.get_all_branches(git_ops, repo_root)
+
+    def get_branch_stack(self, git_ops: GitOps, repo_root: Path, branch: str) -> list[str] | None:
+        """Get branch stack (read-only operation, delegates to wrapped)."""
+        return self._wrapped.get_branch_stack(git_ops, repo_root, branch)
 
     # Destructive operations: print dry-run message instead of executing
 

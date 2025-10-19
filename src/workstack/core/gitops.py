@@ -158,6 +158,44 @@ class GitOps(ABC):
         """
         ...
 
+    @abstractmethod
+    def get_file_status(self, cwd: Path) -> tuple[list[str], list[str], list[str]]:
+        """Get lists of staged, modified, and untracked files.
+
+        Args:
+            cwd: Working directory
+
+        Returns:
+            Tuple of (staged, modified, untracked) file lists
+        """
+        ...
+
+    @abstractmethod
+    def get_ahead_behind(self, cwd: Path, branch: str) -> tuple[int, int]:
+        """Get number of commits ahead and behind tracking branch.
+
+        Args:
+            cwd: Working directory
+            branch: Current branch name
+
+        Returns:
+            Tuple of (ahead, behind) counts
+        """
+        ...
+
+    @abstractmethod
+    def get_recent_commits(self, cwd: Path, *, limit: int = 5) -> list[dict[str, str]]:
+        """Get recent commit information.
+
+        Args:
+            cwd: Working directory
+            limit: Maximum number of commits to retrieve
+
+        Returns:
+            List of commit info dicts with keys: sha, message, author, date
+        """
+        ...
+
 
 # ============================================================================
 # Production Implementation
@@ -393,6 +431,108 @@ class RealGitOps(GitOps):
 
         return result.stdout.strip()
 
+    def get_file_status(self, cwd: Path) -> tuple[list[str], list[str], list[str]]:
+        """Get lists of staged, modified, and untracked files."""
+        result = subprocess.run(
+            ["git", "status", "--porcelain"],
+            cwd=cwd,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+
+        staged = []
+        modified = []
+        untracked = []
+
+        for line in result.stdout.splitlines():
+            if not line:
+                continue
+
+            status_code = line[:2]
+            filename = line[3:]
+
+            # Check if file is staged (first character is not space)
+            if status_code[0] != " " and status_code[0] != "?":
+                staged.append(filename)
+
+            # Check if file is modified (second character is not space)
+            if status_code[1] != " " and status_code[1] != "?":
+                modified.append(filename)
+
+            # Check if file is untracked
+            if status_code == "??":
+                untracked.append(filename)
+
+        return staged, modified, untracked
+
+    def get_ahead_behind(self, cwd: Path, branch: str) -> tuple[int, int]:
+        """Get number of commits ahead and behind tracking branch."""
+        # Check if branch has upstream
+        result = subprocess.run(
+            ["git", "rev-parse", "--abbrev-ref", f"{branch}@{{upstream}}"],
+            cwd=cwd,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+        if result.returncode != 0:
+            # No upstream branch
+            return 0, 0
+
+        upstream = result.stdout.strip()
+
+        # Get ahead/behind counts
+        result = subprocess.run(
+            ["git", "rev-list", "--left-right", "--count", f"{upstream}...HEAD"],
+            cwd=cwd,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+
+        parts = result.stdout.strip().split()
+        if len(parts) == 2:
+            behind = int(parts[0])
+            ahead = int(parts[1])
+            return ahead, behind
+
+        return 0, 0
+
+    def get_recent_commits(self, cwd: Path, *, limit: int = 5) -> list[dict[str, str]]:
+        """Get recent commit information."""
+        result = subprocess.run(
+            [
+                "git",
+                "log",
+                f"-{limit}",
+                "--format=%H%x00%s%x00%an%x00%ar",
+            ],
+            cwd=cwd,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+
+        commits = []
+        for line in result.stdout.strip().split("\n"):
+            if not line:
+                continue
+
+            parts = line.split("\x00")
+            if len(parts) == 4:
+                commits.append(
+                    {
+                        "sha": parts[0][:7],  # Short SHA
+                        "message": parts[1],
+                        "author": parts[2],
+                        "date": parts[3],
+                    }
+                )
+
+        return commits
+
 
 # ============================================================================
 # Dry-Run Wrapper
@@ -504,3 +644,15 @@ class DryRunGitOps(GitOps):
     def get_commit_message(self, repo_root: Path, commit_sha: str) -> str | None:
         """Get commit message (read-only, delegates to wrapped)."""
         return self._wrapped.get_commit_message(repo_root, commit_sha)
+
+    def get_file_status(self, cwd: Path) -> tuple[list[str], list[str], list[str]]:
+        """Get file status (read-only, delegates to wrapped)."""
+        return self._wrapped.get_file_status(cwd)
+
+    def get_ahead_behind(self, cwd: Path, branch: str) -> tuple[int, int]:
+        """Get ahead/behind counts (read-only, delegates to wrapped)."""
+        return self._wrapped.get_ahead_behind(cwd, branch)
+
+    def get_recent_commits(self, cwd: Path, *, limit: int = 5) -> list[dict[str, str]]:
+        """Get recent commits (read-only, delegates to wrapped)."""
+        return self._wrapped.get_recent_commits(cwd, limit=limit)
