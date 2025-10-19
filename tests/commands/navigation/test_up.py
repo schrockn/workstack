@@ -407,9 +407,7 @@ def test_up_with_mismatched_worktree_name() -> None:
                     ),
                 ]
             },
-            current_branches={
-                cwd: "feature/auth"
-            },  # Simulate being in feature/auth worktree
+            current_branches={cwd: "feature/auth"},  # Simulate being in feature/auth worktree
             default_branches={cwd: "main"},
             git_common_dirs={cwd: git_dir},
         )

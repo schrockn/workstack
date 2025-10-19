@@ -674,7 +674,9 @@ def test_switch_up_with_mismatched_worktree_name() -> None:
         # Navigate up from feature/db to feature/db-tests using switch --up
         # This would fail before the fix because it would try to find a worktree named
         # "feature/db-tests" instead of resolving to "db-tests-implementation"
-        result = runner.invoke(cli, ["switch", "--up", "--script"], obj=test_ctx, catch_exceptions=False)
+        result = runner.invoke(
+            cli, ["switch", "--up", "--script"], obj=test_ctx, catch_exceptions=False
+        )
 
         if result.exit_code != 0:
             print(f"stderr: {result.stderr}")
