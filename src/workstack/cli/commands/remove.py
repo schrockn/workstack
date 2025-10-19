@@ -1,4 +1,3 @@
-import json
 import shutil
 from pathlib import Path
 
@@ -14,6 +13,7 @@ from workstack.cli.core import (
 from workstack.cli.graphite import get_branch_stack
 from workstack.core.context import WorkstackContext, create_context
 from workstack.core.gitops import GitOps
+from workstack.core.graphite_ops import read_graphite_json_file
 
 
 def _try_git_worktree_remove(git_ops: GitOps, repo_root: Path, wt_path: Path) -> bool:
@@ -78,11 +78,11 @@ def _get_non_trunk_branches(ctx: WorkstackContext, repo_root: Path, stack: list[
         return []
 
     cache_file = git_dir / ".graphite_cache_persist"
-    if not cache_file.exists():
-        click.echo("Warning: Graphite cache not found. Cannot delete stack.", err=True)
+    cache_data = read_graphite_json_file(cache_file, "Graphite cache")
+    if cache_data is None:
+        click.echo("Warning: Graphite cache not found or invalid. Cannot delete stack.", err=True)
         return []
 
-    cache_data = json.loads(cache_file.read_text(encoding="utf-8"))
     branches_data = cache_data.get("branches", [])
 
     trunk_branches = {
@@ -191,21 +191,29 @@ def _remove_worktree(
                     )
                 else:
                     cache_file = git_dir / ".graphite_cache_persist"
-                    cache_data = json.loads(cache_file.read_text(encoding="utf-8"))
-                    branches_data = cache_data.get("branches", [])
-
-                    trunk_branches = {
-                        branch_name
-                        for branch_name, info in branches_data
-                        if info.get("validationResult") == "TRUNK"
-                    }
-
-                    branches_to_delete = [b for b in stack if b not in trunk_branches]
-
-                    if not branches_to_delete:
+                    cache_data = read_graphite_json_file(cache_file, "Graphite cache")
+                    if cache_data is None:
                         click.echo(
-                            "No branches to delete (all branches in stack are trunk branches)."
+                            "Warning: Graphite cache not found or invalid. Cannot determine trunk branches.",
+                            err=True,
                         )
+                        # Continue without filtering trunk branches - delete all requested branches
+                        branches_to_delete = stack
+                    else:
+                        branches_data = cache_data.get("branches", [])
+
+                        trunk_branches = {
+                            branch_name
+                            for branch_name, info in branches_data
+                            if info.get("validationResult") == "TRUNK"
+                        }
+
+                        branches_to_delete = [b for b in stack if b not in trunk_branches]
+
+                        if not branches_to_delete:
+                            click.echo(
+                                "No branches to delete (all branches in stack are trunk branches)."
+                            )
 
     # Step 2: Display all planned operations
     if branches_to_delete or True:

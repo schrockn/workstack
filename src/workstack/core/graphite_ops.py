@@ -14,10 +14,45 @@ import sys
 import warnings
 from abc import ABC, abstractmethod
 from pathlib import Path
+from typing import Any
 
 from workstack.core.branch_metadata import BranchMetadata
 from workstack.core.github_ops import PullRequestInfo, _parse_github_pr_url
 from workstack.core.gitops import GitOps
+
+
+def read_graphite_json_file(file_path: Path, description: str) -> dict[str, Any] | None:
+    """Read and parse a Graphite JSON file with error handling.
+
+    Args:
+        file_path: Path to the JSON file
+        description: Human-readable description for error messages (e.g., "Graphite cache", "Graphite PR info")
+
+    Returns:
+        Parsed JSON dict, or None if file doesn't exist or error occurs
+
+    Note:
+        Emits warnings for parse/read errors to inform user of cache issues
+        without crashing the application.
+    """
+    if not file_path.exists():
+        return None
+
+    try:
+        json_str = file_path.read_text(encoding="utf-8")
+        return json.loads(json_str)
+    except json.JSONDecodeError as e:
+        warnings.warn(
+            f"Cannot parse {description} at {file_path}: Invalid JSON ({e})",
+            stacklevel=2,
+        )
+        return None
+    except OSError as e:
+        warnings.warn(
+            f"Cannot read {description} at {file_path}: {e}",
+            stacklevel=2,
+        )
+        return None
 
 
 def parse_graphite_pr_info(json_str: str) -> dict[str, PullRequestInfo]:
@@ -228,34 +263,18 @@ class RealGraphiteOps(GraphiteOps):
         )
 
     def get_prs_from_graphite(self, git_ops: GitOps, repo_root: Path) -> dict[str, PullRequestInfo]:
-        """Get PR information from Graphite's .git/.graphite_pr_info file.
-
-        Note: Uses try/except as an acceptable error boundary for handling file I/O
-        and JSON parsing errors. We cannot validate file existence/format a priori.
-        """
+        """Get PR information from Graphite's .git/.graphite_pr_info file."""
         git_dir = git_ops.get_git_common_dir(repo_root)
         if git_dir is None:
             return {}
 
         pr_info_file = git_dir / ".graphite_pr_info"
-        if not pr_info_file.exists():
+        data = read_graphite_json_file(pr_info_file, "Graphite PR info")
+        if data is None:
             return {}
 
-        try:
-            json_str = pr_info_file.read_text(encoding="utf-8")
-            return parse_graphite_pr_info(json_str)
-        except json.JSONDecodeError as e:
-            warnings.warn(
-                f"Cannot parse Graphite PR info at {pr_info_file}: Invalid JSON ({e})",
-                stacklevel=2,
-            )
-            return {}
-        except OSError as e:
-            warnings.warn(
-                f"Cannot read Graphite PR info at {pr_info_file}: {e}",
-                stacklevel=2,
-            )
-            return {}
+        # parse_graphite_pr_info expects JSON string, so convert back
+        return parse_graphite_pr_info(json.dumps(data))
 
     def get_all_branches(self, git_ops: GitOps, repo_root: Path) -> dict[str, BranchMetadata]:
         """Get all gt-tracked branches with metadata.
@@ -268,35 +287,21 @@ class RealGraphiteOps(GraphiteOps):
             return {}
 
         cache_file = git_dir / ".graphite_cache_persist"
-        if not cache_file.exists():
+        data = read_graphite_json_file(cache_file, "Graphite cache")
+        if data is None:
             return {}
 
-        try:
-            json_str = cache_file.read_text(encoding="utf-8")
-            # Get all branch heads from git for enrichment
-            git_branch_heads = {}
-            # This is a bit inefficient but matches original behavior
-            # In reality, could be optimized by getting all refs at once
-            branches_data = json.loads(json_str).get("branches", [])
-            for branch_name, _ in branches_data:
-                if isinstance(branch_name, str):
-                    commit_sha = git_ops.get_branch_head(repo_root, branch_name)
-                    if commit_sha:
-                        git_branch_heads[branch_name] = commit_sha
+        # Get all branch heads from git for enrichment
+        git_branch_heads = {}
+        branches_data = data.get("branches", [])
+        for branch_name, _ in branches_data:
+            if isinstance(branch_name, str):
+                commit_sha = git_ops.get_branch_head(repo_root, branch_name)
+                if commit_sha:
+                    git_branch_heads[branch_name] = commit_sha
 
-            return parse_graphite_cache(json_str, git_branch_heads)
-        except json.JSONDecodeError as e:
-            warnings.warn(
-                f"Cannot parse Graphite cache at {cache_file}: Invalid JSON ({e})",
-                stacklevel=2,
-            )
-            return {}
-        except OSError as e:
-            warnings.warn(
-                f"Cannot read Graphite cache at {cache_file}: {e}",
-                stacklevel=2,
-            )
-            return {}
+        # parse_graphite_cache expects JSON string, so convert back
+        return parse_graphite_cache(json.dumps(data), git_branch_heads)
 
 
 class DryRunGraphiteOps(GraphiteOps):
