@@ -15,14 +15,17 @@ from workstack.core.context import WorkstackContext
 from workstack.core.gitops import GitOps
 
 
-@click.group("gt")
+@click.group("graphite")
 @click.pass_obj
-def gt_group(ctx: WorkstackContext) -> None:
-    """Graphite integration commands (requires use-graphite enabled)."""
+def graphite_group(ctx: WorkstackContext) -> None:
+    """Graphite integration commands for machine-readable metadata.
+
+    Requires use-graphite enabled.
+    """
     pass
 
 
-@gt_group.command("branches")
+@graphite_group.command("branches")
 @click.option(
     "--format",
     type=click.Choice(["text", "json", "tree"]),
@@ -36,20 +39,20 @@ def gt_group(ctx: WorkstackContext) -> None:
     help="Show only this branch and its descendants (tree format only)",
 )
 @click.pass_obj
-def gt_branches_cmd(ctx: WorkstackContext, format: str, stack: str | None) -> None:
-    """List all gt-tracked branches.
+def graphite_branches_cmd(ctx: WorkstackContext, format: str, stack: str | None) -> None:
+    """List all Graphite-tracked branches with machine-readable metadata.
 
     By default, outputs a simple list of branch names (one per line).
     Use --format json for structured output with full metadata.
     Use --format tree for hierarchical tree visualization.
 
     Examples:
-        $ workstack gt branches
+        $ workstack graphite branches
         main
         feature-1
         feature-2
 
-        $ workstack gt branches --format json
+        $ workstack graphite branches --format json
         {
           "branches": [
             {
@@ -62,13 +65,13 @@ def gt_branches_cmd(ctx: WorkstackContext, format: str, stack: str | None) -> No
           ]
         }
 
-        $ workstack gt branches --format tree
+        $ workstack graphite branches --format tree
         main (abc123f) "Initial commit"
         ├─ feature-a (def456g) "Add user authentication"
         │  └─ feature-a-tests (789hij0) "Add tests for auth"
         └─ feature-b (klm123n) "Refactor database layer"
 
-        $ workstack gt branches --format tree --stack feature-a
+        $ workstack graphite branches --format tree --stack feature-a
         feature-a (def456g) "Add user authentication"
         └─ feature-a-tests (789hij0) "Add tests for auth"
 

@@ -834,6 +834,72 @@ workstack sync              # Run gt repo sync + cleanup
 
 **Auto-detection**: Workstack automatically detects if `gt` CLI is installed and enables Graphite features.
 
+#### `workstack graphite` - Machine-Readable Metadata
+
+**Purpose**: Provide structured access to Graphite metadata for scripting and automation.
+
+**Important**: Use native `gt` commands for interactive workflows. Use `workstack graphite` only when you need machine-readable output.
+
+```bash
+# List branches (text format - one per line)
+workstack graphite branches
+
+# List branches with full metadata (JSON)
+workstack graphite branches --format json
+
+# Tree visualization of branch hierarchy
+workstack graphite branches --format tree
+
+# Show specific stack subtree
+workstack graphite branches --format tree --stack feature-a
+```
+
+**Output formats:**
+
+1. **Text** (default): Simple list of branch names, one per line
+
+   ```
+   main
+   feature-a
+   feature-b
+   ```
+
+2. **JSON**: Full structured metadata for scripting
+
+   ```json
+   {
+     "branches": [
+       {
+         "name": "main",
+         "parent": null,
+         "children": ["feature-a"],
+         "is_trunk": true,
+         "commit_sha": "abc123..."
+       }
+     ]
+   }
+   ```
+
+3. **Tree**: Hierarchical visualization with commit info
+   ```
+   main (abc123f) "Initial commit"
+   ├─ feature-a (def456g) "Add user authentication"
+   │  └─ feature-a-tests (789hij0) "Add tests for auth"
+   └─ feature-b (klm123n) "Refactor database layer"
+   ```
+
+**When to use:**
+
+- Need JSON output for scripts or tools
+- Need full branch metadata (parent, children, trunk status)
+- Building automation that consumes Graphite data
+
+**When NOT to use:**
+
+- Interactive terminal work → Use native `gt` commands instead
+- Creating branches → Use `gt create`
+- Submitting PRs → Use `gt submit`
+
 ### GitHub Integration
 
 Requires GitHub CLI (`gh`) installed and authenticated:

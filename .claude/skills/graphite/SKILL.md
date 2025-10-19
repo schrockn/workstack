@@ -202,16 +202,6 @@ gt submit --stack
 
 4. **Don't forget to `gt sync` after merges**: Stale branches accumulate and metadata gets outdated
 
-## Integration with Workstack
-
-When using gt with workstack:
-
-- All worktrees share the same gt metadata (in `.git` directory)
-- `workstack list --stacks` shows stack relationships
-- `workstack tree` visualizes stacks
-- `workstack sync` runs `gt sync`
-- Metadata is auto-detected if gt CLI is installed
-
 ## Quick Decision Tree
 
 **When to use gt commands:**

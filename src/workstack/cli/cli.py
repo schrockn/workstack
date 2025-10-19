@@ -5,7 +5,7 @@ from workstack.cli.commands.config import config_group
 from workstack.cli.commands.create import create
 from workstack.cli.commands.down import down_cmd
 from workstack.cli.commands.gc import gc_cmd
-from workstack.cli.commands.gt import gt_group
+from workstack.cli.commands.gt import graphite_group
 from workstack.cli.commands.init import init_cmd
 from workstack.cli.commands.jump import jump_cmd
 from workstack.cli.commands.list import list_cmd, ls_cmd
@@ -53,7 +53,7 @@ cli.add_command(config_group)
 cli.add_command(gc_cmd)
 cli.add_command(sync_cmd)
 cli.add_command(tree_cmd)
-cli.add_command(gt_group)
+cli.add_command(graphite_group)
 cli.add_command(hidden_shell_cmd)
 cli.add_command(prepare_cwd_recovery_cmd)
 
