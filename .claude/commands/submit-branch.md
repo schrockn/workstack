@@ -25,6 +25,29 @@ Automatically create a git commit with a helpful summary message and submit the 
 /submit-branch
 ```
 
+## Graphite Command Execution
+
+When executing gt commands in this workflow, use the `gt-runner` agent:
+
+```
+Task(
+    subagent_type="gt-runner",
+    description="[Short description]",
+    prompt="Execute: gt [command]"
+)
+```
+
+**When to use gt-runner:**
+
+- Any gt command that produces output you need to parse
+- Commands where you need structured results (PR URLs, branch lists, etc.)
+- When output might pollute the context
+
+**When to use Bash directly:**
+
+- Simple gt commands with no output parsing needed
+- Commands explicitly allowed in permissions
+
 ## Implementation Steps
 
 When this command is invoked:
