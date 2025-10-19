@@ -11,25 +11,25 @@
 
 **This codebase has strong opinions. Check these patterns BEFORE coding:**
 
-| If you're about to write...                 | STOP! Check this instead                                                     |
-| ------------------------------------------- | ---------------------------------------------------------------------------- |
-| `try:` or `except:`                         | → [Exception Handling](#exception-handling) - Default: let exceptions bubble |
-| `from __future__ import annotations`        | → **FORBIDDEN** - Python 3.13+ doesn't need it                               |
-| `List[...]`, `Dict[...]`, `Union[...]`      | → Use `list[...]`, `dict[...]`, `X \| Y`                                     |
-| `typing.Protocol`                           | → Use `abc.ABC` instead                                                      |
-| `dict[key]` without checking                | → Use `if key in dict:` or `.get()`                                          |
-| `path.resolve()` or `path.is_relative_to()` | → Check `path.exists()` first                                                |
-| Function with default argument              | → Make explicit at call sites                                                |
-| `from .module import`                       | → Use absolute imports only                                                  |
-| `print(...)` in CLI code                    | → Use `click.echo()`                                                         |
-| `subprocess.run(...)`                       | → Add `check=True`                                                           |
-| `make ...` or user says "make"              | → Use makefile-runner agent (Task tool) instead of Bash                      |
-| Prettier formatting issues                  | → Use `make prettier` (via makefile-runner agent)                            |
-| Summarizing code changes in a branch        | → Use git-diff-summarizer agent (Task tool) for branch analysis              |
-| Updating commit message with code changes   | → Use git-diff-summarizer agent (Task tool) to analyze first                 |
-| `gt ...` or user says "gt" or "graphite"    | → Use graphite skill (Skill tool) for Graphite commands                      |
-| 4+ levels of indentation                    | → Extract helper functions                                                   |
-| Code in `__init__.py`                       | → Keep empty or docstring-only (except package entry points)                 |
+| If you're about to write...                 | STOP! Check this instead                                                      |
+| ------------------------------------------- | ----------------------------------------------------------------------------- |
+| `try:` or `except:`                         | → [Exception Handling](#exception-handling) - Default: let exceptions bubble  |
+| `from __future__ import annotations`        | → **FORBIDDEN** - Python 3.13+ doesn't need it                                |
+| `List[...]`, `Dict[...]`, `Union[...]`      | → Use `list[...]`, `dict[...]`, `X \| Y`                                      |
+| `typing.Protocol`                           | → Use `abc.ABC` instead                                                       |
+| `dict[key]` without checking                | → Use `if key in dict:` or `.get()`                                           |
+| `path.resolve()` or `path.is_relative_to()` | → Check `path.exists()` first                                                 |
+| Function with default argument              | → Make explicit at call sites                                                 |
+| `from .module import`                       | → Use absolute imports only                                                   |
+| `print(...)` in CLI code                    | → Use `click.echo()`                                                          |
+| `subprocess.run(...)`                       | → Add `check=True`                                                            |
+| `make ...` or user says "make"              | → Use makefile-runner agent (Task tool) instead of Bash                       |
+| Prettier formatting issues                  | → Use `make prettier` (via makefile-runner agent)                             |
+| Summarizing code changes in a branch        | → Use git-diff-summarizer agent (Task tool) for branch analysis               |
+| Updating commit message with code changes   | → Use git-diff-summarizer agent (Task tool) to analyze first                  |
+| `gt ...` or user says "gt" or "graphite"    | → Use gt-runner agent (Task tool) for execution, graphite skill for knowledge |
+| 4+ levels of indentation                    | → Extract helper functions                                                    |
+| Code in `__init__.py`                       | → Keep empty or docstring-only (except package entry points)                  |
 
 ## 📚 Quick Reference
 
@@ -246,10 +246,25 @@ Time-based estimates have no basis in reality for AI-assisted development and sh
 - [tests/CLAUDE.md](tests/CLAUDE.md) - Testing patterns
 - [README.md](README.md) - Project overview
 
-## Skills
+## Skills and Agents
 
-When working with specific tools, use the Skill tool to load specialized knowledge:
+### Graphite Workflow
 
-- **Graphite (gt)**: Use `graphite` skill for stack management and gt commands
+**For understanding gt concepts:** Use `graphite` skill (Skill tool)
+
+- Mental model, terminology, workflow patterns
+- Command reference and examples
+- When to use which commands
+
+**For executing gt commands:** Use `gt-runner` agent (Task tool)
+
+- Cost-optimized execution with Haiku model
+- Parses command output automatically
+- Returns structured results
+
+**Pattern:** Load skill first for understanding, then use agent for execution.
+
+### Other Tools
+
 - **GitHub (gh)**: Use `gh` skill for GitHub CLI operations
 - **Workstack**: Use `workstack` skill for worktree management
