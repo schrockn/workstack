@@ -9,6 +9,21 @@ Run all tests: `uv run pytest`
 Run specific test: `uv run pytest tests/commands/workspace/test_rm.py::test_rm_force_removes_directory`
 Run with coverage: `uv run pytest --cov=workstack`
 
+## Important: Directory Structure Requirements
+
+**Every new subdirectory under `tests/` must include `__init__.py`** to ensure Python recognizes it as a regular package (not a namespace package).
+
+Without `__init__.py`, pytest's import system breaks because Python 3.3+ treats directories without `__init__.py` as namespace packages, which disrupts absolute imports like `from tests.fakes.gitops import FakeGitOps`.
+
+**When adding a new test directory:**
+
+```bash
+mkdir -p tests/my_new_category
+touch tests/my_new_category/__init__.py  # ← ALWAYS add this!
+```
+
+See [unit/CLAUDE.md](unit/CLAUDE.md#directory-structure) for more details.
+
 ## Test Organization
 
 Tests are organized hierarchically to optimize context loading and provide targeted guidance:
@@ -42,6 +57,87 @@ See [core/CLAUDE.md](core/CLAUDE.md) for core testing patterns.
 - `tests/status/` - Status system tests
 - `tests/dev_cli_core/` - Dev CLI infrastructure tests
 - `tests/fakes/` - Fake implementations for dependency injection
+
+## Test Organization by Layer
+
+Tests are organized by architectural layer to clarify dependencies:
+
+### Layer 1: Unit Tests of Fakes (tests/unit/fakes/)
+
+Tests that verify fake implementations work correctly. These test the **test infrastructure itself**.
+
+**Contains:**
+
+- `test_fake_gitops.py` - Tests FakeGitOps mutation tracking
+- `test_fake_global_config_ops.py` - Tests FakeGlobalConfigOps state management
+- Tests OF other fakes (GraphiteOps, GitHubOps, ShellOps)
+
+**When to add tests here:** When modifying fake implementations or adding new fakes.
+
+**Key principle:** These tests ensure fakes are reliable test doubles. If fakes are broken, all higher-layer tests are unreliable.
+
+### Layer 2: Integration Tests (tests/integration/)
+
+Tests with REAL implementations (actual git, filesystem, subprocess calls).
+
+**Contains:**
+
+- `test_real_gitops.py` - Tests RealGitOps with actual git commands
+- `test_real_global_config.py` - Tests RealGlobalConfigOps with real filesystem
+- `test_dryrun_integration.py` - Tests dry-run wrappers
+
+**When to add tests here:** When testing that abstraction layers correctly wrap external tools.
+
+**Key principle:** Uses `tmp_path` fixture, real subprocess calls, actual I/O.
+
+### Layer 3: Command Tests (tests/commands/)
+
+CLI layer tests using fakes. Tests user-facing command behavior.
+
+**Contains:**
+
+- `workspace/` - create, rename, move, rm commands
+- `navigation/` - switch, up, down, jump commands
+- `sync/` - sync command with Graphite integration
+- `display/` - status, tree, list commands
+- `setup/` - init, config commands
+
+**When to add tests here:** When adding/modifying CLI commands.
+
+**Key principle:** Uses `CliRunner` + `WorkstackContext` injection with fakes. May use `isolated_filesystem()` when fakes create directories.
+
+### Layer 4: Core Tests (tests/core/)
+
+Business logic tests using fakes. No CLI concerns.
+
+**Contains:**
+
+- `operations/` - Core logic (not fake tests!)
+- `detection/` - Auto-detection algorithms
+- `utils/` - Utility functions
+- `foundation/` - Core infrastructure
+
+**When to add tests here:** When adding core algorithms, utilities, detection logic.
+
+**Key principle:** Direct function calls, no CliRunner. Never uses `isolated_filesystem()`.
+
+## Layer Boundaries
+
+```
+┌─────────────────────────────────────┐
+│   tests/commands/   (Layer 3)       │  Uses fakes
+│   CLI commands via CliRunner        │
+├─────────────────────────────────────┤
+│   tests/core/       (Layer 4)       │  Uses fakes
+│   Business logic, direct calls      │
+├─────────────────────────────────────┤
+│   tests/unit/fakes/ (Layer 1)       │  Tests fakes
+│   Test infrastructure itself        │
+├─────────────────────────────────────┤
+│   tests/integration/ (Layer 2)      │  Uses real
+│   Real git, filesystem, subprocess  │
+└─────────────────────────────────────┘
+```
 
 ## Quick Reference
 

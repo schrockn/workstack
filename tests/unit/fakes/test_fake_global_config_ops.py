@@ -1,4 +1,8 @@
-"""Tests for FakeGlobalConfigOps."""
+"""Tests for FakeGlobalConfigOps test infrastructure.
+
+These tests verify that FakeGlobalConfigOps correctly simulates config
+operations and provides reliable test doubles for CLI tests.
+"""
 
 from pathlib import Path
 
