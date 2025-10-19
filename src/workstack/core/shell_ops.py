@@ -11,6 +11,30 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 
 
+def detect_shell_from_env(shell_env: str) -> tuple[str, Path] | None:
+    """Detect shell type and config file from SHELL environment value.
+
+    Args:
+        shell_env: Value of SHELL environment variable (e.g., "/bin/zsh")
+
+    Returns:
+        Tuple of (shell_name, rc_file_path) or None if unsupported shell
+    """
+    if not shell_env:
+        return None
+
+    shell_name = Path(shell_env).name
+
+    if shell_name == "bash":
+        return ("bash", Path.home() / ".bashrc")
+    if shell_name == "zsh":
+        return ("zsh", Path.home() / ".zshrc")
+    if shell_name == "fish":
+        return ("fish", Path.home() / ".config" / "fish" / "config.fish")
+
+    return None
+
+
 class ShellOps(ABC):
     """Abstract interface for shell detection and tool availability checks.
 
@@ -40,7 +64,7 @@ class ShellOps(ABC):
         ...
 
     @abstractmethod
-    def check_tool_installed(self, tool_name: str) -> str | None:
+    def get_installed_tool_path(self, tool_name: str) -> str | None:
         """Check if a command-line tool is installed and available in PATH.
 
         Args:
@@ -51,7 +75,7 @@ class ShellOps(ABC):
 
         Example:
             >>> shell_ops = RealShellOps()
-            >>> gt_path = shell_ops.check_tool_installed("gt")
+            >>> gt_path = shell_ops.get_installed_tool_path("gt")
             >>> if gt_path:
             ...     print(f"Graphite found at {gt_path}")
         """
@@ -69,24 +93,9 @@ class RealShellOps(ShellOps):
         - Extracts shell name from path (e.g., /bin/bash -> bash)
         - Maps to appropriate RC file location
         """
-        shell_path = os.environ.get("SHELL", "")
-        if not shell_path:
-            return None
+        shell_env = os.environ.get("SHELL", "")
+        return detect_shell_from_env(shell_env)
 
-        shell_name = Path(shell_path).name
-
-        if shell_name == "bash":
-            rc_file = Path.home() / ".bashrc"
-            return ("bash", rc_file)
-        if shell_name == "zsh":
-            rc_file = Path.home() / ".zshrc"
-            return ("zsh", rc_file)
-        if shell_name == "fish":
-            rc_file = Path.home() / ".config" / "fish" / "config.fish"
-            return ("fish", rc_file)
-
-        return None
-
-    def check_tool_installed(self, tool_name: str) -> str | None:
+    def get_installed_tool_path(self, tool_name: str) -> str | None:
         """Check if tool is in PATH using shutil.which."""
         return shutil.which(tool_name)

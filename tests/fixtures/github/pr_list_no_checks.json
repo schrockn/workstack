@@ -1,0 +1,16 @@
+[
+  {
+    "number": 201,
+    "headRefName": "main-feature",
+    "url": "https://github.com/owner/repo/pull/201",
+    "state": "MERGED",
+    "isDraft": false
+  },
+  {
+    "number": 202,
+    "headRefName": "test-branch",
+    "url": "https://github.com/owner/repo/pull/202",
+    "state": "CLOSED",
+    "isDraft": true
+  }
+]

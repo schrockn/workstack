@@ -43,7 +43,7 @@ def is_repo_named(repo_root: Path, expected_name: str) -> bool:
 
 def detect_graphite(shell_ops: ShellOps) -> bool:
     """Detect if Graphite (gt) is installed and available in PATH."""
-    return shell_ops.check_tool_installed("gt") is not None
+    return shell_ops.get_installed_tool_path("gt") is not None
 
 
 def create_global_config(
@@ -167,6 +167,10 @@ def perform_shell_setup(shell_ops: ShellOps) -> bool:
         return False
 
     shell, rc_file = shell_info
+
+    # Resolve symlinks to show the real file path in instructions
+    if rc_file.exists():
+        rc_file = rc_file.resolve()
 
     click.echo(f"\nDetected shell: {shell}")
     click.echo("Shell integration provides:")
