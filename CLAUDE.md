@@ -27,6 +27,7 @@
 | Prettier formatting issues                  | → Use `make prettier` (via makefile-runner agent)                            |
 | Summarizing code changes in a branch        | → Use git-diff-summarizer agent (Task tool) for branch analysis              |
 | Updating commit message with code changes   | → Use git-diff-summarizer agent (Task tool) to analyze first                 |
+| `gt ...` or user says "gt" or "graphite"    | → Use graphite skill (Skill tool) for Graphite commands                      |
 | 4+ levels of indentation                    | → Extract helper functions                                                   |
 | Code in `__init__.py`                       | → Keep empty or docstring-only (except package entry points)                 |
 
@@ -242,6 +243,13 @@ Time-based estimates have no basis in reality for AI-assisted development and sh
 - [.agent/docs/PATTERNS.md](.agent/docs/PATTERNS.md) - Code examples
 - [.agent/docs/EXCEPTION_HANDLING.md](.agent/docs/EXCEPTION_HANDLING.md) - Exception guide
 - [.agent/docs/QUICK_REFERENCE.md](.agent/docs/QUICK_REFERENCE.md) - Quick lookup
-- [.agent/tools/gt.md](.agent/tools/gt.md) - Graphite (gt) mental model (load when working with gt/stacks)
 - [tests/CLAUDE.md](tests/CLAUDE.md) - Testing patterns
 - [README.md](README.md) - Project overview
+
+## Skills
+
+When working with specific tools, use the Skill tool to load specialized knowledge:
+
+- **Graphite (gt)**: Use `graphite` skill for stack management and gt commands
+- **GitHub (gh)**: Use `gh` skill for GitHub CLI operations
+- **Workstack**: Use `workstack` skill for worktree management
