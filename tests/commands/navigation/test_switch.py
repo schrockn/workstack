@@ -237,6 +237,7 @@ def test_complete_worktree_names_without_context(
     """
     import click
 
+    from tests.fakes.shell_ops import FakeShellOps
     from workstack.cli.cli import cli
     from workstack.cli.commands.switch import complete_worktree_names
     from workstack.core.context import WorkstackContext
@@ -244,7 +245,6 @@ def test_complete_worktree_names_without_context(
     from workstack.core.gitops import RealGitOps
     from workstack.core.global_config_ops import RealGlobalConfigOps
     from workstack.core.graphite_ops import RealGraphiteOps
-    from workstack.core.shell_ops import RealShellOps
 
     # Set up isolated global config
     global_config_dir = tmp_path / ".workstack"
@@ -278,13 +278,14 @@ def test_complete_worktree_names_without_context(
         )
 
     # Mock create_context to use test environment
+    # NOTE: Use FakeShellOps to avoid any risk of mutating user shell config files
     def mock_create_context() -> WorkstackContext:
         return WorkstackContext(
             git_ops=RealGitOps(),
             global_config_ops=RealGlobalConfigOps(),
             github_ops=RealGitHubOps(),
             graphite_ops=RealGraphiteOps(),
-            shell_ops=RealShellOps(),
+            shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
