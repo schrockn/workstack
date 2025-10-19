@@ -72,32 +72,33 @@ def _activate_root_repo(repo: RepoContext, script: bool, command_name: str) -> N
 
 
 def _activate_worktree(
-    repo: RepoContext, target_name: str, script: bool, command_name: str
+    repo: RepoContext, target_path: Path, script: bool, command_name: str
 ) -> None:
     """Activate a worktree and exit.
 
     Args:
         repo: Repository context
-        target_name: Name of the target worktree
+        target_path: Path to the target worktree directory
         script: Whether to output script path or user message
         command_name: Name of the command (for script generation and debug logging)
 
     Raises:
         SystemExit: If worktree not found, or after successful activation
     """
-    workstacks_dir = ensure_workstacks_dir(repo)
-    wt_path = worktree_path_for(workstacks_dir, target_name)
+    wt_path = target_path
 
     if not wt_path.exists():
         click.echo(f"Worktree not found: {wt_path}", err=True)
         raise SystemExit(1)
+
+    worktree_name = wt_path.name
 
     if script:
         activation_script = render_activation_script(worktree_path=wt_path)
         script_path = write_script_to_temp(
             activation_script,
             command_name=command_name,
-            comment=f"activate {target_name}",
+            comment=f"activate {worktree_name}",
         )
 
         debug_log(f"{command_name.capitalize()}: Generated script at {script_path}")
@@ -111,7 +112,7 @@ def _activate_worktree(
             "Run 'workstack init --shell' to set up automatic activation."
         )
         if command_name == "switch":
-            click.echo(f"\nOr use: source <(workstack switch {target_name} --script)")
+            click.echo(f"\nOr use: source <(workstack switch {worktree_name} --script)")
         else:
             click.echo(f"\nOr use: source <(workstack {command_name} --script)")
     raise SystemExit(0)
@@ -347,12 +348,31 @@ def switch_cmd(ctx: WorkstackContext, name: str | None, script: bool, up: bool, 
             target_name = _resolve_up_navigation(ctx, repo, current_branch, worktrees)
         else:  # down
             target_name = _resolve_down_navigation(ctx, repo, current_branch, worktrees)
+
+        # Check if target_name refers to 'root' which means root repo
+        if target_name == "root":
+            _activate_root_repo(repo, script, "switch")
+
+        # Resolve to actual worktree path
+        target_wt_path = find_worktree_for_branch(worktrees, target_name)
+        if target_wt_path is None:
+            click.echo(
+                f"Error: Branch '{target_name}' has no worktree. This should not happen.",
+                err=True,
+            )
+            raise SystemExit(1)
+
+        _activate_worktree(repo, target_wt_path, script, "switch")
     else:
         # NAME argument was provided (validated earlier)
         target_name = name if name else ""  # This branch is unreachable due to validation
 
-    # Check if target_name refers to 'root' which means root repo
-    if target_name == "root":
-        _activate_root_repo(repo, script, "switch")
+        # Check if target_name refers to 'root' which means root repo
+        if target_name == "root":
+            _activate_root_repo(repo, script, "switch")
 
-    _activate_worktree(repo, target_name, script, "switch")
+        # For explicit name, use worktree_path_for since user provided the worktree name
+        workstacks_dir = ensure_workstacks_dir(repo)
+        wt_path = worktree_path_for(workstacks_dir, target_name)
+
+        _activate_worktree(repo, wt_path, script, "switch")

@@ -362,3 +362,82 @@ def test_up_script_flag() -> None:
         script_content = script_path.read_text()
         # Verify script contains the target worktree path
         assert str(workstacks_dir / "feature-2") in script_content
+
+
+def test_up_with_mismatched_worktree_name() -> None:
+    """Test up command when worktree directory name differs from branch name.
+
+    This is a regression test for the bug where branch names from Graphite navigation
+    were passed directly to _activate_worktree(), which expects worktree paths.
+    The fix uses find_worktree_for_branch() to resolve branch -> worktree path.
+    """
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        cwd = Path.cwd()
+        # Work dir is constructed as workstacks_root / repo_name, where repo_name = cwd.name
+        workstacks_dir = cwd / "workstacks" / cwd.name
+        workstacks_dir.mkdir(parents=True)
+        git_dir = cwd / ".git"
+        git_dir.mkdir()
+
+        # Set up stack: main -> feature/auth -> feature/auth-tests
+        # Branch names contain slashes, but worktree dirs don't
+        setup_graphite_stack(
+            git_dir,
+            {
+                "main": {"parent": None, "children": ["feature/auth"], "is_trunk": True},
+                "feature/auth": {"parent": "main", "children": ["feature/auth-tests"]},
+                "feature/auth-tests": {"parent": "feature/auth", "children": []},
+            },
+        )
+
+        # Worktree directories use different naming than branch names
+        # Branch: feature/auth -> Worktree: auth-work
+        # Branch: feature/auth-tests -> Worktree: auth-tests-work
+        (workstacks_dir / "auth-work").mkdir(parents=True, exist_ok=True)
+        (workstacks_dir / "auth-tests-work").mkdir(parents=True, exist_ok=True)
+
+        git_ops = FakeGitOps(
+            worktrees={
+                cwd: [
+                    WorktreeInfo(path=cwd, branch="main"),
+                    WorktreeInfo(path=workstacks_dir / "auth-work", branch="feature/auth"),
+                    WorktreeInfo(
+                        path=workstacks_dir / "auth-tests-work", branch="feature/auth-tests"
+                    ),
+                ]
+            },
+            current_branches={cwd: "feature/auth"},  # Simulate being in feature/auth worktree
+            default_branches={cwd: "main"},
+            git_common_dirs={cwd: git_dir},
+        )
+
+        global_config_ops = FakeGlobalConfigOps(
+            workstacks_root=cwd / "workstacks",
+            use_graphite=True,
+        )
+
+        test_ctx = WorkstackContext(
+            git_ops=git_ops,
+            global_config_ops=global_config_ops,
+            github_ops=FakeGitHubOps(),
+            graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
+            dry_run=False,
+        )
+
+        # Navigate up from feature/auth to feature/auth-tests
+        # This would fail before the fix because it would try to find a worktree named
+        # "feature/auth-tests" instead of resolving to "auth-tests-work"
+        result = runner.invoke(cli, ["up", "--script"], obj=test_ctx, catch_exceptions=False)
+
+        if result.exit_code != 0:
+            print(f"stderr: {result.stderr}")
+            print(f"stdout: {result.stdout}")
+        assert result.exit_code == 0
+
+        # Should generate script for auth-tests-work (not feature/auth-tests)
+        script_path = Path(result.stdout.strip())
+        assert script_path.exists()
+        script_content = script_path.read_text()
+        assert str(workstacks_dir / "auth-tests-work") in script_content
