@@ -92,13 +92,14 @@ Use the git-diff-summarizer agent to analyze all changes and create a comprehens
 Submit the current branch as a PR without interactive prompts:
 
 ```bash
-gt submit --publish --no-edit
+gt submit --publish --no-edit --restack
 ```
 
 Flags explained:
 
 - `--publish`: Publish any draft PRs
 - `--no-edit`: Use commit messages as PR titles/descriptions without prompting
+- `--restack`: Restack branches before submitting. If there are conflicts, output the branch names that could not be restacked
 
 ### 5. Show Results
 
