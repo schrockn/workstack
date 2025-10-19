@@ -40,7 +40,8 @@ Creates a technical plan directly from your description.
 
 **Phase 2: Implementation**
 
-- After saving, run `/execute-implementation-plan <plan-file>` to implement
+- After saving, create a worktree with: `workstack create --plan <plan-file>`
+- Switch to the new worktree to begin implementation
 
 ### What to Provide
 
@@ -84,7 +85,7 @@ When invoking the implementation-planner agent:
 - Suggest filename with `-plan.md` suffix
 - Ask for confirmation before writing
 - Save to repository root
-- Suggest running `/execute-implementation-plan <filename>` as next step
+- Suggest creating a worktree with: `workstack create --plan <filename>`
 
 **Example invocation:**
 

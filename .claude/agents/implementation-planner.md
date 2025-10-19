@@ -596,13 +596,13 @@ When the user approves the plan with EXPLICIT signals like "Looks good", "Approv
 2. Ask: "Ready to persist a detailed implementation plan on disk as `[suggested-filename]-plan.md`?" (at root of repository)
 3. Wait for user confirmation
 4. After confirmation, use the Write tool to save the implementation document to the **root of the repository**
-5. Respond: "Implementation plan saved to: `[filename]-plan.md`\n\nNext step: Run `/execute-implementation-plan [filename]-plan.md` to execute the plan."
+5. Respond: "Implementation plan saved to: `[filename]-plan.md`\n\nNext steps:\n1. Create a worktree: `workstack create --plan [filename]-plan.md`\n2. Switch to the new worktree to begin implementation"
 
 **Important**:
 - ALWAYS ask for confirmation with the suggested filename before writing
 - ALWAYS write to the root of the repository (not `.agent/` or other subdirectories)
 - ALWAYS use the `-plan.md` suffix
-- ALWAYS suggest the `/execute-implementation-plan` command as next step
+- ALWAYS suggest creating a worktree with `workstack create --plan <filename>` as next step
 - The user may want to change the filename or decide not to persist the plan
 
 ## Critical Success Factors
