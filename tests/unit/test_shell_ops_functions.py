@@ -1,9 +1,8 @@
 """Unit tests for shell operations helper functions."""
 
 from pathlib import Path
-from unittest.mock import patch
 
-from workstack.core.shell_ops import check_tool_in_path, detect_shell_from_env
+from workstack.core.shell_ops import detect_shell_from_env
 
 
 def test_detect_shell_from_env_zsh():
@@ -56,23 +55,3 @@ def test_detect_shell_from_env_with_complex_path():
     shell_name, rc_file = result
     assert shell_name == "zsh"
     assert rc_file == Path.home() / ".zshrc"
-
-
-def test_check_tool_in_path_exists():
-    """Test checking for a tool that exists."""
-    with patch("shutil.which") as mock_which:
-        mock_which.return_value = "/usr/bin/git"
-
-        result = check_tool_in_path("git")
-        assert result == "/usr/bin/git"
-        mock_which.assert_called_once_with("git")
-
-
-def test_check_tool_in_path_not_exists():
-    """Test checking for a tool that doesn't exist."""
-    with patch("shutil.which") as mock_which:
-        mock_which.return_value = None
-
-        result = check_tool_in_path("nonexistent-tool")
-        assert result is None
-        mock_which.assert_called_once_with("nonexistent-tool")

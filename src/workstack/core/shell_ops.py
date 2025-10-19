@@ -35,18 +35,6 @@ def detect_shell_from_env(shell_env: str) -> tuple[str, Path] | None:
     return None
 
 
-def check_tool_in_path(tool_name: str) -> str | None:
-    """Check if a tool exists in PATH.
-
-    Args:
-        tool_name: Name of the tool to check
-
-    Returns:
-        Path to tool executable or None if not found
-    """
-    return shutil.which(tool_name)
-
-
 class ShellOps(ABC):
     """Abstract interface for shell detection and tool availability checks.
 
@@ -76,7 +64,7 @@ class ShellOps(ABC):
         ...
 
     @abstractmethod
-    def check_tool_installed(self, tool_name: str) -> str | None:
+    def get_installed_tool_path(self, tool_name: str) -> str | None:
         """Check if a command-line tool is installed and available in PATH.
 
         Args:
@@ -87,7 +75,7 @@ class ShellOps(ABC):
 
         Example:
             >>> shell_ops = RealShellOps()
-            >>> gt_path = shell_ops.check_tool_installed("gt")
+            >>> gt_path = shell_ops.get_installed_tool_path("gt")
             >>> if gt_path:
             ...     print(f"Graphite found at {gt_path}")
         """
@@ -108,6 +96,6 @@ class RealShellOps(ShellOps):
         shell_env = os.environ.get("SHELL", "")
         return detect_shell_from_env(shell_env)
 
-    def check_tool_installed(self, tool_name: str) -> str | None:
+    def get_installed_tool_path(self, tool_name: str) -> str | None:
         """Check if tool is in PATH using shutil.which."""
-        return check_tool_in_path(tool_name)
+        return shutil.which(tool_name)

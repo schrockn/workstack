@@ -11,30 +11,13 @@ Architecture:
 import json
 import subprocess
 import sys
+import warnings
 from abc import ABC, abstractmethod
 from pathlib import Path
 
 from workstack.core.branch_metadata import BranchMetadata
 from workstack.core.github_ops import PullRequestInfo, _parse_github_pr_url
 from workstack.core.gitops import GitOps
-
-
-def execute_gt_command(cmd: list[str], cwd: Path) -> str:
-    """Execute a gt CLI command and return stdout.
-
-    Args:
-        cmd: Command and arguments to execute
-        cwd: Working directory for command execution
-
-    Returns:
-        stdout from the command
-
-    Raises:
-        subprocess.CalledProcessError: If command fails
-        FileNotFoundError: If gt is not installed
-    """
-    result = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, check=True)
-    return result.stdout
 
 
 def parse_graphite_pr_info(json_str: str) -> dict[str, PullRequestInfo]:
@@ -206,15 +189,6 @@ class RealGraphiteOps(GraphiteOps):
     All Graphite operations execute actual gt commands via subprocess.
     """
 
-    def __init__(self, execute_fn=None):
-        """Initialize RealGraphiteOps with optional command executor.
-
-        Args:
-            execute_fn: Optional function to execute commands (for testing).
-                       If None, uses execute_gt_command.
-        """
-        self._execute = execute_fn or execute_gt_command
-
     def get_graphite_url(self, owner: str, repo: str, pr_number: int) -> str:
         """Get Graphite PR URL for a pull request.
 
@@ -270,7 +244,17 @@ class RealGraphiteOps(GraphiteOps):
         try:
             json_str = pr_info_file.read_text(encoding="utf-8")
             return parse_graphite_pr_info(json_str)
-        except (json.JSONDecodeError, OSError):
+        except json.JSONDecodeError as e:
+            warnings.warn(
+                f"Cannot parse Graphite PR info at {pr_info_file}: Invalid JSON ({e})",
+                stacklevel=2,
+            )
+            return {}
+        except OSError as e:
+            warnings.warn(
+                f"Cannot read Graphite PR info at {pr_info_file}: {e}",
+                stacklevel=2,
+            )
             return {}
 
     def get_all_branches(self, git_ops: GitOps, repo_root: Path) -> dict[str, BranchMetadata]:
@@ -301,7 +285,17 @@ class RealGraphiteOps(GraphiteOps):
                         git_branch_heads[branch_name] = commit_sha
 
             return parse_graphite_cache(json_str, git_branch_heads)
-        except (json.JSONDecodeError, OSError):
+        except json.JSONDecodeError as e:
+            warnings.warn(
+                f"Cannot parse Graphite cache at {cache_file}: Invalid JSON ({e})",
+                stacklevel=2,
+            )
+            return {}
+        except OSError as e:
+            warnings.warn(
+                f"Cannot read Graphite cache at {cache_file}: {e}",
+                stacklevel=2,
+            )
             return {}
 
 

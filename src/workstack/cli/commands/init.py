@@ -43,7 +43,7 @@ def is_repo_named(repo_root: Path, expected_name: str) -> bool:
 
 def detect_graphite(shell_ops: ShellOps) -> bool:
     """Detect if Graphite (gt) is installed and available in PATH."""
-    return shell_ops.check_tool_installed("gt") is not None
+    return shell_ops.get_installed_tool_path("gt") is not None
 
 
 def create_global_config(

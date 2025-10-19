@@ -33,7 +33,7 @@ class FakeShellOps(ShellOps):
         >>> shell_ops = FakeShellOps(
         ...     installed_tools={"gt": "/usr/local/bin/gt"}
         ... )
-        >>> gt_path = shell_ops.check_tool_installed("gt")
+        >>> gt_path = shell_ops.get_installed_tool_path("gt")
         >>> assert gt_path == "/usr/local/bin/gt"
 
         # Test with no shell detected
@@ -54,7 +54,7 @@ class FakeShellOps(ShellOps):
             detected_shell: Shell to return from detect_shell(), or None if no shell
                 should be detected. Format: (shell_name, rc_file_path)
             installed_tools: Mapping of tool name to executable path. Tools not in
-                this mapping will return None from check_tool_installed()
+                this mapping will return None from get_installed_tool_path()
         """
         self._detected_shell = detected_shell
         self._installed_tools = installed_tools or {}
@@ -63,6 +63,6 @@ class FakeShellOps(ShellOps):
         """Return the shell configured at construction time."""
         return self._detected_shell
 
-    def check_tool_installed(self, tool_name: str) -> str | None:
+    def get_installed_tool_path(self, tool_name: str) -> str | None:
         """Return the tool path if configured, None otherwise."""
         return self._installed_tools.get(tool_name)

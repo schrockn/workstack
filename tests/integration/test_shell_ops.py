@@ -61,27 +61,27 @@ def test_real_shell_ops_detect_shell_unsupported():
         assert result is None
 
 
-def test_real_shell_ops_check_tool_installed():
+def test_real_shell_ops_get_installed_tool_path():
     """Test checking if a tool is installed."""
     ops = RealShellOps()
 
     # Check for a tool that should always exist on Unix systems
-    result = ops.check_tool_installed("sh")
+    result = ops.get_installed_tool_path("sh")
     assert result is not None  # sh should always exist
 
     # Check for a tool that likely doesn't exist
-    result = ops.check_tool_installed("nonexistent-tool-xyz-123")
+    result = ops.get_installed_tool_path("nonexistent-tool-xyz-123")
     assert result is None
 
 
-def test_real_shell_ops_check_tool_installed_python():
+def test_real_shell_ops_get_installed_tool_path_python():
     """Test checking if Python is installed."""
     ops = RealShellOps()
 
     # Python should be available (we're running Python tests!)
-    result = ops.check_tool_installed("python3")
+    result = ops.get_installed_tool_path("python3")
     if result is None:
         # Try just "python" on some systems
-        result = ops.check_tool_installed("python")
+        result = ops.get_installed_tool_path("python")
 
     assert result is not None  # Some form of Python should be found
