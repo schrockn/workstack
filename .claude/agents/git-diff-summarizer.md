@@ -75,10 +75,25 @@ When analyzing standard git diffs:
 
 When working with Graphite stacks:
 
+- **ALWAYS check if Graphite is being used** by running `gt log short` first
+- If `gt` is available and the current branch is tracked by Graphite:
+  - Use `gt log short` to identify the parent branch name
+  - The parent is the branch directly below the current branch in the stack
+  - Use `git diff <parent-branch>...HEAD` to compare against the parent
+  - This respects Graphite's explicit parent-child relationships
+- **DO NOT use `git merge-base`** when Graphite is available - Graphite already tracks parent relationships explicitly
 - Understand that branches are organized in vertical stacks
 - Compare a branch with its immediate parent (downstack)
-- Reference `.agent/tools/gt.md` for Graphite mental models if available
+- Reference `.claude/skills/graphite/SKILL.md` for Graphite mental models if available
 - Recognize that stack changes should be cohesive and focused
+
+**Graphite Detection and Parent Resolution:**
+
+1. First, check if `gt` is available: `which gt`
+2. If available, run: `gt log short`
+3. Parse the output to find the current branch (marked with `●`) and its parent (the branch directly below it in the output)
+4. If parent found, use: `git diff <parent>...HEAD`
+5. If `gt` is not available or branch is not tracked, fall back to traditional git methods
 
 ## Output Format
 
