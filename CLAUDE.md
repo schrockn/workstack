@@ -21,6 +21,8 @@
 | `subprocess.run(...)`                       | → Add `check=True`                                                           |
 | `make ...` or user says "make"              | → Use makefile-runner agent (Task tool) instead of Bash                      |
 | Prettier formatting issues                  | → Use `make prettier` (via makefile-runner agent)                            |
+| Summarizing code changes in a branch        | → Use git-diff-summarizer agent (Task tool) for branch analysis              |
+| Updating commit message with code changes   | → Use git-diff-summarizer agent (Task tool) to analyze first                 |
 | 4+ levels of indentation                    | → Extract helper functions                                                   |
 | Code in `__init__.py`                       | → Keep empty or docstring-only (except package entry points)                 |
 
