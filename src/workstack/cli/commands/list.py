@@ -309,7 +309,7 @@ def _display_branch_stack(
         click.echo(line)
 
 
-def _list_worktrees(ctx: WorkstackContext, show_stacks: bool, show_checks: bool) -> None:
+def _list_worktrees(ctx: WorkstackContext, show_stacks: bool, local: bool) -> None:
     """Internal function to list worktrees."""
     repo = discover_repo_context(ctx, Path.cwd())
     current_dir = Path.cwd().resolve()
@@ -345,22 +345,11 @@ def _list_worktrees(ctx: WorkstackContext, show_stacks: bool, show_checks: bool)
             if cache_file.exists():
                 cache_data = _load_graphite_cache(cache_file)
 
-    # Fetch PR information based on config and flags
+    # Fetch PR information by default in stack mode unless --local and show_pr_info is enabled
     prs: dict[str, PullRequestInfo] | None = None
-    if ctx.global_config_ops.get_show_pr_info():
-        # Determine if we need CI check status
-        need_checks = show_checks or ctx.global_config_ops.get_show_pr_checks()
-
-        if need_checks:
-            # Fetch from GitHub with check status (slower)
-            prs = ctx.github_ops.get_prs_for_repo(repo.root, include_checks=True)
-        else:
-            # Try Graphite first (fast - no CI status)
-            prs = ctx.graphite_ops.get_prs_from_graphite(ctx.git_ops, repo.root)
-
-            # If Graphite data not available, fall back to GitHub without checks
-            if not prs:
-                prs = ctx.github_ops.get_prs_for_repo(repo.root, include_checks=False)
+    if show_stacks and not local and ctx.global_config_ops.get_show_pr_info():
+        # Fetch all PRs with CI status from GitHub
+        prs = ctx.github_ops.get_prs_for_repo(repo.root, include_checks=True)
 
     # Show root repo first (display as "root" to distinguish from worktrees)
     root_branch = branches.get(repo.root)
@@ -425,21 +414,21 @@ def _list_worktrees(ctx: WorkstackContext, show_stacks: bool, show_checks: bool)
 @click.command("list")
 @click.option("--stacks", "-s", is_flag=True, help="Show graphite stacks for each worktree")
 @click.option(
-    "--checks", "-c", is_flag=True, help="Show CI check status (requires GitHub API call)"
+    "--local", "-l", is_flag=True, help="Skip GitHub API calls, show only local git information"
 )
 @click.pass_obj
-def list_cmd(ctx: WorkstackContext, stacks: bool, checks: bool) -> None:
+def list_cmd(ctx: WorkstackContext, stacks: bool, local: bool) -> None:
     """List worktrees with activation hints (alias: ls)."""
-    _list_worktrees(ctx, show_stacks=stacks, show_checks=checks)
+    _list_worktrees(ctx, show_stacks=stacks, local=local)
 
 
 # Register ls as a hidden alias (won't show in help)
 @click.command("ls", hidden=True)
 @click.option("--stacks", "-s", is_flag=True, help="Show graphite stacks for each worktree")
 @click.option(
-    "--checks", "-c", is_flag=True, help="Show CI check status (requires GitHub API call)"
+    "--local", "-l", is_flag=True, help="Skip GitHub API calls, show only local git information"
 )
 @click.pass_obj
-def ls_cmd(ctx: WorkstackContext, stacks: bool, checks: bool) -> None:
+def ls_cmd(ctx: WorkstackContext, stacks: bool, local: bool) -> None:
     """List worktrees with activation hints (alias of 'list')."""
-    _list_worktrees(ctx, show_stacks=stacks, show_checks=checks)
+    _list_worktrees(ctx, show_stacks=stacks, local=local)
