@@ -71,6 +71,7 @@ class FakeGitOps(GitOps):
         default_branches: dict[Path, str] | None = None,
         git_common_dirs: dict[Path, Path] | None = None,
         branch_heads: dict[str, str] | None = None,
+        commit_messages: dict[str, str] | None = None,
         staged_repos: set[Path] | None = None,
     ) -> None:
         """Create FakeGitOps with pre-configured state.
@@ -81,6 +82,7 @@ class FakeGitOps(GitOps):
             default_branches: Mapping of repo_root -> default branch
             git_common_dirs: Mapping of cwd -> git common directory
             branch_heads: Mapping of branch name -> commit SHA
+            commit_messages: Mapping of commit SHA -> commit message
             staged_repos: Set of repo roots that should report staged changes
         """
         self._worktrees = worktrees or {}
@@ -88,6 +90,7 @@ class FakeGitOps(GitOps):
         self._default_branches = default_branches or {}
         self._git_common_dirs = git_common_dirs or {}
         self._branch_heads = branch_heads or {}
+        self._commit_messages = commit_messages or {}
         self._repos_with_staged_changes: set[Path] = staged_repos or set()
 
         # Mutation tracking
@@ -210,6 +213,10 @@ class FakeGitOps(GitOps):
     def get_branch_head(self, repo_root: Path, branch: str) -> str | None:
         """Get the commit SHA at the head of a branch."""
         return self._branch_heads.get(branch)
+
+    def get_commit_message(self, repo_root: Path, commit_sha: str) -> str | None:
+        """Get the commit message for a given commit SHA."""
+        return self._commit_messages.get(commit_sha)
 
     @property
     def deleted_branches(self) -> list[str]:
