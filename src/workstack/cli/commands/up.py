@@ -8,6 +8,7 @@ from workstack.cli.commands.switch import (
     _resolve_up_navigation,
 )
 from workstack.cli.core import discover_repo_context
+from workstack.cli.graphite import find_worktree_for_branch
 from workstack.core.context import WorkstackContext
 
 
@@ -46,4 +47,15 @@ def up_cmd(ctx: WorkstackContext, script: bool) -> None:
     # Resolve navigation to get target branch
     target_name = _resolve_up_navigation(ctx, repo, current_branch, worktrees)
 
-    _activate_worktree(repo, target_name, script, "up")
+    # Resolve target branch to actual worktree path
+    target_wt_path = find_worktree_for_branch(worktrees, target_name)
+    if target_wt_path is None:
+        # This should not happen because _resolve_up_navigation already checks
+        # But include defensive error handling
+        click.echo(
+            f"Error: Branch '{target_name}' has no worktree. This should not happen.",
+            err=True,
+        )
+        raise SystemExit(1)
+
+    _activate_worktree(repo, target_wt_path, script, "up")

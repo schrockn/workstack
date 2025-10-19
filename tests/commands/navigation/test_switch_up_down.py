@@ -607,3 +607,161 @@ def test_switch_detached_head() -> None:
         assert result.exit_code == 1
         assert "Not currently on a branch" in result.stderr
         assert "detached HEAD" in result.stderr
+
+
+def test_switch_up_with_mismatched_worktree_name() -> None:
+    """Test switch --up when worktree directory name differs from branch name.
+
+    This is a regression test for the bug where branch names from Graphite navigation
+    were passed directly to _activate_worktree(), which expects worktree paths.
+    The fix uses find_worktree_for_branch() to resolve branch -> worktree path.
+    """
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        cwd = Path.cwd()
+        # Work dir is constructed as workstacks_root / repo_name, where repo_name = cwd.name
+        workstacks_dir = cwd / "workstacks" / cwd.name
+        workstacks_dir.mkdir(parents=True)
+        git_dir = cwd / ".git"
+        git_dir.mkdir()
+
+        # Set up stack: main -> feature/db -> feature/db-tests
+        # Branch names contain slashes, but worktree dirs use different names
+        setup_graphite_stack(
+            git_dir,
+            {
+                "main": {"parent": None, "children": ["feature/db"], "is_trunk": True},
+                "feature/db": {"parent": "main", "children": ["feature/db-tests"]},
+                "feature/db-tests": {"parent": "feature/db", "children": []},
+            },
+        )
+
+        # Worktree directories use different naming than branch names
+        # Branch: feature/db -> Worktree: db-refactor
+        # Branch: feature/db-tests -> Worktree: db-tests-implementation
+        (workstacks_dir / "db-refactor").mkdir(parents=True, exist_ok=True)
+        (workstacks_dir / "db-tests-implementation").mkdir(parents=True, exist_ok=True)
+
+        git_ops = FakeGitOps(
+            worktrees={
+                cwd: [
+                    WorktreeInfo(path=cwd, branch="main"),
+                    WorktreeInfo(path=workstacks_dir / "db-refactor", branch="feature/db"),
+                    WorktreeInfo(
+                        path=workstacks_dir / "db-tests-implementation", branch="feature/db-tests"
+                    ),
+                ]
+            },
+            current_branches={cwd: "feature/db"},  # Simulate being in feature/db worktree
+            default_branches={cwd: "main"},
+            git_common_dirs={cwd: git_dir},
+        )
+
+        global_config_ops = FakeGlobalConfigOps(
+            workstacks_root=cwd / "workstacks",
+            use_graphite=True,
+        )
+
+        test_ctx = WorkstackContext(
+            git_ops=git_ops,
+            global_config_ops=global_config_ops,
+            github_ops=FakeGitHubOps(),
+            graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
+            dry_run=False,
+        )
+
+        # Navigate up from feature/db to feature/db-tests using switch --up
+        # This would fail before the fix because it would try to find a worktree named
+        # "feature/db-tests" instead of resolving to "db-tests-implementation"
+        result = runner.invoke(cli, ["switch", "--up", "--script"], obj=test_ctx, catch_exceptions=False)
+
+        if result.exit_code != 0:
+            print(f"stderr: {result.stderr}")
+            print(f"stdout: {result.stdout}")
+        assert result.exit_code == 0
+
+        # Should generate script for db-tests-implementation (not feature/db-tests)
+        script_path = Path(result.stdout.strip())
+        assert script_path.exists()
+        script_content = script_path.read_text()
+        assert str(workstacks_dir / "db-tests-implementation") in script_content
+
+
+def test_switch_down_with_mismatched_worktree_name() -> None:
+    """Test switch --down when worktree directory name differs from branch name.
+
+    This is a regression test for the bug where branch names from Graphite navigation
+    were passed directly to _activate_worktree(), which expects worktree paths.
+    The fix uses find_worktree_for_branch() to resolve branch -> worktree path.
+    """
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        cwd = Path.cwd()
+        # Work dir is constructed as workstacks_root / repo_name, where repo_name = cwd.name
+        workstacks_dir = cwd / "workstacks" / cwd.name
+        workstacks_dir.mkdir(parents=True)
+        git_dir = cwd / ".git"
+        git_dir.mkdir()
+
+        # Set up stack: main -> feature/api -> feature/api-v2
+        # Branch names contain slashes, but worktree dirs use different names
+        setup_graphite_stack(
+            git_dir,
+            {
+                "main": {"parent": None, "children": ["feature/api"], "is_trunk": True},
+                "feature/api": {"parent": "main", "children": ["feature/api-v2"]},
+                "feature/api-v2": {"parent": "feature/api", "children": []},
+            },
+        )
+
+        # Worktree directories use different naming than branch names
+        # Branch: feature/api -> Worktree: api-work
+        # Branch: feature/api-v2 -> Worktree: api-v2-work
+        (workstacks_dir / "api-work").mkdir(parents=True, exist_ok=True)
+        (workstacks_dir / "api-v2-work").mkdir(parents=True, exist_ok=True)
+
+        git_ops = FakeGitOps(
+            worktrees={
+                cwd: [
+                    WorktreeInfo(path=cwd, branch="main"),
+                    WorktreeInfo(path=workstacks_dir / "api-work", branch="feature/api"),
+                    WorktreeInfo(path=workstacks_dir / "api-v2-work", branch="feature/api-v2"),
+                ]
+            },
+            current_branches={cwd: "feature/api-v2"},  # Simulate being in feature/api-v2 worktree
+            default_branches={cwd: "main"},
+            git_common_dirs={cwd: git_dir},
+        )
+
+        global_config_ops = FakeGlobalConfigOps(
+            workstacks_root=cwd / "workstacks",
+            use_graphite=True,
+        )
+
+        test_ctx = WorkstackContext(
+            git_ops=git_ops,
+            global_config_ops=global_config_ops,
+            github_ops=FakeGitHubOps(),
+            graphite_ops=FakeGraphiteOps(),
+            shell_ops=FakeShellOps(),
+            dry_run=False,
+        )
+
+        # Navigate down from feature/api-v2 to feature/api using switch --down
+        # This would fail before the fix because it would try to find a worktree named
+        # "feature/api" instead of resolving to "api-work"
+        result = runner.invoke(
+            cli, ["switch", "--down", "--script"], obj=test_ctx, catch_exceptions=False
+        )
+
+        if result.exit_code != 0:
+            print(f"stderr: {result.stderr}")
+            print(f"stdout: {result.stdout}")
+        assert result.exit_code == 0
+
+        # Should generate script for api-work (not feature/api)
+        script_path = Path(result.stdout.strip())
+        assert script_path.exists()
+        script_content = script_path.read_text()
+        assert str(workstacks_dir / "api-work") in script_content
