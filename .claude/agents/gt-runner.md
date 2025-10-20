@@ -76,7 +76,7 @@ You are a Graphite (gt) command execution and output parsing agent, optimized fo
 
 - If the command is `gt squash` or contains `squash`:
   1. First get the parent branch: `gt parent`
-  2. Count commits on current branch: `git rev-list --count HEAD ^$(git merge-base HEAD $(gt parent))`
+  2. Count commits on current branch: `workstack-dev branch-commit-count`
   3. If count equals 1:
      - DO NOT execute the squash command
      - Return success with informative message: "Branch has only 1 commit - squash not required"
@@ -530,7 +530,7 @@ Main agent should retry remaining branches or investigate repository performance
 
 **Actions**:
 
-1. Check commit count: `git rev-list --count HEAD ^$(git merge-base HEAD $(gt parent))`
+1. Check commit count: `workstack-dev branch-commit-count`
 2. If result is "1", skip squash
 3. Return informative message
 
@@ -560,7 +560,7 @@ The current branch already has a single commit. Squashing is only needed when th
 
 **Actions**:
 
-1. Check commit count: `git rev-list --count HEAD ^$(git merge-base HEAD $(gt parent))`
+1. Check commit count: `workstack-dev branch-commit-count`
 2. Result is "3" (multiple commits)
 3. Execute: `gt squash`
 

@@ -108,7 +108,7 @@ def run_codex_review(base_branch: str | None, output: str | None, option_base: s
 @click.argument("base_branch", required=False)
 @click.option("--base", help="Explicit base branch for comparison")
 @click.option("--output", "-o", help="Output file path (default: auto-generated)")
-def command(base_branch: str | None, base: str | None, output: str | None) -> None:
+def codex_review_command(base_branch: str | None, base: str | None, output: str | None) -> None:
     """Perform code review using Codex against repository standards."""
     try:
         run_codex_review(base_branch, output, base)

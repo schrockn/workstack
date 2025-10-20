@@ -42,7 +42,7 @@ def clean_cache_directory(cache_dir: Path, dry_run: bool, verbose: bool) -> bool
 @click.command(name="clean-cache")
 @click.option("--dry-run", is_flag=True, help="Show what would be deleted")
 @click.option("--verbose", is_flag=True, help="Show detailed output")
-def command(dry_run: bool, verbose: bool) -> None:
+def clean_cache_command(dry_run: bool, verbose: bool) -> None:
     """Clean all cache directories."""
     click.echo("Cleaning cache directories...")
 

@@ -62,13 +62,10 @@ workstack (CLI tool)
 │   ├─ graphite_ops.py ............ Graphite operations (ABC + Real + DryRun)
 │   └─ file_utils.py .............. Shared filesystem helpers
 │
-├── status/ ...................... Aggregated status system
-│   ├─ orchestrator.py ............ Coordinates collectors and renderers
-│   ├─ collectors/ ................ Git, Graphite, GitHub, plan file collectors
-│   └─ renderers/ ................. Rendering strategies (SimpleRenderer, etc.)
-│
-└── dev_cli/ ..................... Developer PEP 723 scripts
-    └─ commands/ ................. Maintenance scripts invoked via `workstack-dev`
+└── status/ ...................... Aggregated status system
+    ├─ orchestrator.py ............ Coordinates collectors and renderers
+    ├─ collectors/ ................ Git, Graphite, GitHub, plan file collectors
+    └─ renderers/ ................. Rendering strategies (SimpleRenderer, etc.)
 ```
 
 ---

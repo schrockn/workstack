@@ -489,7 +489,7 @@ def run_pep723_script(dry_run: bool) -> None:
 
 @click.command(name="publish-to-pypi")
 @click.option("--dry-run", is_flag=True, help="Show what would be done without making changes")
-def command(dry_run: bool) -> None:
+def publish_to_pypi_command(dry_run: bool) -> None:
     """Publish workstack and dot-agent-kit packages to PyPI."""
     try:
         run_pep723_script(dry_run)

@@ -2,14 +2,14 @@
 
 ## Overview
 
-`workstack-dev` is a **general-purpose development CLI** for tools and scripts used during workstack development. It provides a plugin-style architecture where new commands can be added without modifying the core CLI code.
+`workstack-dev` is a **general-purpose development CLI** for tools and scripts used during workstack development. Commands are statically registered in `cli.py` to enable shell completion support.
 
 **Key characteristics:**
 
-- **Auto-discovery**: Commands are automatically discovered and registered
-- **PEP 723 inline scripts**: Each command's implementation uses inline dependency declarations
-- **Isolation**: Commands manage their own dependencies independently
-- **Extensibility**: Adding new commands requires no changes to the CLI framework
+- **Static imports**: Commands are explicitly imported and registered in `cli.py`
+- **Single-file commands**: Each command's logic lives in one `command.py` file
+- **Shell completion**: Click's completion requires static imports (not dynamic discovery)
+- **Extensibility**: Adding new commands requires updating both the command file and `cli.py`
 
 ## Purpose
 
@@ -17,7 +17,8 @@ The `workstack-dev` CLI serves as a centralized home for development-time tools 
 
 - Build and release automation (e.g., `publish-to-pypi`)
 - Maintenance tasks (e.g., `clean-cache`)
-- Development utilities
+- Development utilities (e.g., `branch-commit-count`)
+- Code review tooling (e.g., `codex-review`)
 - Project-specific tooling
 
 ## Architecture
@@ -37,359 +38,242 @@ workstack-dev = "workstack_dev.__main__:cli"
 packages/workstack-dev/
 ├── pyproject.toml
 ├── src/workstack_dev/
-│   ├── __main__.py          # Entry point - uses devclikit framework
-│   └── commands/            # Auto-discovered commands (examples below)
+│   ├── __main__.py          # Entry point - imports cli from cli.py
+│   ├── cli.py               # Static CLI definition with all command imports
+│   ├── CLAUDE.md            # Implementation guidelines for AI assistants
+│   └── commands/            # Command implementations
+│       ├── branch_commit_count/
+│       │   ├── __init__.py  # Optional docstring
+│       │   └── command.py   # Full Click command implementation
 │       ├── clean_cache/
-│       │   ├── command.py   # Click command definition
-│       │   └── script.py    # PEP 723 implementation
+│       │   └── command.py   # Full Click command implementation
 │       ├── codex_review/
-│       │   ├── command.py   # Click command definition
-│       │   ├── script.py    # PEP 723 implementation
+│       │   ├── command.py   # Full Click command implementation
 │       │   └── prompt.txt   # Codex prompt template
 │       ├── completion/
-│       │   ├── command.py   # Click command definition
-│       │   └── script.py    # PEP 723 implementation
+│       │   └── command.py   # Command group with subcommands
 │       ├── create_agents_symlinks/
-│       │   ├── command.py   # Click command definition
-│       │   └── script.py    # PEP 723 implementation
+│       │   └── command.py   # Full Click command implementation
+│       ├── land_branch/
+│       │   ├── __init__.py  # Optional docstring
+│       │   └── command.py   # Full Click command implementation
 │       ├── publish_to_pypi/
-│       │   ├── command.py   # Click command definition
-│       │   └── script.py    # PEP 723 implementation
-│       └── ...              # Additional commands follow same pattern
+│       │   └── command.py   # Full Click command implementation
+│       └── reserve_pypi_name/
+│           └── command.py   # Full Click command implementation
 └── tests/                   # Tests for workstack-dev commands
-
-packages/devclikit/          # CLI framework (provides discovery & execution)
-└── src/devclikit/
-    ├── __init__.py          # Public API exports
-    ├── cli_factory.py       # create_cli() factory function
-    ├── loader.py            # Command discovery and dynamic loading
-    ├── runner.py            # PEP 723 script execution
-    ├── completion.py        # Shell completion support
-    ├── exceptions.py        # Framework exceptions
-    └── utils.py             # Shared utilities
 ```
-
-**Note:** The commands listed above are examples. New commands can be added at any time by creating a new directory under `commands/` with the standard `command.py` and `script.py` files. The CLI framework automatically discovers all commands.
 
 ### CLI Initialization
 
-The `__main__.py` uses the `devclikit.create_cli()` factory to construct the CLI:
+The `cli.py` module uses **static imports** to enable shell completion:
 
 ```python
-from pathlib import Path
-from devclikit import create_cli
+"""Static CLI definition for workstack-dev.
 
-cli = create_cli(
-    name="workstack-dev",
-    description="Development tools for workstack.",
-    commands_dir=Path(__file__).parent / "commands",
-    add_completion=True,
-)
+This module uses static imports instead of dynamic command loading to enable
+shell completion. Click's completion mechanism requires all commands to be
+available at import time for inspection.
+"""
 
-if __name__ == "__main__":
-    cli()
+import click
+
+from workstack_dev.commands.branch_commit_count.command import branch_commit_count_command
+from workstack_dev.commands.clean_cache.command import clean_cache_command
+from workstack_dev.commands.codex_review.command import codex_review_command
+from workstack_dev.commands.completion.command import completion_command
+from workstack_dev.commands.create_agents_symlinks.command import create_agents_symlinks_command
+from workstack_dev.commands.land_branch.command import land_branch_command
+from workstack_dev.commands.publish_to_pypi.command import publish_to_pypi_command
+from workstack_dev.commands.reserve_pypi_name.command import reserve_pypi_name_command
+
+
+@click.group(name="workstack-dev")
+def cli() -> None:
+    """Development tools for workstack."""
+    pass
+
+
+# Register all commands
+cli.add_command(branch_commit_count_command)
+cli.add_command(clean_cache_command)
+cli.add_command(codex_review_command)
+cli.add_command(completion_command)
+cli.add_command(create_agents_symlinks_command)
+cli.add_command(land_branch_command)
+cli.add_command(publish_to_pypi_command)
+cli.add_command(reserve_pypi_name_command)
 ```
 
-The `create_cli()` factory automatically:
-
-- Creates a Click group with the specified name and description
-- Discovers and registers all commands from the `commands_dir`
-- Adds shell completion support (bash/zsh/fish)
-- Returns a ready-to-use Click group
-
-### Command Discovery System
-
-**Provided by: `devclikit` framework**
-
-The `devclikit.loader.load_commands()` function implements automatic command discovery:
-
-1. **Scan** `commands/` directory for subdirectories
-2. **Find** `command.py` files in each subdirectory
-3. **Import** each command module dynamically using `importlib.util`
-4. **Extract** Click command objects via inspection
-5. **Register** commands with kebab-case names derived from directory names
-
-```python
-def load_commands(
-    commands_dir: Path,
-    *,
-    verbose: bool = False,
-    strict: bool = False,
-) -> dict[str, click.Command]:
-    """Discover and load all commands from a directory."""
-    # Scans for subdirectories containing command.py files
-    # Dynamically imports and extracts Click commands
-    # Returns mapping of command name to Click command object
-```
-
-**Error handling:** Broken command modules are caught and logged without breaking the entire CLI (when `strict=False`).
-
-See `packages/devclikit/README.md` for full framework documentation.
+**Why static imports?** Click's shell completion system inspects the CLI at import time to generate completion scripts. Dynamic command loading breaks this inspection mechanism.
 
 ### Command Structure Pattern
 
-Each command follows a **two-file pattern**:
-
-#### 1. `command.py` - Click Interface
-
-Defines the CLI interface using Click decorators:
+Each command follows a **single-file pattern** with all logic in `command.py`:
 
 ```python
-# commands/my_command/command.py
-import click
-from pathlib import Path
-from devclikit import run_pep723_script
+# commands/branch_commit_count/command.py
+"""Count commits on current branch since Graphite parent."""
 
-@click.command(name="my-command")
-@click.option("--dry-run", is_flag=True, help="Show what would be done")
-def command(dry_run: bool) -> None:
-    """Command description."""
-    script_path = Path(__file__).parent / "script.py"
-
-    args = []
-    if dry_run:
-        args.append("--dry-run")
-
-    run_pep723_script(script_path, args)
-```
-
-**Responsibilities:**
-
-- Define Click command name and options
-- Parse CLI flags/arguments
-- Forward arguments to script.py via `devclikit.run_pep723_script()`
-
-#### 2. `script.py` - PEP 723 Implementation
-
-Contains the actual implementation using PEP 723 inline dependencies:
-
-```python
-#!/usr/bin/env python3
-# /// script
-# dependencies = [
-#   "click>=8.1.7",
-#   "rich>=13.0.0",
-# ]
-# requires-python = ">=3.13"
-# ///
-"""Implementation logic."""
-
-# pyright: reportMissingImports=false
+import subprocess
 
 import click
-from rich.console import Console
 
-@click.command()
-@click.option("--dry-run", is_flag=True)
-def main(dry_run: bool) -> None:
-    """Execute the command logic."""
-    # Implementation here...
 
-if __name__ == "__main__":
-    main()
+@click.command(name="branch-commit-count")
+def branch_commit_count_command() -> None:
+    """Count commits on current branch since Graphite parent."""
+    # Get parent branch using gt parent
+    result = subprocess.run(
+        ["gt", "parent"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    # Check for errors (LBYL pattern)
+    if result.returncode != 0 or not result.stdout.strip():
+        click.echo(
+            "Error: No Graphite parent found. "
+            "Use 'gt parent' to verify branch is tracked by Graphite.",
+            err=True,
+        )
+        raise SystemExit(1)
+
+    # Get merge base
+    parent_branch = result.stdout.strip()
+    merge_base = subprocess.run(
+        ["git", "merge-base", "HEAD", parent_branch],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.strip()
+
+    # Count commits
+    count = subprocess.run(
+        ["git", "rev-list", "--count", "HEAD", f"^{merge_base}"],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.strip()
+
+    # Output result
+    click.echo(count)
 ```
 
-**Responsibilities:**
+**Critical naming convention:** The function MUST be named `{command_name}_command` (e.g., `my_command_command`) to match the import in `cli.py`.
 
-- Implement the command logic
-- Declare inline dependencies via PEP 723
-- Run via `uv run script.py`
+### Command Types
 
-### PEP 723 Inline Script Architecture
+#### Standard Commands
 
-**PEP 723** (Inline script metadata) allows scripts to declare their dependencies directly in the file using a special comment block.
-
-**Required structure** (see `packages/workstack-dev/src/workstack_dev/CLAUDE.md` for full details):
+Most commands use `@click.command()`:
 
 ```python
-#!/usr/bin/env python3
-# /// script
-# dependencies = [
-#   "click>=8.1.7",
-#   # ... other dependencies
-# ]
-# requires-python = ">=3.13"
-# ///
-"""Module docstring."""
-
-# pyright: reportMissingImports=false
-
-import ...
+@click.command(name="branch-commit-count")
+def branch_commit_count_command() -> None:
+    """Count commits on current branch since Graphite parent."""
+    # Implementation
 ```
 
-**Critical directive:** `# pyright: reportMissingImports=false`
+#### Command Groups (Subcommands)
 
-This suppresses false positive import warnings because pyright performs static analysis without running `uv`, so it doesn't see the PEP 723 dependencies. The directive MUST appear after the docstring and before imports.
-
-### Script Execution Utility
-
-**Provided by: `devclikit.runner`**
-
-The `run_pep723_script()` function provides a standardized way to execute PEP 723 scripts:
+Commands with subcommands use `@click.group()`:
 
 ```python
-def run_pep723_script(
-    script_path: Path | str,
-    args: list[str] | None = None,
-    *,
-    check: bool = True,
-    capture_output: bool = False,
-    env: dict[str, str] | None = None,
-) -> subprocess.CompletedProcess:
-    """Run a PEP 723 inline script using uv run."""
-    # Builds command: ["uv", "run", script_path, *args]
-    # Executes with subprocess.run()
-    # Provides helpful error message if uv not installed
+# commands/completion/command.py
+"""Shell completion command for workstack-dev."""
+
+import click
+
+
+@click.group(name="completion")
+def completion_command() -> None:
+    """Generate shell completion scripts for workstack-dev."""
+
+
+@completion_command.command(name="bash")
+def bash() -> None:
+    r"""Generate bash completion script.
+
+    \b
+    Temporary (current session only):
+        source <(workstack-dev completion bash)
+
+    Permanent installation:
+        echo 'source <(workstack-dev completion bash)' >> ~/.bashrc
+        source ~/.bashrc
+    """
+    # Implementation here
+    click.echo("Completion script content...")
+
+
+@completion_command.command(name="zsh")
+def zsh() -> None:
+    """Generate zsh completion script."""
+    # Implementation here
+    click.echo("Completion script content...")
 ```
 
-**Why `uv run`?**
+## Adding a New Command
 
-`uv run` automatically:
+To add a new command to `workstack-dev`:
 
-1. Parses the PEP 723 metadata block
-2. Creates a temporary virtual environment
-3. Installs declared dependencies
-4. Executes the script with those dependencies available
+1. **Create command directory:**
 
-## Design Rationale
-
-### Why Two Files Per Command?
-
-**Separation of concerns:**
-
-1. **`command.py`** - CLI interface layer
-   - Uses project dependencies (click from main pyproject.toml)
-   - Defines user-facing interface
-   - Thin wrapper around script execution
-
-2. **`script.py`** - Implementation layer
-   - Declares its own dependencies via PEP 723
-   - Can use specialized libraries without polluting main project
-   - Can be run directly during development: `uv run script.py`
-
-**Benefits:**
-
-- Command implementations don't bloat main project dependencies
-- Scripts can be tested independently
-- Clear separation between interface and implementation
-- Easy to extract scripts for standalone use
-
-### Why Auto-Discovery?
-
-**Eliminates boilerplate:**
-
-- No manual command registration in `__main__.py`
-- Adding a command = create directory with two files
-- No central import or decorator registry
-
-**Convention-based:**
-
-- Directory name → command name (with underscores converted to hyphens)
-- Standard file names (`command.py`, `script.py`)
-- Predictable structure across all commands
-
-## Adding New Commands
-
-To add a new command:
-
-1. **Create directory:** `packages/workstack-dev/src/workstack_dev/commands/my_feature/`
+   ```bash
+   mkdir -p packages/workstack-dev/src/workstack_dev/commands/my_command
+   ```
 
 2. **Create `command.py`:**
 
    ```python
-   import click
-   from pathlib import Path
-   from devclikit import run_pep723_script
+   """My command that does something useful."""
 
-   @click.command(name="my-feature")
-   def command() -> None:
-       """Brief description."""
-       script_path = Path(__file__).parent / "script.py"
-       run_pep723_script(script_path)
+   import click
+
+
+   @click.command(name="my-command")
+   @click.option("--verbose", "-v", is_flag=True, help="Enable verbose output")
+   def my_command_command(verbose: bool) -> None:
+       """Command help text shown in --help."""
+       if verbose:
+           click.echo("Running my-command in verbose mode...")
+       click.echo("Hello from my-command!")
    ```
 
-3. **Create `script.py`:**
+3. **Update `cli.py`:**
+
+   Add the import at the top (maintaining alphabetical order recommended):
 
    ```python
-   #!/usr/bin/env python3
-   # /// script
-   # dependencies = ["click>=8.1.7"]
-   # requires-python = ">=3.13"
-   # ///
-   """Implementation."""
-
-   # pyright: reportMissingImports=false
-
-   import click
-
-   @click.command()
-   def main() -> None:
-       """Execute the command."""
-       pass
-
-   if __name__ == "__main__":
-       main()
+   from workstack_dev.commands.my_command.command import my_command_command
    ```
 
-4. **Test:** `workstack-dev my-feature`
+   Add the registration in the commands section:
 
-No other changes needed - the command is automatically discovered and registered.
+   ```python
+   cli.add_command(my_command_command)
+   ```
 
-## Integration with Main CLI
+4. **Optionally add `__init__.py`:**
 
-The `workstack-dev` CLI is **completely separate** from the main `workstack` CLI:
+   ```python
+   """My command that does something useful."""
+   ```
 
-- **workstack** (`src/workstack/__main__.py`) - User-facing worktree management
-- **workstack-dev** (`packages/workstack-dev/src/workstack_dev/__main__.py`) - Development tools
+   Or leave it empty/omit it entirely - it's not required.
 
-Both are defined in their respective `pyproject.toml` files as separate entry points.
+## Implementation Guidelines
 
-## Dependencies
+See `packages/workstack-dev/src/workstack_dev/CLAUDE.md` for detailed implementation guidelines including:
 
-**Framework dependencies:**
-
-- `devclikit` - CLI framework package (in `packages/devclikit/`)
-- `click>=8.1.7` - CLI framework used by both workstack-dev and devclikit
-
-**Command-specific dependencies:**
-
-- Declared inline via PEP 723 in each `script.py`
-- Examples: `rich`, `build`, `twine`, etc.
-- Only loaded when running that specific command
-- Isolated from main project dependencies
-
-**Architecture note:** The `devclikit` framework is an independent package that provides the command discovery and execution infrastructure. Commands in `workstack_dev.commands` use the framework's facilities but remain organizationally separate.
+- Function naming conventions (`{command_name}_command`)
+- Static import architecture requirements
+- Click usage patterns
+- Command group patterns
+- Examples of existing commands
 
 ## Testing
 
-**Location:** `packages/workstack-dev/tests/`
-
-Commands can be tested at two levels:
-
-1. **Script level:** Test `script.py` implementation directly
-2. **Command level:** Test full CLI integration via Click's testing utilities
-
-See `tests/CLAUDE.md` for testing patterns.
-
-## Future Extensions
-
-The plugin architecture enables easy addition of:
-
-- Code generation tools
-- Database migration helpers
-- Documentation generators
-- Release automation variants
-- Custom linters/analyzers
-
-All without modifying the core CLI framework.
-
-## Framework Reusability
-
-The `devclikit` framework is designed to be reusable for other projects. It provides:
-
-- **Zero-config command discovery** - Just drop commands in a directory
-- **PEP 723 script execution** - Commands manage their own dependencies
-- **Shell completion** - Built-in bash/zsh/fish support
-- **Factory function** - Simple `create_cli()` API
-
-See `packages/devclikit/README.md` and `packages/devclikit/src/devclikit/examples/` for documentation and examples on using the framework in other projects.
+Tests for workstack-dev commands follow standard pytest patterns and are located in the `tests/` directory.
