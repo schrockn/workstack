@@ -59,7 +59,7 @@ def create_agents_symlinks(repo_root: Path, dry_run: bool, verbose: bool) -> tup
 @click.command(name="create-agents-symlinks")
 @click.option("--dry-run", is_flag=True, help="Show what would be done without making changes")
 @click.option("--verbose", is_flag=True, help="Show detailed output")
-def command(dry_run: bool, verbose: bool) -> None:
+def create_agents_symlinks_command(dry_run: bool, verbose: bool) -> None:
     """Create AGENTS.md symlinks for all CLAUDE.md files in the repository."""
     repo_root = Path.cwd()
     if not is_git_repo_root(repo_root):

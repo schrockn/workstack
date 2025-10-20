@@ -40,11 +40,11 @@ def emit_completion_script(shell: str) -> None:
 
 
 @click.group(name="completion")
-def command() -> None:
+def completion_command() -> None:
     """Generate shell completion scripts for workstack-dev."""
 
 
-@command.command(name="bash")
+@completion_command.command(name="bash")
 def bash() -> None:
     r"""Generate bash completion script.
 
@@ -63,7 +63,7 @@ def bash() -> None:
     emit_completion_script("bash")
 
 
-@command.command(name="zsh")
+@completion_command.command(name="zsh")
 def zsh() -> None:
     r"""Generate zsh completion script.
 
@@ -84,7 +84,7 @@ def zsh() -> None:
     emit_completion_script("zsh")
 
 
-@command.command(name="fish")
+@completion_command.command(name="fish")
 def fish() -> None:
     r"""Generate fish completion script.
 

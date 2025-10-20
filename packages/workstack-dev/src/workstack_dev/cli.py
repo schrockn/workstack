@@ -7,17 +7,14 @@ available at import time for inspection.
 
 import click
 
-from workstack_dev.commands.clean_cache.command import command as clean_cache_cmd
-from workstack_dev.commands.codex_review.command import command as codex_review_cmd
-from workstack_dev.commands.completion.command import command as completion_cmd
-from workstack_dev.commands.create_agents_symlinks.command import (
-    command as create_agents_cmd,
-)
-from workstack_dev.commands.land_branch.command import command as land_branch_cmd
-from workstack_dev.commands.publish_to_pypi.command import command as publish_cmd
-from workstack_dev.commands.reserve_pypi_name.command import (
-    command as reserve_pypi_name_cmd,
-)
+from workstack_dev.commands.branch_commit_count.command import branch_commit_count_command
+from workstack_dev.commands.clean_cache.command import clean_cache_command
+from workstack_dev.commands.codex_review.command import codex_review_command
+from workstack_dev.commands.completion.command import completion_command
+from workstack_dev.commands.create_agents_symlinks.command import create_agents_symlinks_command
+from workstack_dev.commands.land_branch.command import land_branch_command
+from workstack_dev.commands.publish_to_pypi.command import publish_to_pypi_command
+from workstack_dev.commands.reserve_pypi_name.command import reserve_pypi_name_command
 
 
 @click.group(name="workstack-dev")
@@ -27,10 +24,11 @@ def cli() -> None:
 
 
 # Register all commands
-cli.add_command(clean_cache_cmd, name="clean-cache")
-cli.add_command(codex_review_cmd, name="codex-review")
-cli.add_command(completion_cmd, name="completion")
-cli.add_command(create_agents_cmd, name="create-agents-symlinks")
-cli.add_command(land_branch_cmd, name="land-branch")
-cli.add_command(publish_cmd, name="publish-to-pypi")
-cli.add_command(reserve_pypi_name_cmd, name="reserve-pypi-name")
+cli.add_command(branch_commit_count_command)
+cli.add_command(clean_cache_command)
+cli.add_command(codex_review_command)
+cli.add_command(completion_command)
+cli.add_command(create_agents_symlinks_command)
+cli.add_command(land_branch_command)
+cli.add_command(publish_to_pypi_command)
+cli.add_command(reserve_pypi_name_command)

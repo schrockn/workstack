@@ -1,88 +1,106 @@
 # Dev CLI Implementation Guidelines
 
-## Command Structure Patterns
+## Command Structure
 
-There are two patterns for workstack-dev commands:
-
-### Pattern 1: Direct Command (Recommended for Simple Commands)
-
-For commands with simple logic that don't need external dependencies:
+All workstack-dev commands follow this structure:
 
 ```
 commands/
 ├── my-command/
-│   ├── __init__.py   # Empty or docstring only
+│   ├── __init__.py   # Optional - may contain docstring or be omitted
 │   └── command.py    # Click command with all logic
 ```
 
-**When to use:**
+## Critical: Function Naming Convention
 
-- Logic fits in a single file with standard dependencies
-- No need for external packages beyond workstack-dev's dependencies
-- Performance-critical operations that benefit from being directly imported
-
-**Example:** `land-branch` command - all logic in `command.py`
-
-### Pattern 2: PEP 723 Script (For Complex Commands)
-
-For commands that need external dependencies or are self-contained scripts:
-
-```
-commands/
-├── my-command/
-│   ├── __init__.py   # Empty or docstring only
-│   ├── command.py    # Click command that executes script.py
-│   └── script.py     # PEP 723 inline script with implementation
-```
-
-**When to use:**
-
-- Command needs external packages not in workstack-dev dependencies
-- Logic is complex and benefits from isolation
-- Script should be runnable independently
-
-**Example:** `codex-review` command - uses script.py for independent execution
-
-## PEP 723 Script Files (Pattern 2 Only)
-
-**All `script.py` files in `commands/` subdirectories MUST follow this structure:**
+**The Click command function MUST be named `{command_name}_command`** to match the import in `cli.py`.
 
 ```python
-#!/usr/bin/env python3
-# /// script
-# dependencies = [
-#   "click>=8.1.7",
-#   # ... other dependencies
-# ]
-# requires-python = ">=3.13"
-# ///
-"""Module docstring."""
+# ✅ CORRECT - Function name matches import expectation
+@click.command(name="land-branch")
+def land_branch_command() -> None:
+    """Command implementation."""
+    pass
 
-# pyright: reportMissingImports=false
-
-import ...
+# ❌ WRONG - Generic name 'command' won't be found by cli.py
+@click.command(name="land-branch")
+def command() -> None:  # pyright will report: "land_branch_command" is unknown import symbol
+    """Command implementation."""
+    pass
 ```
 
-### Required Elements
+**Naming pattern:**
 
-1. **Shebang**: `#!/usr/bin/env python3`
-2. **PEP 723 metadata block**: Inline script dependencies
-3. **Module docstring**: Brief description of script purpose
-4. **Pyright directive**: `# pyright: reportMissingImports=false` (after docstring, before imports)
+- Command name: `my-command` (kebab-case in CLI)
+- Function name: `my_command_command` (snake_case with `_command` suffix)
+- File location: `commands/my_command/command.py`
 
-### Why the Pyright Directive?
+## Static Import Architecture
 
-PEP 723 inline script dependencies are executed by `uv run` but aren't recognized by pyright during static analysis. The module-level directive suppresses false positive import warnings for script-declared dependencies.
+The `cli.py` module uses **static imports** (not dynamic command discovery) to enable shell completion:
 
-### command.py (Pattern 2)
+```python
+# cli.py
+from workstack_dev.commands.land_branch.command import land_branch_command
+from workstack_dev.commands.clean_cache.command import clean_cache_command
 
-- Defines the Click command interface
-- Uses `subprocess.run(["uv", "run", script_path], check=True)` to execute script.py
-- Passes CLI options/flags to script.py
+cli.add_command(land_branch_command)
+cli.add_command(clean_cache_command)
+```
 
-### script.py (Pattern 2)
+Click's completion mechanism requires all commands to be available at import time for inspection.
 
-- Contains the actual implementation logic
-- PEP 723 inline script with its own dependencies
-- Can be run directly with `uv run script.py`
-- Must follow structure outlined above
+## Implementation Guidelines
+
+- **All logic goes in `command.py`**: No business logic in `__init__.py`
+- **Use Click for CLI**: Command definition, argument parsing, and output
+- **Existing dependencies only**: Use workstack-dev's dependencies (no external packages)
+- **`__init__.py` is optional**: May contain docstring, be empty, or be omitted entirely
+
+## Command Types
+
+### Standard Commands
+
+Most commands use `@click.command()`:
+
+```python
+@click.command(name="branch-commit-count")
+def branch_commit_count_command() -> None:
+    """Count commits on current branch since Graphite parent."""
+    # Implementation
+```
+
+### Command Groups (Subcommands)
+
+Commands with subcommands use `@click.group()`:
+
+```python
+@click.group(name="completion")
+def completion_command() -> None:
+    """Generate shell completion scripts."""
+    pass
+
+@completion_command.command(name="bash")
+def bash() -> None:
+    """Generate bash completion script."""
+    # Implementation
+```
+
+## Examples
+
+Existing commands that demonstrate these patterns:
+
+- `land-branch` - Graphite stack landing workflow with dataclasses and JSON output
+- `branch-commit-count` - Simple command with git subprocess calls
+- `clean-cache` - Command with options (--dry-run, --verbose)
+- `codex-review` - Complex command with file I/O and template processing
+- `completion` - Command group with bash/zsh/fish subcommands
+- `publish-to-pypi` - Multi-step workflow with validation and error handling
+
+## Documentation Maintenance
+
+**IMPORTANT**: When making meaningful changes to workstack-dev's structure or architecture:
+
+- Update `/.agent/WORKSTACK_DEV.md` to reflect the changes
+- This file provides architectural overview for the broader project documentation
+- Keep both files in sync to prevent documentation drift

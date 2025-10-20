@@ -235,7 +235,7 @@ def format_text_output(result: LandBranchSuccess | LandBranchError) -> str:
     default="text",
     help="Output format (text or json)",
 )
-def command(format: str) -> None:
+def land_branch_command(format: str) -> None:
     """Merge a single PR from Graphite stack without affecting upstack branches.
 
     This command safely lands a single branch from a Graphite stack by:

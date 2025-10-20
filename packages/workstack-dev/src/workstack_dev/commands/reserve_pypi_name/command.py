@@ -169,7 +169,7 @@ def confirm_publish(name: str, force: bool) -> None:
 )
 @click.option("--dry-run", is_flag=True, help="Show operations without publishing")
 @click.option("--force", is_flag=True, help="Skip confirmation prompt")
-def command(name: str, description: str, dry_run: bool, force: bool) -> None:
+def reserve_pypi_name_command(name: str, description: str, dry_run: bool, force: bool) -> None:
     """Reserve a package name on PyPI by publishing a placeholder package."""
     validate_package_name(name)
     module_name = module_name_from_package(name)

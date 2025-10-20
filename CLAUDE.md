@@ -167,31 +167,6 @@ class MyOps(ABC):  # ✅ Not Protocol
 - Exit with `raise SystemExit(1)` for CLI errors
 - Use `subprocess.run(..., check=True)`
 
-### Dev CLI Scripts (PEP 723)
-
-**All `script.py` files in workstack-dev commands must include this directive:**
-
-```python
-#!/usr/bin/env python3
-# /// script
-# dependencies = [
-#   "click>=8.1.7",
-#   # ... other deps
-# ]
-# requires-python = ">=3.13"
-# ///
-"""Module docstring."""
-
-# pyright: reportMissingImports=false
-
-import ...
-```
-
-🔴 **MUST**: Add `# pyright: reportMissingImports=false` after docstring and before imports
-
-- PEP 723 inline script dependencies aren't recognized by pyright during static analysis
-- This suppresses false positive import warnings for script-declared dependencies
-
 ### Code Style
 
 - **Max 4 levels of indentation** - extract helper functions
