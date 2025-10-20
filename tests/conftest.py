@@ -94,3 +94,129 @@ def temp_workspace():
     # Cleanup
     if Path(temp_dir).exists():
         shutil.rmtree(temp_dir, ignore_errors=True)
+
+
+# ===========================
+# Test Scenario Fixtures
+# ===========================
+# These fixtures use the WorktreeScenario builder to create common test scenarios
+# with pre-configured fakes and contexts. Use these instead of manually constructing
+# test setups.
+
+
+@pytest.fixture
+def simple_repo(tmp_path: Path):
+    """Repository with just main branch.
+
+    Use this fixture for tests that need minimal setup.
+
+    Returns:
+        WorktreeScenario with only main branch
+    """
+    from tests.test_utils.builders import WorktreeScenario
+
+    return WorktreeScenario(tmp_path).with_main_branch().build()
+
+
+@pytest.fixture
+def repo_with_feature(tmp_path: Path):
+    """Repository with main + one feature branch.
+
+    This is the most common test scenario.
+
+    Returns:
+        WorktreeScenario with main and feature branches
+    """
+    from tests.test_utils.builders import WorktreeScenario
+
+    return WorktreeScenario(tmp_path).with_main_branch().with_feature_branch("feature").build()
+
+
+@pytest.fixture
+def repo_with_pr(tmp_path: Path):
+    """Repository with feature branch and open PR.
+
+    Returns:
+        WorktreeScenario with feature branch and PR #123 (checks passing)
+    """
+    from tests.test_utils.builders import WorktreeScenario
+
+    return (
+        WorktreeScenario(tmp_path)
+        .with_main_branch()
+        .with_feature_branch("feature")
+        .with_pr("feature", number=123, checks_passing=True)
+        .build()
+    )
+
+
+@pytest.fixture
+def graphite_stack_repo(tmp_path: Path):
+    """Repository with Graphite stack (3 levels).
+
+    Returns:
+        WorktreeScenario with main -> level-1 -> level-2 stack
+    """
+    from tests.test_utils.builders import GraphiteCacheBuilder, WorktreeScenario
+
+    scenario = (
+        WorktreeScenario(tmp_path)
+        .with_main_branch()
+        .with_feature_branch("level-1")
+        .with_feature_branch("level-2")
+        .with_graphite_stack(["main", "level-1", "level-2"])
+    )
+
+    # Create graphite cache
+    GraphiteCacheBuilder().add_trunk("main", children=["level-1"]).add_branch(
+        "level-1", parent="main", children=["level-2"]
+    ).add_branch("level-2", parent="level-1").write_to(scenario.git_dir)
+
+    return scenario.build()
+
+
+@pytest.fixture
+def multi_worktree_repo(tmp_path: Path):
+    """Repository with 5 worktrees (stress test scenario).
+
+    Returns:
+        WorktreeScenario with main + 4 feature branches
+    """
+    from tests.test_utils.builders import WorktreeScenario
+
+    scenario = WorktreeScenario(tmp_path).with_main_branch()
+    for i in range(1, 5):
+        scenario.with_feature_branch(f"feature-{i}")
+    return scenario.build()
+
+
+@pytest.fixture
+def detached_head_repo(tmp_path: Path):
+    """Repository with worktree in detached HEAD state.
+
+    Returns:
+        WorktreeScenario with main worktree in detached HEAD
+    """
+    from tests.test_utils.builders import WorktreeScenario
+
+    scenario = WorktreeScenario(tmp_path).with_main_branch()
+    scenario._current_branches[scenario.repo_root] = None  # Detached HEAD
+    return scenario.build()
+
+
+@pytest.fixture
+def repo_with_merged_pr(tmp_path: Path):
+    """Repository with merged PR (common end state).
+
+    Returns:
+        WorktreeScenario with merged-feature branch and merged PR #456
+    """
+    from tests.test_utils.builders import WorktreeScenario
+
+    return (
+        WorktreeScenario(tmp_path)
+        .with_main_branch()
+        .with_feature_branch("merged-feature")
+        .with_pr("merged-feature", number=456, state="MERGED")
+        .build()
+    )

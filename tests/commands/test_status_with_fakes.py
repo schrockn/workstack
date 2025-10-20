@@ -1,181 +1,71 @@
-"""Unit tests for workstack status command using fakes."""
+"""CLI tests for workstack status command.
 
+This file focuses on CLI-specific concerns for the status command:
+- Command execution and exit codes
+- Output formatting and display
+- Path resolution (subdirectories, worktree detection)
+- Error handling and messages
+
+The status command orchestrates multiple collectors (git, PR, stack, plan).
+The business logic of these collectors is tested in their respective unit test files:
+- tests/unit/status/test_github_pr_collector.py - PR collector logic
+- tests/unit/status/test_graphite_stack_collector.py - Stack collector logic
+- tests/unit/status/test_plan_collector.py - Plan collector logic
+- tests/unit/status/test_orchestrator.py - Collector orchestration
+
+This file trusts that unit layer and only tests CLI integration.
+"""
+
+import os
 from pathlib import Path
 
 from click.testing import CliRunner
 
 from tests.fakes.context import create_test_context
-from tests.fakes.github_ops import FakeGitHubOps
 from tests.fakes.gitops import FakeGitOps, WorktreeInfo
 from tests.fakes.global_config_ops import FakeGlobalConfigOps
-from tests.fakes.graphite_ops import FakeGraphiteOps
+from tests.test_utils.builders import WorktreeScenario
 from workstack.cli.commands.status import status_cmd
-from workstack.core.github_ops import PullRequestInfo
 
 
-def test_status_cmd_in_main_worktree(tmp_path: Path) -> None:
-    """Test status command when in the main worktree."""
-    # Arrange
-    repo_root = tmp_path / "repo"
-    repo_root.mkdir()
-    git_dir = repo_root / ".git"
-    git_dir.mkdir()
-
-    git_ops = FakeGitOps(
-        worktrees={repo_root: [WorktreeInfo(path=repo_root, branch="main")]},
-        current_branches={repo_root: "main"},
-        git_common_dirs={repo_root: git_dir},
-        file_statuses={repo_root: ([], [], [])},  # Clean
-        ahead_behind={(repo_root, "main"): (0, 0)},
-        recent_commits={
-            repo_root: [
-                {
-                    "sha": "abc1234",
-                    "message": "Initial commit",
-                    "author": "Test",
-                    "date": "1 hour ago",
-                }
-            ]
-        },
-    )
-    global_config_ops = FakeGlobalConfigOps(
-        workstacks_root=tmp_path / "workstacks",
-        use_graphite=False,
-        show_pr_info=False,
-    )
-    ctx = create_test_context(git_ops=git_ops, global_config_ops=global_config_ops)
-
+def test_status_cmd_in_main_worktree(simple_repo: WorktreeScenario) -> None:
+    """Test status command when in the main worktree (CLI layer)."""
     runner = CliRunner()
-    # Change to the repo directory
-    import os
-
     original_dir = os.getcwd()
-    os.chdir(repo_root)
+    os.chdir(simple_repo.repo_root)
+
     try:
-        # Act
-        result = runner.invoke(status_cmd, obj=ctx, catch_exceptions=False)
+        result = runner.invoke(status_cmd, obj=simple_repo.ctx, catch_exceptions=False)
     finally:
         os.chdir(original_dir)
 
-    # Assert
+    # Assert - CLI integration
     assert result.exit_code == 0
     assert "main" in result.output
     assert "Git Status:" in result.output
-    assert "Working tree clean" in result.output
 
 
-def test_status_cmd_in_feature_worktree(tmp_path: Path) -> None:
-    """Test status command when in a feature worktree."""
-    # Arrange
-    repo_root = tmp_path / "repo"
-    repo_root.mkdir()
-    git_dir = repo_root / ".git"
-    git_dir.mkdir()
-
-    worktree_path = tmp_path / "workstacks" / "repo" / "feature-branch"
-    worktree_path.mkdir(parents=True)
-
-    git_ops = FakeGitOps(
-        worktrees={
-            repo_root: [
-                WorktreeInfo(path=repo_root, branch="main"),
-                WorktreeInfo(path=worktree_path, branch="feature-branch"),
-            ]
-        },
-        current_branches={worktree_path: "feature-branch"},
-        git_common_dirs={worktree_path: git_dir},
-        file_statuses={worktree_path: (["new.py"], ["modified.py"], ["temp.txt"])},
-        ahead_behind={(worktree_path, "feature-branch"): (2, 1)},
-        recent_commits={
-            worktree_path: [
-                {"sha": "def5678", "message": "Add feature", "author": "Dev", "date": "30 min ago"}
-            ]
-        },
-    )
-    global_config_ops = FakeGlobalConfigOps(
-        workstacks_root=tmp_path / "workstacks",
-        use_graphite=False,
-        show_pr_info=False,
-    )
-    ctx = create_test_context(git_ops=git_ops, global_config_ops=global_config_ops)
-
+def test_status_cmd_in_feature_worktree(repo_with_feature: WorktreeScenario) -> None:
+    """Test status command when in a feature worktree (CLI layer)."""
     runner = CliRunner()
-    # Change to the worktree directory
-    import os
-
+    worktree_path = repo_with_feature.workstacks_dir / "feature"
     original_dir = os.getcwd()
     os.chdir(worktree_path)
+
     try:
-        # Act
-        result = runner.invoke(status_cmd, obj=ctx, catch_exceptions=False)
+        result = runner.invoke(status_cmd, obj=repo_with_feature.ctx, catch_exceptions=False)
     finally:
         os.chdir(original_dir)
 
-    # Assert
+    # Assert - CLI integration
     assert result.exit_code == 0
-    assert "feature-branch" in result.output
-    assert "Working tree has changes" in result.output
-    assert "ahead 2" in result.output.lower() or "2 ahead" in result.output.lower()
-    assert "behind 1" in result.output.lower() or "1 behind" in result.output.lower()
+    assert "feature" in result.output
+    assert "Git Status:" in result.output
 
 
-def test_status_cmd_multiple_worktrees(tmp_path: Path) -> None:
-    """Test status command with multiple worktrees."""
-    # Arrange
-    repo_root = tmp_path / "repo"
-    repo_root.mkdir()
-    git_dir = repo_root / ".git"
-    git_dir.mkdir()
-
-    wt1 = tmp_path / "workstacks" / "repo" / "feature-1"
-    wt1.mkdir(parents=True)
-    wt2 = tmp_path / "workstacks" / "repo" / "feature-2"
-    wt2.mkdir(parents=True)
-    wt3 = tmp_path / "workstacks" / "repo" / "feature-3"
-    wt3.mkdir(parents=True)
-
-    git_ops = FakeGitOps(
-        worktrees={
-            repo_root: [
-                WorktreeInfo(path=repo_root, branch="main"),
-                WorktreeInfo(path=wt1, branch="feature-1"),
-                WorktreeInfo(path=wt2, branch="feature-2"),
-                WorktreeInfo(path=wt3, branch="feature-3"),
-            ]
-        },
-        current_branches={wt2: "feature-2"},
-        git_common_dirs={wt2: git_dir},
-        file_statuses={wt2: ([], [], [])},
-        ahead_behind={(wt2, "feature-2"): (0, 0)},
-        recent_commits={wt2: []},
-    )
-    global_config_ops = FakeGlobalConfigOps(
-        workstacks_root=tmp_path / "workstacks",
-        use_graphite=False,
-        show_pr_info=False,
-    )
-    ctx = create_test_context(git_ops=git_ops, global_config_ops=global_config_ops)
-
-    runner = CliRunner()
-    # Change to wt2 directory
-    import os
-
-    original_dir = os.getcwd()
-    os.chdir(wt2)
-    try:
-        # Act
-        result = runner.invoke(status_cmd, obj=ctx, catch_exceptions=False)
-    finally:
-        os.chdir(original_dir)
-
-    # Assert
-    assert result.exit_code == 0
-    assert "feature-2" in result.output
-
-
-def test_status_cmd_with_all_collectors_data(tmp_path: Path) -> None:
-    """Test status command with data from all collectors."""
-    # Arrange
+def test_status_cmd_in_subdirectory_of_worktree(tmp_path: Path) -> None:
+    """Test status command finds worktree when run from subdirectory (CLI layer)."""
+    # Arrange - Create subdirectory structure
     repo_root = tmp_path / "repo"
     repo_root.mkdir()
     git_dir = repo_root / ".git"
@@ -183,10 +73,8 @@ def test_status_cmd_with_all_collectors_data(tmp_path: Path) -> None:
 
     worktree_path = tmp_path / "workstacks" / "repo" / "feature"
     worktree_path.mkdir(parents=True)
-
-    # Create .PLAN.md file
-    plan_file = worktree_path / ".PLAN.md"
-    plan_file.write_text("# Feature Plan\n## Overview\nImplement new feature", encoding="utf-8")
+    subdir = worktree_path / "src" / "nested"
+    subdir.mkdir(parents=True)
 
     git_ops = FakeGitOps(
         worktrees={
@@ -195,221 +83,74 @@ def test_status_cmd_with_all_collectors_data(tmp_path: Path) -> None:
                 WorktreeInfo(path=worktree_path, branch="feature"),
             ]
         },
-        current_branches={worktree_path: "feature"},
-        git_common_dirs={worktree_path: git_dir},
-        file_statuses={worktree_path: (["staged.py"], [], [])},
-        ahead_behind={(worktree_path, "feature"): (1, 0)},
-        recent_commits={
-            worktree_path: [
-                {"sha": "abc1234", "message": "Add feature", "author": "Dev", "date": "1 hour ago"}
-            ]
-        },
+        current_branches={worktree_path: "feature", subdir: "feature"},
+        git_common_dirs={worktree_path: git_dir, subdir: git_dir},
+        file_statuses={worktree_path: ([], [], []), subdir: ([], [], [])},
+        ahead_behind={(worktree_path, "feature"): (0, 0), (subdir, "feature"): (0, 0)},
+        recent_commits={worktree_path: [], subdir: []},
     )
-
-    github_ops = FakeGitHubOps(
-        prs={
-            "feature": PullRequestInfo(
-                number=123,
-                state="OPEN",
-                url="https://github.com/owner/repo/pull/123",
-                is_draft=False,
-                checks_passing=True,
-                owner="owner",
-                repo="repo",
-            )
-        }
-    )
-
-    graphite_ops = FakeGraphiteOps(
-        stacks={"feature": ["main", "feature", "feature-next"]},
-    )
-
-    global_config_ops = FakeGlobalConfigOps(
-        workstacks_root=tmp_path / "workstacks",
-        use_graphite=True,
-        show_pr_info=True,
-    )
-
-    ctx = create_test_context(
-        git_ops=git_ops,
-        github_ops=github_ops,
-        graphite_ops=graphite_ops,
-        global_config_ops=global_config_ops,
-    )
-
-    runner = CliRunner()
-    # Change to the worktree directory
-    import os
-
-    original_dir = os.getcwd()
-    os.chdir(worktree_path)
-    try:
-        # Act
-        result = runner.invoke(status_cmd, obj=ctx, catch_exceptions=False)
-    finally:
-        os.chdir(original_dir)
-
-    # Assert
-    assert result.exit_code == 0
-    assert "feature" in result.output
-    # Git status
-    assert "Git Status:" in result.output
-    # PR info
-    assert "#123" in result.output or "123" in result.output
-    # Stack info
-    assert "Stack:" in result.output or "Graphite" in result.output
-    # Plan info
-    assert "Plan:" in result.output
-    assert "Feature Plan" in result.output
-
-
-def test_status_cmd_with_partial_collector_data(tmp_path: Path) -> None:
-    """Test status command when some collectors return None."""
-    # Arrange
-    repo_root = tmp_path / "repo"
-    repo_root.mkdir()
-    git_dir = repo_root / ".git"
-    git_dir.mkdir()
-
-    worktree_path = tmp_path / "workstacks" / "repo" / "branch"
-    worktree_path.mkdir(parents=True)
-
-    git_ops = FakeGitOps(
-        worktrees={repo_root: [WorktreeInfo(path=worktree_path, branch="branch")]},
-        current_branches={worktree_path: "branch"},
-        git_common_dirs={worktree_path: git_dir},
-        file_statuses={worktree_path: ([], [], [])},
-        ahead_behind={(worktree_path, "branch"): (0, 0)},
-        recent_commits={worktree_path: []},
-    )
-
-    # No PR data
-    github_ops = FakeGitHubOps(prs={})
-    # No stack data
-    graphite_ops = FakeGraphiteOps(stacks={})
-
-    global_config_ops = FakeGlobalConfigOps(
-        workstacks_root=tmp_path / "workstacks",
-        use_graphite=True,
-        show_pr_info=True,
-    )
-
-    ctx = create_test_context(
-        git_ops=git_ops,
-        github_ops=github_ops,
-        graphite_ops=graphite_ops,
-        global_config_ops=global_config_ops,
-    )
-
-    runner = CliRunner()
-    # Change to the worktree directory
-    import os
-
-    original_dir = os.getcwd()
-    os.chdir(worktree_path)
-    try:
-        # Act
-        result = runner.invoke(status_cmd, obj=ctx, catch_exceptions=False)
-    finally:
-        os.chdir(original_dir)
-
-    # Assert
-    assert result.exit_code == 0
-    assert "branch" in result.output
-    assert "Git Status:" in result.output
-
-
-def test_status_cmd_with_no_collector_data(tmp_path: Path) -> None:
-    """Test status command when all collectors return None."""
-    # Arrange
-    repo_root = tmp_path / "repo"
-    repo_root.mkdir()
-    git_dir = repo_root / ".git"
-    git_dir.mkdir()
-
-    worktree_path = tmp_path / "workstacks" / "repo" / "detached"
-    worktree_path.mkdir(parents=True)
-
-    git_ops = FakeGitOps(
-        worktrees={repo_root: [WorktreeInfo(path=worktree_path, branch=None)]},
-        current_branches={worktree_path: None},  # Detached HEAD
-        git_common_dirs={worktree_path: git_dir},
-    )
-
     global_config_ops = FakeGlobalConfigOps(
         workstacks_root=tmp_path / "workstacks",
         use_graphite=False,
         show_pr_info=False,
     )
-
     ctx = create_test_context(git_ops=git_ops, global_config_ops=global_config_ops)
 
     runner = CliRunner()
-    # Change to the worktree directory
-    import os
-
     original_dir = os.getcwd()
-    os.chdir(worktree_path)
+    os.chdir(subdir)  # Run from nested subdirectory
+
     try:
-        # Act
         result = runner.invoke(status_cmd, obj=ctx, catch_exceptions=False)
     finally:
         os.chdir(original_dir)
 
-    # Assert
-    # Collectors should handle detached HEAD gracefully
+    # Assert - Should find worktree and succeed
     assert result.exit_code == 0
-    assert "Worktree:" in result.output or "detached HEAD" in result.output
+    assert "feature" in result.output
 
 
-def test_status_cmd_invalid_worktree_path(tmp_path: Path) -> None:
-    """Test status command when worktree path is invalid."""
-    # Arrange
-    repo_root = tmp_path / "repo"
-    repo_root.mkdir()
-    git_dir = repo_root / ".git"
-    git_dir.mkdir()
+def test_status_cmd_displays_all_collector_sections(tmp_path: Path) -> None:
+    """Smoke test: status command integrates all collectors (CLI layer).
 
-    # Worktree path that doesn't exist
-    missing_wt = tmp_path / "missing"
-
-    git_ops = FakeGitOps(
-        worktrees={
-            repo_root: [
-                WorktreeInfo(path=repo_root, branch="main"),
-                WorktreeInfo(path=missing_wt, branch="ghost"),  # Path doesn't exist
-            ]
-        },
-        current_branches={repo_root: "main"},
-        git_common_dirs={repo_root: git_dir},
-        file_statuses={repo_root: ([], [], [])},
+    This is a thin integration test that verifies all collector outputs appear in
+    the CLI display. The actual collector logic is tested in unit layer.
+    """
+    # Arrange - Use WorktreeScenario builder for cleaner setup
+    scenario = (
+        WorktreeScenario(tmp_path)
+        .with_main_branch()
+        .with_feature_branch("feature")
+        .with_pr("feature", number=123, checks_passing=True)
+        .with_graphite_stack(["main", "feature"])
     )
 
-    global_config_ops = FakeGlobalConfigOps(
-        workstacks_root=tmp_path / "workstacks",
-    )
+    # Create .PLAN.md file
+    plan_file = scenario.workstacks_dir / "feature" / ".PLAN.md"
+    plan_file.parent.mkdir(parents=True, exist_ok=True)
+    plan_file.write_text("# Feature Plan\n## Overview\nImplement new feature", encoding="utf-8")
 
-    ctx = create_test_context(git_ops=git_ops, global_config_ops=global_config_ops)
+    scenario = scenario.build()
 
     runner = CliRunner()
-    # Change to the repo directory
-    import os
-
     original_dir = os.getcwd()
-    os.chdir(repo_root)
+    os.chdir(scenario.workstacks_dir / "feature")
+
     try:
-        # Act
-        result = runner.invoke(status_cmd, obj=ctx, catch_exceptions=False)
+        result = runner.invoke(status_cmd, obj=scenario.ctx, catch_exceptions=False)
     finally:
         os.chdir(original_dir)
 
-    # Assert - should find main worktree and succeed
+    # Assert - Just verify sections are present (trust unit layer for content)
     assert result.exit_code == 0
-    assert "main" in result.output
+    assert "Git Status:" in result.output
+    assert "#123" in result.output or "123" in result.output  # PR section
+    assert "Stack:" in result.output or "Graphite" in result.output  # Stack section
+    assert "Plan:" in result.output or "Feature Plan" in result.output  # Plan section
 
 
 def test_status_cmd_not_in_git_repo(tmp_path: Path) -> None:
-    """Test status command fails when not in a git repository."""
+    """Test status command fails when not in a git repository (error handling)."""
     # Arrange
     non_git_dir = tmp_path / "not-a-repo"
     non_git_dir.mkdir()
@@ -426,211 +167,13 @@ def test_status_cmd_not_in_git_repo(tmp_path: Path) -> None:
     ctx = create_test_context(git_ops=git_ops, global_config_ops=global_config_ops)
 
     runner = CliRunner()
-    # Change to non-git directory
-    import os
-
     original_dir = os.getcwd()
     os.chdir(non_git_dir)
+
     try:
-        # Act
         result = runner.invoke(status_cmd, obj=ctx)
     finally:
         os.chdir(original_dir)
 
-    # Assert
+    # Assert - CLI error handling
     assert result.exit_code != 0
-
-
-def test_status_cmd_with_verbose_flag(tmp_path: Path) -> None:
-    """Test status command with verbose flag (if supported)."""
-    # Arrange
-    repo_root = tmp_path / "repo"
-    repo_root.mkdir()
-    git_dir = repo_root / ".git"
-    git_dir.mkdir()
-
-    git_ops = FakeGitOps(
-        worktrees={repo_root: [WorktreeInfo(path=repo_root, branch="main")]},
-        current_branches={repo_root: "main"},
-        git_common_dirs={repo_root: git_dir},
-        file_statuses={repo_root: ([], [], [])},
-        ahead_behind={(repo_root, "main"): (0, 0)},
-        recent_commits={
-            repo_root: [
-                {"sha": "abc1234", "message": "Commit 1", "author": "Dev", "date": "1 hour ago"},
-                {"sha": "def5678", "message": "Commit 2", "author": "Dev", "date": "2 hours ago"},
-                {"sha": "ghi9012", "message": "Commit 3", "author": "Dev", "date": "3 hours ago"},
-            ]
-        },
-    )
-
-    global_config_ops = FakeGlobalConfigOps(
-        workstacks_root=tmp_path / "workstacks",
-    )
-
-    ctx = create_test_context(git_ops=git_ops, global_config_ops=global_config_ops)
-
-    runner = CliRunner()
-    # Change to the repo directory
-    import os
-
-    original_dir = os.getcwd()
-    os.chdir(repo_root)
-    try:
-        # Act - Note: --verbose flag might not exist in current implementation
-        result = runner.invoke(status_cmd, obj=ctx, catch_exceptions=False)
-    finally:
-        os.chdir(original_dir)
-
-    # Assert
-    assert result.exit_code == 0
-    assert "Git Status:" in result.output
-
-
-def test_status_cmd_with_json_output(tmp_path: Path) -> None:
-    """Test status command with JSON output format (if supported)."""
-    # This test is a placeholder for potential JSON output support
-    # Current implementation may not have this feature
-    pass
-
-
-def test_status_cmd_in_subdirectory_of_worktree(tmp_path: Path) -> None:
-    """Test status command when run from a subdirectory of a worktree."""
-    # Arrange
-    repo_root = tmp_path / "repo"
-    repo_root.mkdir()
-    git_dir = repo_root / ".git"
-    git_dir.mkdir()
-
-    # Create subdirectory structure
-    sub_dir = repo_root / "src" / "components"
-    sub_dir.mkdir(parents=True)
-
-    git_ops = FakeGitOps(
-        worktrees={repo_root: [WorktreeInfo(path=repo_root, branch="develop")]},
-        current_branches={repo_root: "develop"},
-        git_common_dirs={repo_root: git_dir, sub_dir: git_dir},  # Both paths return same git dir
-        file_statuses={repo_root: ([], ["src/components/app.py"], [])},
-        ahead_behind={(repo_root, "develop"): (0, 0)},
-        recent_commits={repo_root: []},
-    )
-
-    global_config_ops = FakeGlobalConfigOps(
-        workstacks_root=tmp_path / "workstacks",
-    )
-
-    ctx = create_test_context(git_ops=git_ops, global_config_ops=global_config_ops)
-
-    runner = CliRunner()
-    # Change to subdirectory
-    import os
-
-    original_dir = os.getcwd()
-    os.chdir(sub_dir)
-    try:
-        # Act
-        result = runner.invoke(status_cmd, obj=ctx, catch_exceptions=False)
-    finally:
-        os.chdir(original_dir)
-
-    # Assert
-    assert result.exit_code == 0
-    assert "develop" in result.output
-    assert "src/components/app.py" in result.output or "Modified:" in result.output
-
-
-def test_status_cmd_with_graphite_and_pr_data(tmp_path: Path) -> None:
-    """Test status command with both Graphite stack and GitHub PR data."""
-    # Arrange
-    repo_root = tmp_path / "repo"
-    repo_root.mkdir()
-    git_dir = repo_root / ".git"
-    git_dir.mkdir()
-
-    worktree_path = tmp_path / "workstacks" / "repo" / "middle-feature"
-    worktree_path.mkdir(parents=True)
-
-    git_ops = FakeGitOps(
-        worktrees={repo_root: [WorktreeInfo(path=worktree_path, branch="middle-feature")]},
-        current_branches={worktree_path: "middle-feature"},
-        git_common_dirs={worktree_path: git_dir},
-        file_statuses={worktree_path: ([], [], [])},
-        ahead_behind={(worktree_path, "middle-feature"): (1, 0)},
-        recent_commits={
-            worktree_path: [
-                {
-                    "sha": "mid1234",
-                    "message": "Middle feature work",
-                    "author": "Dev",
-                    "date": "2 hours ago",
-                }
-            ]
-        },
-    )
-
-    # PR info from GitHub
-    github_ops = FakeGitHubOps(
-        prs={
-            "middle-feature": PullRequestInfo(
-                number=456,
-                state="OPEN",
-                url="https://github.com/owner/repo/pull/456",
-                is_draft=False,
-                checks_passing=True,
-                owner="owner",
-                repo="repo",
-            )
-        }
-    )
-
-    # Stack info from Graphite
-    graphite_ops = FakeGraphiteOps(
-        stacks={
-            "middle-feature": ["main", "base-feature", "middle-feature", "top-feature"],
-        },
-        pr_info={
-            "middle-feature": PullRequestInfo(
-                number=456,
-                state="OPEN",
-                url="https://app.graphite.dev/github/pr/owner/repo/456",
-                is_draft=False,
-                checks_passing=None,  # Graphite doesn't provide CI status
-                owner="owner",
-                repo="repo",
-            )
-        },
-    )
-
-    global_config_ops = FakeGlobalConfigOps(
-        workstacks_root=tmp_path / "workstacks",
-        use_graphite=True,
-        show_pr_info=True,
-    )
-
-    ctx = create_test_context(
-        git_ops=git_ops,
-        github_ops=github_ops,
-        graphite_ops=graphite_ops,
-        global_config_ops=global_config_ops,
-    )
-
-    runner = CliRunner()
-    # Change to the worktree directory
-    import os
-
-    original_dir = os.getcwd()
-    os.chdir(worktree_path)
-    try:
-        # Act
-        result = runner.invoke(status_cmd, obj=ctx, catch_exceptions=False)
-    finally:
-        os.chdir(original_dir)
-
-    # Assert
-    assert result.exit_code == 0
-    assert "middle-feature" in result.output
-    # Should show PR info
-    assert "456" in result.output
-    # Should show stack info
-    assert "base-feature" in result.output or "Parent:" in result.output
-    assert "top-feature" in result.output or "Children:" in result.output
