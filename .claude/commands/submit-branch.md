@@ -47,6 +47,29 @@ This ensures:
 
 When this command is invoked:
 
+### 0. Verify Branch Parent
+
+**IMPORTANT**: Before doing anything, verify the current branch is directly on main:
+
+```bash
+gt branch info
+```
+
+Check the "Parent:" line in the output. If the parent is **not** `main`, ERROR and exit with:
+
+```
+Error: Cannot submit branch with intermediate parent branch.
+
+Current branch: terminal-first-agent-workflow
+Parent branch: planning-changes (expected: main)
+
+This branch has other branches between it and main. You must either:
+1. Submit/merge the parent branch first: planning-changes
+2. Restack this branch directly onto main: gt branch track --parent main
+```
+
+Only proceed if parent is `main`.
+
 ### 1. Commit Outstanding Changes
 
 Check for uncommitted changes and commit them:

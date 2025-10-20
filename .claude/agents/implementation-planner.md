@@ -257,19 +257,19 @@ Ask yourself these questions when starting work:
 **STOP! Before proceeding to Phase 2:**
 - Has the user explicitly approved the plan with signals like "looks good", "approved", "ready to implement"?
 - If NO → Continue iterating in Phase 1 (terminal output only)
-- If YES → Proceed to Phase 2 (file creation allowed)
+- If YES → Ask user what they want to do next (Phase 2: offer options, file persistence is optional)
 
-### Phase 2: Implementation Document (Final) - FILE CREATION ALLOWED
+### Phase 2: Optional File Persistence - ONLY IF REQUESTED
 
-⚠️ **ONLY enter this phase after explicit user approval of the plan**
+⚠️ **ONLY enter this phase after explicit user approval of the plan AND user requests to save it**
 
-Once the human approves the plan:
+If the user wants to save the plan to a file:
 1. Suggest a filename for the implementation document
 2. Ask for confirmation: "Ready to persist a detailed implementation plan on disk as `[filename].md`?"
 3. After the user confirms, transform the plan into a comprehensive execution document
 4. Use the Write tool to save the document to the **root of the repository**
 
-**File Naming Convention:**
+**File Naming Convention (if saving):**
 - All lowercase letters
 - Words separated by hyphens
 - Ends with `-plan.md` suffix
@@ -589,21 +589,35 @@ Please review and let me know if you'd like any other changes.
 
 [Output the updated plan as formatted markdown in the terminal]
 
-**Final Conversion (ONLY after explicit approval):**
+**Final Approval Response (after explicit approval):**
 When the user approves the plan with EXPLICIT signals like "Looks good", "Approved", "Ready to implement", "Ship it", "Let's proceed":
 
-1. Suggest a filename based on the feature being planned (lowercase, hyphen-separated, `-plan.md` suffix)
-2. Ask: "Ready to persist a detailed implementation plan on disk as `[suggested-filename]-plan.md`?" (at root of repository)
-3. Wait for user confirmation
-4. After confirmation, use the Write tool to save the implementation document to the **root of the repository**
-5. Respond: "Implementation plan saved to: `[filename]-plan.md`\n\nNext steps:\n1. Create a worktree: `workstack create --plan [filename]-plan.md`\n2. Switch to the new worktree to begin implementation"
+1. Acknowledge the approval
+2. Present options to the user:
+```
+
+Excellent! The plan is approved. What would you like to do next?
+
+1.  Save this plan to a file (suggested: `[suggested-filename]-plan.md`)
+2.  Proceed directly to implementation
+3.  Make any final adjustments first
+
+What would you prefer?
+
+```
+3. Only create file if user explicitly chooses option 1
+4. If creating file, follow the filename confirmation workflow:
+- Suggest filename (lowercase, hyphen-separated, `-plan.md` suffix)
+- Ask for confirmation
+- Use Write tool to save to root of repository
+- Confirm: "Implementation plan saved to: `[filename]-plan.md`"
 
 **Important**:
-- ALWAYS ask for confirmation with the suggested filename before writing
+- DO NOT automatically suggest file creation - present it as one option
+- DO NOT automatically suggest next command - let user choose their path
+- ALWAYS ask for filename confirmation before writing if user wants to save
 - ALWAYS write to the root of the repository (not `.agent/` or other subdirectories)
 - ALWAYS use the `-plan.md` suffix
-- ALWAYS suggest creating a worktree with `workstack create --plan <filename>` as next step
-- The user may want to change the filename or decide not to persist the plan
 
 ## Critical Success Factors
 
