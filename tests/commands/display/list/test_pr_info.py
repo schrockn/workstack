@@ -96,8 +96,16 @@ def _setup_test_with_pr(
 # ===========================
 
 
-def test_list_with_stacks_shows_pr_info_when_enabled() -> None:
-    """Test that PR info is displayed when show_pr_info config is True."""
+@pytest.mark.parametrize(
+    ("show_pr_info", "expected_visible"),
+    [
+        (True, True),
+        (False, False),
+    ],
+    ids=["visible", "hidden"],
+)
+def test_list_with_stacks_pr_visibility(show_pr_info: bool, expected_visible: bool) -> None:
+    """PR info visibility follows the show_pr_info configuration flag."""
     runner = CliRunner()
     with runner.isolated_filesystem():
         pr = PullRequestInfo(
@@ -110,38 +118,13 @@ def test_list_with_stacks_shows_pr_info_when_enabled() -> None:
             repo="repo",
         )
         _cwd, _workstacks_root, _feature_worktree, test_ctx = _setup_test_with_pr(
-            "feature-branch", pr, show_pr_info=True
+            "feature-branch", pr, show_pr_info=show_pr_info
         )
 
         result = runner.invoke(cli, ["list", "--stacks"], obj=test_ctx)
         assert result.exit_code == 0, result.output
 
-        # Output should contain PR info (emoji and number)
-        assert "#42" in result.output
-
-
-def test_list_with_stacks_hides_pr_info_when_disabled() -> None:
-    """Test that PR info is NOT displayed when show_pr_info config is False."""
-    runner = CliRunner()
-    with runner.isolated_filesystem():
-        pr = PullRequestInfo(
-            number=42,
-            state="OPEN",
-            url="https://github.com/owner/repo/pull/42",
-            is_draft=False,
-            checks_passing=True,
-            owner="owner",
-            repo="repo",
-        )
-        _cwd, _workstacks_root, _feature_worktree, test_ctx = _setup_test_with_pr(
-            "feature-branch", pr, show_pr_info=False
-        )
-
-        result = runner.invoke(cli, ["list", "--stacks"], obj=test_ctx)
-        assert result.exit_code == 0, result.output
-
-        # Output should NOT contain PR info
-        assert "#42" not in result.output
+        assert ("#42" in result.output) is expected_visible
 
 
 # ===========================

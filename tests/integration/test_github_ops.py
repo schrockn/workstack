@@ -1,7 +1,6 @@
 """Integration tests for GitHubOps with minimal mocking."""
 
 from pathlib import Path
-from unittest.mock import patch
 
 from tests.conftest import load_fixture
 from workstack.core.github_ops import RealGitHubOps
@@ -39,20 +38,6 @@ def test_github_ops_get_prs_with_mock_executor():
     assert len(result) == 2
     assert "main-feature" in result
     assert result["main-feature"].checks_passing is None
-
-
-@patch("workstack.core.github_ops.execute_gh_command")
-def test_github_ops_get_prs_with_patch(mock_execute):
-    """Test GitHubOps using patch decorator (alternative approach)."""
-    mock_execute.return_value = load_fixture("github/pr_list_with_checks.json")
-
-    ops = RealGitHubOps()
-    result = ops.get_prs_for_repo(Path("/repo"), include_checks=True)
-
-    mock_execute.assert_called_once()
-    assert len(result) == 3
-    assert "feature-branch" in result
-    assert result["feature-branch"].checks_passing is True
 
 
 def test_github_ops_get_pr_status_with_mock():
