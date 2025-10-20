@@ -2,6 +2,8 @@
 
 **Effortless `git` worktree management for parallel development.**
 
+Hello world
+
 Create, switch, and manage multiple worktrees from a centralized location with automatic environment setup.
 
 ## Installation
