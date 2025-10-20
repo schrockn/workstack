@@ -74,6 +74,7 @@ def init_git_repo(repo_path: Path, default_branch: str = "main") -> None:
     subprocess.run(["git", "init", "-b", default_branch], cwd=repo_path, check=True)
     subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=repo_path, check=True)
     subprocess.run(["git", "config", "user.name", "Test User"], cwd=repo_path, check=True)
+    subprocess.run(["git", "config", "commit.gpgsign", "false"], cwd=repo_path, check=True)
 
     # Create initial commit
     test_file = repo_path / "README.md"

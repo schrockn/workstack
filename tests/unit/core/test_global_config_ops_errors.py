@@ -16,6 +16,7 @@ from workstack.core.global_config_ops import RealGlobalConfigOps
 class TestGlobalConfigIOErrors:
     """Test I/O error handling in global config operations."""
 
+    @pytest.mark.skipif(os.getuid() == 0, reason="Permission checks don't work as root")
     def test_config_read_with_permission_denied(self, tmp_path: Path) -> None:
         """Test config handling when file is not readable."""
         config_path = tmp_path / ".workstack" / "config.toml"
@@ -97,6 +98,7 @@ use_graphite = not a boolean
 
             assert exc_info.value.errno == 28
 
+    @pytest.mark.skipif(os.getuid() == 0, reason="Permission checks don't work as root")
     def test_config_write_with_readonly_filesystem(self, tmp_path: Path) -> None:
         """Test config write on read-only filesystem."""
         config_path = tmp_path / ".workstack" / "config.toml"

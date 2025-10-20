@@ -24,6 +24,7 @@ def test_create_with_plan_file(tmp_path: Path) -> None:
     subprocess.run(["git", "init"], cwd=repo, check=True)
     subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=repo, check=True)
     subprocess.run(["git", "config", "user.name", "Test User"], cwd=repo, check=True)
+    subprocess.run(["git", "config", "commit.gpgsign", "false"], cwd=repo, check=True)
 
     # Create an initial commit
     (repo / "README.md").write_text("test")
@@ -81,6 +82,7 @@ def test_create_with_plan_name_sanitization(tmp_path: Path) -> None:
     subprocess.run(["git", "init"], cwd=repo, check=True)
     subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=repo, check=True)
     subprocess.run(["git", "config", "user.name", "Test User"], cwd=repo, check=True)
+    subprocess.run(["git", "config", "commit.gpgsign", "false"], cwd=repo, check=True)
 
     # Create an initial commit
     (repo / "README.md").write_text("test")
@@ -121,6 +123,7 @@ def test_create_with_both_name_and_plan_fails(tmp_path: Path) -> None:
     subprocess.run(["git", "init"], cwd=repo, check=True)
     subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=repo, check=True)
     subprocess.run(["git", "config", "user.name", "Test User"], cwd=repo, check=True)
+    subprocess.run(["git", "config", "commit.gpgsign", "false"], cwd=repo, check=True)
 
     # Create an initial commit
     (repo / "README.md").write_text("test")
@@ -163,6 +166,7 @@ def test_create_rejects_reserved_name_root(tmp_path: Path) -> None:
     subprocess.run(["git", "init"], cwd=repo, check=True)
     subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=repo, check=True)
     subprocess.run(["git", "config", "user.name", "Test User"], cwd=repo, check=True)
+    subprocess.run(["git", "config", "commit.gpgsign", "false"], cwd=repo, check=True)
 
     # Create an initial commit
     (repo / "README.md").write_text("test")
@@ -207,6 +211,7 @@ def test_create_rejects_reserved_name_root_case_insensitive(tmp_path: Path) -> N
     subprocess.run(["git", "init"], cwd=repo, check=True)
     subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=repo, check=True)
     subprocess.run(["git", "config", "user.name", "Test User"], cwd=repo, check=True)
+    subprocess.run(["git", "config", "commit.gpgsign", "false"], cwd=repo, check=True)
 
     # Create an initial commit
     (repo / "README.md").write_text("test")
@@ -248,6 +253,7 @@ def test_create_rejects_main_as_worktree_name(tmp_path: Path) -> None:
     subprocess.run(["git", "init"], cwd=repo, check=True)
     subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=repo, check=True)
     subprocess.run(["git", "config", "user.name", "Test User"], cwd=repo, check=True)
+    subprocess.run(["git", "config", "commit.gpgsign", "false"], cwd=repo, check=True)
 
     # Create an initial commit
     (repo / "README.md").write_text("test")
@@ -291,6 +297,7 @@ def test_create_rejects_master_as_worktree_name(tmp_path: Path) -> None:
     subprocess.run(["git", "init"], cwd=repo, check=True)
     subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=repo, check=True)
     subprocess.run(["git", "config", "user.name", "Test User"], cwd=repo, check=True)
+    subprocess.run(["git", "config", "commit.gpgsign", "false"], cwd=repo, check=True)
 
     # Create an initial commit
     (repo / "README.md").write_text("test")
@@ -348,6 +355,7 @@ def test_create_with_script_flag(tmp_path: Path) -> None:
     subprocess.run(["git", "init", "-b", "main"], cwd=repo, check=True)
     subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=repo, check=True)
     subprocess.run(["git", "config", "user.name", "Test User"], cwd=repo, check=True)
+    subprocess.run(["git", "config", "commit.gpgsign", "false"], cwd=repo, check=True)
 
     # Create an initial commit
     (repo / "README.md").write_text("test")

@@ -30,6 +30,7 @@ def test_switch_command(tmp_path: Path) -> None:
     subprocess.run(["git", "init", "-b", "main"], cwd=repo, check=True)
     subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=repo, check=True)
     subprocess.run(["git", "config", "user.name", "Test User"], cwd=repo, check=True)
+    subprocess.run(["git", "config", "commit.gpgsign", "false"], cwd=repo, check=True)
 
     # Create an initial commit
     (repo / "README.md").write_text("test")
@@ -83,6 +84,7 @@ def test_switch_nonexistent_worktree(tmp_path: Path) -> None:
     subprocess.run(["git", "init", "-b", "main"], cwd=repo, check=True)
     subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=repo, check=True)
     subprocess.run(["git", "config", "user.name", "Test User"], cwd=repo, check=True)
+    subprocess.run(["git", "config", "commit.gpgsign", "false"], cwd=repo, check=True)
 
     # Create an initial commit
     (repo / "README.md").write_text("test")
@@ -131,6 +133,7 @@ def test_switch_to_root(tmp_path: Path) -> None:
     subprocess.run(["git", "init", "-b", "main"], cwd=repo, check=True)
     subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=repo, check=True)
     subprocess.run(["git", "config", "user.name", "Test User"], cwd=repo, check=True)
+    subprocess.run(["git", "config", "commit.gpgsign", "false"], cwd=repo, check=True)
 
     # Create an initial commit
     (repo / "README.md").write_text("test")
@@ -190,6 +193,7 @@ def test_list_includes_root(tmp_path: Path) -> None:
     subprocess.run(["git", "init", "-b", "main"], cwd=repo, check=True)
     subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=repo, check=True)
     subprocess.run(["git", "config", "user.name", "Test User"], cwd=repo, check=True)
+    subprocess.run(["git", "config", "commit.gpgsign", "false"], cwd=repo, check=True)
 
     # Create an initial commit
     (repo / "README.md").write_text("test")
@@ -260,6 +264,7 @@ def test_complete_worktree_names_without_context(
     subprocess.run(["git", "init"], cwd=repo, check=True, capture_output=True)
     subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=repo, check=True)
     subprocess.run(["git", "config", "user.name", "Test User"], cwd=repo, check=True)
+    subprocess.run(["git", "config", "commit.gpgsign", "false"], cwd=repo, check=True)
 
     # Create initial commit
     (repo / "README.md").write_text("test")
@@ -336,6 +341,7 @@ def test_switch_rejects_main_as_worktree_name(tmp_path: Path) -> None:
     subprocess.run(["git", "init", "-b", "main"], cwd=repo, check=True)
     subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=repo, check=True)
     subprocess.run(["git", "config", "user.name", "Test User"], cwd=repo, check=True)
+    subprocess.run(["git", "config", "commit.gpgsign", "false"], cwd=repo, check=True)
 
     # Create an initial commit
     (repo / "README.md").write_text("test")
@@ -375,6 +381,7 @@ def test_switch_rejects_master_as_worktree_name(tmp_path: Path) -> None:
     subprocess.run(["git", "init", "-b", "master"], cwd=repo, check=True)
     subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=repo, check=True)
     subprocess.run(["git", "config", "user.name", "Test User"], cwd=repo, check=True)
+    subprocess.run(["git", "config", "commit.gpgsign", "false"], cwd=repo, check=True)
 
     # Create an initial commit
     (repo / "README.md").write_text("test")
