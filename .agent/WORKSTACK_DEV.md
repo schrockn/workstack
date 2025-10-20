@@ -81,18 +81,28 @@ import click
 from workstack_dev.commands.branch_commit_count.command import branch_commit_count_command
 from workstack_dev.commands.clean_cache.command import clean_cache_command
 from workstack_dev.commands.codex_review.command import codex_review_command
-# ... more imports
+from workstack_dev.commands.completion.command import completion_command
+from workstack_dev.commands.create_agents_symlinks.command import create_agents_symlinks_command
+from workstack_dev.commands.land_branch.command import land_branch_command
+from workstack_dev.commands.publish_to_pypi.command import publish_to_pypi_command
+from workstack_dev.commands.reserve_pypi_name.command import reserve_pypi_name_command
+
 
 @click.group(name="workstack-dev")
 def cli() -> None:
     """Development tools for workstack."""
     pass
 
+
 # Register all commands
 cli.add_command(branch_commit_count_command)
 cli.add_command(clean_cache_command)
 cli.add_command(codex_review_command)
-# ... more registrations
+cli.add_command(completion_command)
+cli.add_command(create_agents_symlinks_command)
+cli.add_command(land_branch_command)
+cli.add_command(publish_to_pypi_command)
+cli.add_command(reserve_pypi_name_command)
 ```
 
 **Why static imports?** Click's shell completion system inspects the CLI at import time to generate completion scripts. Dynamic command loading breaks this inspection mechanism.
@@ -102,24 +112,53 @@ cli.add_command(codex_review_command)
 Each command follows a **single-file pattern** with all logic in `command.py`:
 
 ```python
-# commands/my_command/command.py
-"""Command description."""
+# commands/branch_commit_count/command.py
+"""Count commits on current branch since Graphite parent."""
 
 import subprocess
-from pathlib import Path
 
 import click
 
 
-@click.command(name="my-command")
-@click.option("--dry-run", is_flag=True, help="Show what would be done")
-def my_command_command(dry_run: bool) -> None:
-    """Command description shown in --help."""
-    # All implementation logic goes here
-    if dry_run:
-        click.echo("Would perform action...")
-    else:
-        click.echo("Performing action...")
+@click.command(name="branch-commit-count")
+def branch_commit_count_command() -> None:
+    """Count commits on current branch since Graphite parent."""
+    # Get parent branch using gt parent
+    result = subprocess.run(
+        ["gt", "parent"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    # Check for errors (LBYL pattern)
+    if result.returncode != 0 or not result.stdout.strip():
+        click.echo(
+            "Error: No Graphite parent found. "
+            "Use 'gt parent' to verify branch is tracked by Graphite.",
+            err=True,
+        )
+        raise SystemExit(1)
+
+    # Get merge base
+    parent_branch = result.stdout.strip()
+    merge_base = subprocess.run(
+        ["git", "merge-base", "HEAD", parent_branch],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.strip()
+
+    # Count commits
+    count = subprocess.run(
+        ["git", "rev-list", "--count", "HEAD", f"^{merge_base}"],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.strip()
+
+    # Output result
+    click.echo(count)
 ```
 
 **Critical naming convention:** The function MUST be named `{command_name}_command` (e.g., `my_command_command`) to match the import in `cli.py`.
@@ -142,15 +181,38 @@ def branch_commit_count_command() -> None:
 Commands with subcommands use `@click.group()`:
 
 ```python
+# commands/completion/command.py
+"""Shell completion command for workstack-dev."""
+
+import click
+
+
 @click.group(name="completion")
 def completion_command() -> None:
-    """Generate shell completion scripts."""
-    pass
+    """Generate shell completion scripts for workstack-dev."""
+
 
 @completion_command.command(name="bash")
 def bash() -> None:
-    """Generate bash completion script."""
-    # Implementation
+    r"""Generate bash completion script.
+
+    \b
+    Temporary (current session only):
+        source <(workstack-dev completion bash)
+
+    Permanent installation:
+        echo 'source <(workstack-dev completion bash)' >> ~/.bashrc
+        source ~/.bashrc
+    """
+    # Implementation here
+    click.echo("Completion script content...")
+
+
+@completion_command.command(name="zsh")
+def zsh() -> None:
+    """Generate zsh completion script."""
+    # Implementation here
+    click.echo("Completion script content...")
 ```
 
 ## Adding a New Command
@@ -166,30 +228,41 @@ To add a new command to `workstack-dev`:
 2. **Create `command.py`:**
 
    ```python
-   """Command description."""
+   """My command that does something useful."""
 
    import click
 
+
    @click.command(name="my-command")
-   def my_command_command() -> None:
-       """Command help text."""
+   @click.option("--verbose", "-v", is_flag=True, help="Enable verbose output")
+   def my_command_command(verbose: bool) -> None:
+       """Command help text shown in --help."""
+       if verbose:
+           click.echo("Running my-command in verbose mode...")
        click.echo("Hello from my-command!")
    ```
 
 3. **Update `cli.py`:**
 
-   ```python
-   # Add import
-   from workstack_dev.commands.my_command.command import my_command_command
+   Add the import at the top (maintaining alphabetical order recommended):
 
-   # Add registration
+   ```python
+   from workstack_dev.commands.my_command.command import my_command_command
+   ```
+
+   Add the registration in the commands section:
+
+   ```python
    cli.add_command(my_command_command)
    ```
 
 4. **Optionally add `__init__.py`:**
+
    ```python
-   """My command."""
+   """My command that does something useful."""
    ```
+
+   Or leave it empty/omit it entirely - it's not required.
 
 ## Implementation Guidelines
 
