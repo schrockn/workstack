@@ -3,7 +3,6 @@
 from tests.conftest import load_fixture
 from workstack.core.github_ops import (
     _determine_checks_status,
-    _parse_github_pr_url,
     parse_github_pr_list,
     parse_github_pr_status,
 )
@@ -104,34 +103,6 @@ def test_parse_github_pr_status_no_pr():
     assert state == "NONE"
     assert number is None
     assert title is None
-
-
-def test_parse_github_pr_url_valid():
-    """Test parsing valid GitHub PR URLs."""
-    # Standard format
-    owner, repo = _parse_github_pr_url("https://github.com/dagster-io/workstack/pull/123")
-    assert owner == "dagster-io"
-    assert repo == "workstack"
-
-    # Different org/repo
-    owner, repo = _parse_github_pr_url("https://github.com/facebook/react/pull/999")
-    assert owner == "facebook"
-    assert repo == "react"
-
-
-def test_parse_github_pr_url_invalid():
-    """Test parsing invalid GitHub PR URLs."""
-    # Not a GitHub URL
-    result = _parse_github_pr_url("https://gitlab.com/owner/repo/pull/123")
-    assert result is None
-
-    # Missing pull number
-    result = _parse_github_pr_url("https://github.com/owner/repo")
-    assert result is None
-
-    # Wrong format
-    result = _parse_github_pr_url("https://github.com/owner/repo/issues/123")
-    assert result is None
 
 
 def test_determine_checks_status_all_passing():

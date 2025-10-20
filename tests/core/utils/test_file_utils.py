@@ -1,14 +1,13 @@
-"""Tests for file_utils.py."""
+"""Tests for file_utils.extract_plan_title."""
 
-from pathlib import Path
+import pytest
 
 from workstack.core.file_utils import extract_plan_title
 
-
-def test_extract_plan_title_with_frontmatter(tmp_path: Path) -> None:
-    """Test extracting title from plan with YAML frontmatter."""
-    plan = tmp_path / "plan.md"
-    plan.write_text(
+PLAN_CASES = [
+    pytest.param(
+        "frontmatter_followed_by_heading",
+        "plan.md",
         """---
 title: Metadata
 ---
@@ -17,94 +16,64 @@ title: Metadata
 
 Content here.
 """,
-        encoding="utf-8",
-    )
-
-    result = extract_plan_title(plan)
-    assert result == "Actual Title"
-
-
-def test_extract_plan_title_without_frontmatter(tmp_path: Path) -> None:
-    """Test extracting title when heading is first line."""
-    plan = tmp_path / "plan.md"
-    plan.write_text("# First Heading\n\nContent.", encoding="utf-8")
-
-    result = extract_plan_title(plan)
-    assert result == "First Heading"
-
-
-def test_extract_plan_title_multiple_hashes(tmp_path: Path) -> None:
-    """Test extracting title from ### heading."""
-    plan = tmp_path / "plan.md"
-    plan.write_text("### Deep Heading\n\nContent.", encoding="utf-8")
-
-    result = extract_plan_title(plan)
-    assert result == "Deep Heading"
-
-
-def test_extract_plan_title_no_heading(tmp_path: Path) -> None:
-    """Test that None is returned when no heading exists."""
-    plan = tmp_path / "plan.md"
-    plan.write_text("Just some text without headings.", encoding="utf-8")
-
-    result = extract_plan_title(plan)
-    assert result is None
-
-
-def test_extract_plan_title_missing_file(tmp_path: Path) -> None:
-    """Test that None is returned for non-existent file."""
-    plan = tmp_path / "nonexistent.md"
-
-    result = extract_plan_title(plan)
-    assert result is None
-
-
-def test_extract_plan_title_empty_file(tmp_path: Path) -> None:
-    """Test that None is returned for empty file."""
-    plan = tmp_path / "plan.md"
-    plan.write_text("", encoding="utf-8")
-
-    result = extract_plan_title(plan)
-    assert result is None
-
-
-def test_extract_plan_title_empty_heading(tmp_path: Path) -> None:
-    """Test that None is returned for heading with no text."""
-    plan = tmp_path / "plan.md"
-    plan.write_text("#\n\nContent.", encoding="utf-8")
-
-    result = extract_plan_title(plan)
-    assert result is None
-
-
-def test_extract_plan_title_heading_with_whitespace(tmp_path: Path) -> None:
-    """Test that heading with extra whitespace is properly trimmed."""
-    plan = tmp_path / "plan.md"
-    plan.write_text("#   Title With Spaces   \n\nContent.", encoding="utf-8")
-
-    result = extract_plan_title(plan)
-    assert result == "Title With Spaces"
-
-
-def test_extract_plan_title_only_frontmatter(tmp_path: Path) -> None:
-    """Test that None is returned when file only contains frontmatter."""
-    plan = tmp_path / "plan.md"
-    plan.write_text(
+        "Actual Title",
+        id="frontmatter_followed_by_heading",
+    ),
+    pytest.param(
+        "heading_on_first_line",
+        "plan.md",
+        "# First Heading\n\nContent.",
+        "First Heading",
+        id="heading_on_first_line",
+    ),
+    pytest.param(
+        "deep_heading",
+        "plan.md",
+        "### Deep Heading\n\nContent.",
+        "Deep Heading",
+        id="deep_heading",
+    ),
+    pytest.param(
+        "only_frontmatter",
+        "plan.md",
         """---
 title: Metadata
 ---
 """,
-        encoding="utf-8",
-    )
-
-    result = extract_plan_title(plan)
-    assert result is None
-
-
-def test_extract_plan_title_second_heading_ignored(tmp_path: Path) -> None:
-    """Test that only the first heading is extracted."""
-    plan = tmp_path / "plan.md"
-    plan.write_text(
+        None,
+        id="only_frontmatter",
+    ),
+    pytest.param(
+        "no_heading",
+        "plan.md",
+        "Just some text without headings.",
+        None,
+        id="no_heading",
+    ),
+    pytest.param(
+        "empty_file",
+        "plan.md",
+        "",
+        None,
+        id="empty_file",
+    ),
+    pytest.param(
+        "empty_heading",
+        "plan.md",
+        "#\n\nContent.",
+        None,
+        id="empty_heading",
+    ),
+    pytest.param(
+        "heading_with_whitespace",
+        "plan.md",
+        "#   Title With Spaces   \n\nContent.",
+        "Title With Spaces",
+        id="heading_with_whitespace",
+    ),
+    pytest.param(
+        "second_heading_ignored",
+        "plan.md",
         """# First Heading
 
 Some content.
@@ -113,8 +82,28 @@ Some content.
 
 More content.
 """,
-        encoding="utf-8",
-    )
+        "First Heading",
+        id="second_heading_ignored",
+    ),
+    pytest.param(
+        "missing_file",
+        "nonexistent.md",
+        None,
+        None,
+        id="missing_file",
+    ),
+]
 
-    result = extract_plan_title(plan)
-    assert result == "First Heading"
+
+@pytest.mark.parametrize(
+    ("description", "filename", "contents", "expected"),
+    PLAN_CASES,
+)
+def test_extract_plan_title_cases(tmp_path, description, filename, contents, expected):
+    """Exercise extract_plan_title across the supported input variations."""
+    plan = tmp_path / filename
+
+    if contents is not None:
+        plan.write_text(contents, encoding="utf-8")
+
+    assert extract_plan_title(plan) == expected
