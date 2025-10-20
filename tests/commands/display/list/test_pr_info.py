@@ -1,16 +1,21 @@
-"""Tests for PR info display in list command."""
+"""Tests for PR info display in list command.
+
+This file tests CLI-specific behavior: emoji rendering, URL formatting, and config handling.
+Business logic for PR states is tested in tests/unit/status/test_github_pr_collector.py.
+"""
 
 import json
 from pathlib import Path
 
+import pytest
 from click.testing import CliRunner
 
-from tests.commands.display.list import strip_ansi
 from tests.fakes.github_ops import FakeGitHubOps
 from tests.fakes.gitops import FakeGitOps
 from tests.fakes.global_config_ops import FakeGlobalConfigOps
 from tests.fakes.graphite_ops import FakeGraphiteOps
 from tests.fakes.shell_ops import FakeShellOps
+from tests.test_utils.builders import PullRequestInfoBuilder
 from workstack.cli.cli import cli
 from workstack.core.context import WorkstackContext
 from workstack.core.github_ops import PullRequestInfo
@@ -38,8 +43,8 @@ def _setup_test_with_pr(
     # Create graphite cache with a simple stack
     graphite_cache = {
         "branches": [
-            ["main", {"validationResult": "TRUNK", "children": [branch_name]}],
-            [branch_name, {"parentBranchName": "main", "children": []}],
+            ("main", {"validationResult": "TRUNK", "children": [branch_name]}),
+            (branch_name, {"parentBranchName": "main", "children": []}),
         ]
     }
     (git_dir / ".graphite_cache_persist").write_text(json.dumps(graphite_cache))
@@ -84,6 +89,11 @@ def _setup_test_with_pr(
     )
 
     return cwd, workstacks_root, feature_worktree, test_ctx
+
+
+# ===========================
+# Config Handling Tests
+# ===========================
 
 
 def test_list_with_stacks_shows_pr_info_when_enabled() -> None:
@@ -134,159 +144,63 @@ def test_list_with_stacks_hides_pr_info_when_disabled() -> None:
         assert "#42" not in result.output
 
 
-def test_list_with_stacks_shows_draft_emoji() -> None:
-    """Test that draft PRs show the construction emoji (🚧)."""
+# ===========================
+# Emoji Rendering Tests
+# ===========================
+# These tests verify CLI-specific emoji rendering.
+# Business logic (PR state → ready_to_merge) is tested in unit layer.
+
+
+@pytest.mark.parametrize(
+    "state,is_draft,checks,expected_emoji",
+    [
+        ("OPEN", False, True, "✅"),  # Open PR with passing checks
+        ("OPEN", False, False, "❌"),  # Open PR with failing checks
+        ("OPEN", False, None, "◯"),  # Open PR with no checks
+        ("OPEN", True, None, "🚧"),  # Draft PR
+        ("MERGED", False, True, "🟣"),  # Merged PR
+        ("CLOSED", False, None, "⭕"),  # Closed (not merged) PR
+    ],
+)
+def test_list_pr_emoji_mapping(
+    state: str, is_draft: bool, checks: bool | None, expected_emoji: str
+) -> None:
+    """Verify PR state → emoji mapping for all cases.
+
+    This test covers all emoji rendering logic in a single parametrized test.
+    """
     runner = CliRunner()
     with runner.isolated_filesystem():
-        pr = PullRequestInfo(
-            number=10,
-            state="OPEN",
-            url="https://github.com/owner/repo/pull/10",
-            is_draft=True,  # Draft PR
-            checks_passing=None,
-            owner="owner",
-            repo="repo",
-        )
+        # Use builder pattern for PR creation
+        builder = PullRequestInfoBuilder(number=100, branch="test-branch")
+        builder.state = state
+        builder.is_draft = is_draft
+        builder.checks_passing = checks
+        pr = builder.build()
+
         _cwd, _workstacks_root, _feature_worktree, test_ctx = _setup_test_with_pr(
-            "draft-pr", pr, show_pr_info=True
+            "test-branch", pr, show_pr_info=True
         )
 
         result = runner.invoke(cli, ["list", "--stacks"], obj=test_ctx)
         assert result.exit_code == 0, result.output
 
-        # Should contain construction emoji for draft
-        assert "🚧" in result.output
-        assert "#10" in result.output
+        # Verify emoji appears in output
+        assert expected_emoji in result.output
+        assert "#100" in result.output
 
 
-def test_list_with_stacks_shows_merged_emoji() -> None:
-    """Test that merged PRs show the purple circle emoji (🟣)."""
-    runner = CliRunner()
-    with runner.isolated_filesystem():
-        pr = PullRequestInfo(
-            number=20,
-            state="MERGED",  # Merged state
-            url="https://github.com/owner/repo/pull/20",
-            is_draft=False,
-            checks_passing=True,
-            owner="owner",
-            repo="repo",
-        )
-        _cwd, _workstacks_root, _feature_worktree, test_ctx = _setup_test_with_pr(
-            "merged-pr", pr, show_pr_info=True
-        )
-
-        result = runner.invoke(cli, ["list", "--stacks"], obj=test_ctx)
-        assert result.exit_code == 0, result.output
-
-        # Should contain purple circle for merged
-        assert "🟣" in result.output
-        assert "#20" in result.output
-
-
-def test_list_with_stacks_shows_closed_emoji() -> None:
-    """Test that closed (not merged) PRs show the hollow circle emoji (⭕)."""
-    runner = CliRunner()
-    with runner.isolated_filesystem():
-        pr = PullRequestInfo(
-            number=30,
-            state="CLOSED",  # Closed but not merged
-            url="https://github.com/owner/repo/pull/30",
-            is_draft=False,
-            checks_passing=None,
-            owner="owner",
-            repo="repo",
-        )
-        _cwd, _workstacks_root, _feature_worktree, test_ctx = _setup_test_with_pr(
-            "closed-pr", pr, show_pr_info=True
-        )
-
-        result = runner.invoke(cli, ["list", "--stacks"], obj=test_ctx)
-        assert result.exit_code == 0, result.output
-
-        # Should contain hollow circle for closed
-        assert "⭕" in result.output
-        assert "#30" in result.output
-
-
-def test_list_with_stacks_shows_checks_passing_emoji() -> None:
-    """Test that PRs with passing checks show the green checkmark (✅)."""
-    runner = CliRunner()
-    with runner.isolated_filesystem():
-        pr = PullRequestInfo(
-            number=40,
-            state="OPEN",
-            url="https://github.com/owner/repo/pull/40",
-            is_draft=False,
-            checks_passing=True,  # Checks passing
-            owner="owner",
-            repo="repo",
-        )
-        _cwd, _workstacks_root, _feature_worktree, test_ctx = _setup_test_with_pr(
-            "passing-checks", pr, show_pr_info=True
-        )
-
-        result = runner.invoke(cli, ["list", "--stacks"], obj=test_ctx)
-        assert result.exit_code == 0, result.output
-
-        # Should contain green checkmark for passing checks
-        assert "✅" in result.output
-        assert "#40" in result.output
-
-
-def test_list_with_stacks_shows_checks_failing_emoji() -> None:
-    """Test that PRs with failing checks show the red X (❌)."""
-    runner = CliRunner()
-    with runner.isolated_filesystem():
-        pr = PullRequestInfo(
-            number=50,
-            state="OPEN",
-            url="https://github.com/owner/repo/pull/50",
-            is_draft=False,
-            checks_passing=False,  # Checks failing
-            owner="owner",
-            repo="repo",
-        )
-        _cwd, _workstacks_root, _feature_worktree, test_ctx = _setup_test_with_pr(
-            "failing-checks", pr, show_pr_info=True
-        )
-
-        result = runner.invoke(cli, ["list", "--stacks"], obj=test_ctx)
-        assert result.exit_code == 0, result.output
-
-        # Should contain red X for failing checks
-        assert "❌" in result.output
-        assert "#50" in result.output
-
-
-def test_list_with_stacks_shows_no_checks_emoji() -> None:
-    """Test that open PRs with no checks show the hollow circle (◯)."""
-    runner = CliRunner()
-    with runner.isolated_filesystem():
-        pr = PullRequestInfo(
-            number=60,
-            state="OPEN",
-            url="https://github.com/owner/repo/pull/60",
-            is_draft=False,
-            checks_passing=None,  # No checks configured
-            owner="owner",
-            repo="repo",
-        )
-        _cwd, _workstacks_root, _feature_worktree, test_ctx = _setup_test_with_pr(
-            "no-checks", pr, show_pr_info=True
-        )
-
-        result = runner.invoke(cli, ["list", "--stacks"], obj=test_ctx)
-        assert result.exit_code == 0, result.output
-
-        # Should contain hollow circle for no checks
-        # Note: The stack visualization also uses ◯, so we need to verify it's in PR context
-        output = strip_ansi(result.output)
-        assert "#60" in output
+# ===========================
+# URL Format Tests (CLI-Specific)
+# ===========================
 
 
 def test_list_with_stacks_uses_graphite_url() -> None:
-    """Test that PR links use Graphite URLs instead of GitHub URLs."""
+    """Test that PR links use Graphite URLs instead of GitHub URLs.
+
+    This is CLI-specific behavior: the list command formats PR URLs as Graphite links
+    for better integration with Graphite workflow.
+    """
     runner = CliRunner()
     with runner.isolated_filesystem():
         pr = PullRequestInfo(

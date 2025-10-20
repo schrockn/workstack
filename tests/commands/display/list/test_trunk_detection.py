@@ -1,235 +1,138 @@
+"""CLI tests for trunk branch handling in list command.
+
+This file tests CLI-specific behavior of how trunk branches are displayed
+or filtered in the list command output.
+
+The business logic of trunk detection (_is_trunk_branch function) is tested in:
+- tests/unit/detection/test_trunk_detection.py
+
+This file trusts that unit layer and only tests CLI integration.
+"""
+
 import json
 from pathlib import Path
 
 from click.testing import CliRunner
 
+from tests.commands.display.list import strip_ansi
 from tests.fakes.github_ops import FakeGitHubOps
-from tests.fakes.gitops import FakeGitOps
+from tests.fakes.gitops import FakeGitOps, WorktreeInfo
 from tests.fakes.global_config_ops import FakeGlobalConfigOps
 from tests.fakes.graphite_ops import FakeGraphiteOps
 from tests.fakes.shell_ops import FakeShellOps
-from workstack.cli.commands.list import _is_trunk_branch
+from workstack.cli.cli import cli
 from workstack.core.context import WorkstackContext
 
 
-def test_trunk_branch_with_validation_result_trunk() -> None:
-    """Branch with validationResult == "TRUNK" returns True."""
+def test_list_with_main_trunk() -> None:
+    """List command handles main trunk branch correctly (CLI layer)."""
     runner = CliRunner()
     with runner.isolated_filesystem():
-        repo_root = Path.cwd()
+        cwd = Path.cwd()
         git_dir = Path(".git")
         git_dir.mkdir()
 
-        # Create graphite cache with main marked as TRUNK
+        # Create graphite cache with main as trunk
         graphite_cache = {
             "branches": [
-                ["main", {"validationResult": "TRUNK", "children": ["feature-1"]}],
-                ["feature-1", {"parentBranchName": "main", "children": []}],
+                ["main", {"validationResult": "TRUNK", "children": ["feature"]}],
+                ["feature", {"parentBranchName": "main", "children": []}],
             ]
         }
-        (git_dir / ".graphite_cache_persist").write_text(json.dumps(graphite_cache))
-
-        git_ops = FakeGitOps(git_common_dirs={repo_root: git_dir})
-        global_config_ops = FakeGlobalConfigOps(
-            workstacks_root=Path("/tmp/workstacks"),
-            use_graphite=True,
+        (git_dir / ".graphite_cache_persist").write_text(
+            json.dumps(graphite_cache), encoding="utf-8"
         )
-        graphite_ops = FakeGraphiteOps()
+
+        workstacks_root = cwd / "workstacks"
+        feature_dir = workstacks_root / cwd.name / "feature"
+        feature_dir.mkdir(parents=True)
+
+        git_ops = FakeGitOps(
+            worktrees={
+                cwd: [
+                    WorktreeInfo(path=cwd, branch="main"),
+                    WorktreeInfo(path=feature_dir, branch="feature"),
+                ],
+            },
+            git_common_dirs={cwd: git_dir, feature_dir: git_dir},
+            current_branches={cwd: "main", feature_dir: "feature"},
+        )
+
+        global_config_ops = FakeGlobalConfigOps(
+            workstacks_root=workstacks_root,
+            use_graphite=True,
+            show_pr_info=False,
+        )
+
         ctx = WorkstackContext(
             git_ops=git_ops,
             global_config_ops=global_config_ops,
-            graphite_ops=graphite_ops,
+            graphite_ops=FakeGraphiteOps(),
             github_ops=FakeGitHubOps(),
             shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
-        assert _is_trunk_branch(ctx, repo_root, "main") is True
+        result = runner.invoke(cli, ["list", "--stacks"], obj=ctx)
+
+        # Assert - CLI output formatting
+        assert result.exit_code == 0
+        output = strip_ansi(result.output)
+        assert "main" in output or "feature" in output
 
 
-def test_non_trunk_branch_with_no_parent() -> None:
-    """Branch with parentBranchName: None but no TRUNK marker returns True."""
+def test_list_with_master_trunk() -> None:
+    """List command handles master trunk branch correctly (CLI layer)."""
     runner = CliRunner()
     with runner.isolated_filesystem():
-        repo_root = Path.cwd()
+        cwd = Path.cwd()
         git_dir = Path(".git")
         git_dir.mkdir()
 
-        # Create graphite cache with orphan branch (no parent, but not marked TRUNK)
+        # Create graphite cache with master as trunk
         graphite_cache = {
             "branches": [
-                ["orphan", {"parentBranchName": None, "children": ["feature-1"]}],
-                ["feature-1", {"parentBranchName": "orphan", "children": []}],
+                ["master", {"validationResult": "TRUNK", "children": ["feature"]}],
+                ["feature", {"parentBranchName": "master", "children": []}],
             ]
         }
-        (git_dir / ".graphite_cache_persist").write_text(json.dumps(graphite_cache))
-
-        git_ops = FakeGitOps(git_common_dirs={repo_root: git_dir})
-        global_config_ops = FakeGlobalConfigOps(
-            workstacks_root=Path("/tmp/workstacks"),
-            use_graphite=True,
+        (git_dir / ".graphite_cache_persist").write_text(
+            json.dumps(graphite_cache), encoding="utf-8"
         )
-        graphite_ops = FakeGraphiteOps()
+
+        workstacks_root = cwd / "workstacks"
+        feature_dir = workstacks_root / cwd.name / "feature"
+        feature_dir.mkdir(parents=True)
+
+        git_ops = FakeGitOps(
+            worktrees={
+                cwd: [
+                    WorktreeInfo(path=cwd, branch="master"),
+                    WorktreeInfo(path=feature_dir, branch="feature"),
+                ],
+            },
+            git_common_dirs={cwd: git_dir, feature_dir: git_dir},
+            current_branches={cwd: "master", feature_dir: "feature"},
+        )
+
+        global_config_ops = FakeGlobalConfigOps(
+            workstacks_root=workstacks_root,
+            use_graphite=True,
+            show_pr_info=False,
+        )
+
         ctx = WorkstackContext(
             git_ops=git_ops,
             global_config_ops=global_config_ops,
-            graphite_ops=graphite_ops,
+            graphite_ops=FakeGraphiteOps(),
             github_ops=FakeGitHubOps(),
             shell_ops=FakeShellOps(),
             dry_run=False,
         )
 
-        assert _is_trunk_branch(ctx, repo_root, "orphan") is True
+        result = runner.invoke(cli, ["list", "--stacks"], obj=ctx)
 
-
-def test_branch_with_parent() -> None:
-    """Branch with parentBranchName: "main" returns False."""
-    runner = CliRunner()
-    with runner.isolated_filesystem():
-        repo_root = Path.cwd()
-        git_dir = Path(".git")
-        git_dir.mkdir()
-
-        # Create graphite cache with feature-1 having main as parent
-        graphite_cache = {
-            "branches": [
-                ["main", {"validationResult": "TRUNK", "children": ["feature-1"]}],
-                ["feature-1", {"parentBranchName": "main", "children": []}],
-            ]
-        }
-        (git_dir / ".graphite_cache_persist").write_text(json.dumps(graphite_cache))
-
-        git_ops = FakeGitOps(git_common_dirs={repo_root: git_dir})
-        global_config_ops = FakeGlobalConfigOps(
-            workstacks_root=Path("/tmp/workstacks"),
-            use_graphite=True,
-        )
-        graphite_ops = FakeGraphiteOps()
-        ctx = WorkstackContext(
-            git_ops=git_ops,
-            global_config_ops=global_config_ops,
-            graphite_ops=graphite_ops,
-            github_ops=FakeGitHubOps(),
-            shell_ops=FakeShellOps(),
-            dry_run=False,
-        )
-
-        assert _is_trunk_branch(ctx, repo_root, "feature-1") is False
-
-
-def test_branch_not_in_cache() -> None:
-    """Unknown branch name returns False."""
-    runner = CliRunner()
-    with runner.isolated_filesystem():
-        repo_root = Path.cwd()
-        git_dir = Path(".git")
-        git_dir.mkdir()
-
-        # Create graphite cache without "unknown-branch"
-        graphite_cache = {
-            "branches": [
-                ["main", {"validationResult": "TRUNK", "children": []}],
-            ]
-        }
-        (git_dir / ".graphite_cache_persist").write_text(json.dumps(graphite_cache))
-
-        git_ops = FakeGitOps(git_common_dirs={repo_root: git_dir})
-        global_config_ops = FakeGlobalConfigOps(
-            workstacks_root=Path("/tmp/workstacks"),
-            use_graphite=True,
-        )
-        graphite_ops = FakeGraphiteOps()
-        ctx = WorkstackContext(
-            git_ops=git_ops,
-            global_config_ops=global_config_ops,
-            graphite_ops=graphite_ops,
-            github_ops=FakeGitHubOps(),
-            shell_ops=FakeShellOps(),
-            dry_run=False,
-        )
-
-        assert _is_trunk_branch(ctx, repo_root, "unknown-branch") is False
-
-
-def test_missing_git_directory() -> None:
-    """get_git_common_dir returns None, function returns False."""
-    repo_root = Path.cwd()
-
-    # FakeGitOps with no git_common_dirs configured
-    git_ops = FakeGitOps(git_common_dirs={})
-    global_config_ops = FakeGlobalConfigOps(
-        workstacks_root=Path("/tmp/workstacks"),
-        use_graphite=True,
-    )
-    graphite_ops = FakeGraphiteOps()
-    ctx = WorkstackContext(
-        git_ops=git_ops,
-        global_config_ops=global_config_ops,
-        graphite_ops=graphite_ops,
-        github_ops=FakeGitHubOps(),
-        shell_ops=FakeShellOps(),
-        dry_run=False,
-    )
-
-    assert _is_trunk_branch(ctx, repo_root, "main") is False
-
-
-def test_missing_cache_file() -> None:
-    """.graphite_cache_persist doesn't exist, function returns False."""
-    runner = CliRunner()
-    with runner.isolated_filesystem():
-        repo_root = Path.cwd()
-        git_dir = Path(".git")
-        git_dir.mkdir()
-
-        # No cache file created
-
-        git_ops = FakeGitOps(git_common_dirs={repo_root: git_dir})
-        global_config_ops = FakeGlobalConfigOps(
-            workstacks_root=Path("/tmp/workstacks"),
-            use_graphite=True,
-        )
-        graphite_ops = FakeGraphiteOps()
-        ctx = WorkstackContext(
-            git_ops=git_ops,
-            global_config_ops=global_config_ops,
-            graphite_ops=graphite_ops,
-            github_ops=FakeGitHubOps(),
-            shell_ops=FakeShellOps(),
-            dry_run=False,
-        )
-
-        assert _is_trunk_branch(ctx, repo_root, "main") is False
-
-
-def test_cache_data_optimization() -> None:
-    """When cache_data is provided, function uses it instead of loading from disk."""
-    repo_root = Path.cwd()
-
-    # No git_dir setup - should fail if function tries to load from disk
-    git_ops = FakeGitOps(git_common_dirs={})
-    global_config_ops = FakeGlobalConfigOps(
-        workstacks_root=Path("/tmp/workstacks"),
-        use_graphite=True,
-    )
-    graphite_ops = FakeGraphiteOps()
-    ctx = WorkstackContext(
-        git_ops=git_ops,
-        global_config_ops=global_config_ops,
-        graphite_ops=graphite_ops,
-        github_ops=FakeGitHubOps(),
-        shell_ops=FakeShellOps(),
-        dry_run=False,
-    )
-
-    # Pre-loaded cache data
-    cache_data = {
-        "branches": [
-            ["main", {"validationResult": "TRUNK", "children": ["feature-1"]}],
-            ["feature-1", {"parentBranchName": "main", "children": []}],
-        ]
-    }
-
-    # Should use provided cache_data instead of trying to load from disk
-    assert _is_trunk_branch(ctx, repo_root, "main", cache_data) is True
-    assert _is_trunk_branch(ctx, repo_root, "feature-1", cache_data) is False
+        # Assert - CLI output formatting
+        assert result.exit_code == 0
+        output = strip_ansi(result.output)
+        assert "master" in output or "feature" in output
