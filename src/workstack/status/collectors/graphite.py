@@ -2,7 +2,6 @@
 
 from pathlib import Path
 
-from workstack.cli.graphite import get_branch_stack
 from workstack.core.context import WorkstackContext
 from workstack.status.collectors.base import StatusCollector
 from workstack.status.models.status_data import StackPosition
@@ -52,7 +51,7 @@ class GraphiteStackCollector(StatusCollector):
             return None
 
         # Get the stack for current branch
-        stack = get_branch_stack(ctx, repo_root, branch)
+        stack = ctx.graphite_ops.get_branch_stack(ctx.git_ops, repo_root, branch)
         if stack is None:
             return None
 

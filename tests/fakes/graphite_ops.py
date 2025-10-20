@@ -25,6 +25,7 @@ class FakeGraphiteOps(GraphiteOps):
         sync_raises: Exception | None = None,
         pr_info: dict[str, PullRequestInfo] | None = None,
         branches: dict[str, BranchMetadata] | None = None,
+        stacks: dict[str, list[str]] | None = None,
     ) -> None:
         """Create FakeGraphiteOps with pre-configured state.
 
@@ -32,11 +33,13 @@ class FakeGraphiteOps(GraphiteOps):
             sync_raises: Exception to raise when sync() is called (for testing error cases)
             pr_info: Mapping of branch name -> PullRequestInfo for get_prs_from_graphite()
             branches: Mapping of branch name -> BranchMetadata for get_all_branches()
+            stacks: Mapping of branch name -> stack (list of branches from trunk to leaf)
         """
         self._sync_raises = sync_raises
         self._sync_calls: list[tuple[Path, bool]] = []
         self._pr_info = pr_info if pr_info is not None else {}
         self._branches = branches if branches is not None else {}
+        self._stacks = stacks if stacks is not None else {}
 
     def get_graphite_url(self, owner: str, repo: str, pr_number: int) -> str:
         """Get Graphite PR URL (constructs URL directly)."""
@@ -59,6 +62,50 @@ class FakeGraphiteOps(GraphiteOps):
     def get_all_branches(self, git_ops: GitOps, repo_root: Path) -> dict[str, BranchMetadata]:
         """Return pre-configured branch metadata for tests."""
         return self._branches.copy()
+
+    def get_branch_stack(self, git_ops: GitOps, repo_root: Path, branch: str) -> list[str] | None:
+        """Return pre-configured stack for the given branch."""
+        # If stacks are configured, use those
+        if self._stacks:
+            # Find the stack that contains this branch
+            for _stack_branch, stack in self._stacks.items():
+                if branch in stack:
+                    return stack.copy()
+            return None
+
+        # Otherwise, build from branch metadata if available
+        if not self._branches:
+            return None
+
+        if branch not in self._branches:
+            return None
+
+        # Build stack from branch metadata (simplified version)
+        ancestors: list[str] = []
+        current = branch
+        while current in self._branches:
+            ancestors.append(current)
+            parent = self._branches[current].parent
+            if parent is None or parent not in self._branches:
+                break
+            current = parent
+
+        ancestors.reverse()
+
+        # Add descendants
+        descendants: list[str] = []
+        current = branch
+        while current in self._branches:
+            children = self._branches[current].children
+            if not children:
+                break
+            first_child = children[0]
+            if first_child not in self._branches:
+                break
+            descendants.append(first_child)
+            current = first_child
+
+        return ancestors + descendants
 
     @property
     def sync_calls(self) -> list[tuple[Path, bool]]:
