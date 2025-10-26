@@ -9,6 +9,7 @@ import click
 
 from workstack.cli.config import LoadedConfig, load_config
 from workstack.cli.core import discover_repo_context, ensure_workstacks_dir, worktree_path_for
+from workstack.cli.graphite import get_parent_branch
 from workstack.cli.shell_utils import render_cd_script, write_script_to_temp
 from workstack.core.context import WorkstackContext
 
@@ -433,11 +434,27 @@ def create(
     # Handle from-current-branch logic: switch current worktree first
     to_branch = None
     if from_current_branch:
-        # Determine which branch to switch to (use ref if provided, else main/master)
-        to_branch = ref if ref else ctx.git_ops.detect_default_branch(repo.root)
+        current_branch = ctx.git_ops.get_current_branch(Path.cwd())
+        if current_branch is None:
+            click.echo("Error: Unable to determine current branch", err=True)
+            raise SystemExit(1)
+
+        # Determine preferred branch to checkout (prioritize Graphite parent)
+        parent_branch = (
+            get_parent_branch(ctx, repo.root, current_branch) if current_branch else None
+        )
+
+        if parent_branch:
+            # Prefer Graphite parent branch
+            to_branch = parent_branch
+        elif ref:
+            # Use ref if provided
+            to_branch = ref
+        else:
+            # Fall back to default branch (main/master)
+            to_branch = ctx.git_ops.detect_default_branch(repo.root)
 
         # Check for edge case: can't move main to worktree then switch to main
-        current_branch = ctx.git_ops.get_current_branch(Path.cwd())
         if current_branch == to_branch:
             click.echo(
                 f"Error: Cannot use --from-current-branch when on '{current_branch}'.\n"
@@ -450,8 +467,14 @@ def create(
             )
             raise SystemExit(1)
 
-        # Switch the current worktree so the branch is free before creating the new worktree
-        ctx.git_ops.checkout_branch(Path.cwd(), to_branch)
+        # Check if target branch is available (not checked out in another worktree)
+        checkout_path = ctx.git_ops.is_branch_checked_out(repo.root, to_branch)
+        if checkout_path is not None:
+            # Target branch is in use, fall back to detached HEAD
+            ctx.git_ops.checkout_detached(Path.cwd(), current_branch)
+        else:
+            # Target branch is available, checkout normally
+            ctx.git_ops.checkout_branch(Path.cwd(), to_branch)
 
         # Create worktree with existing branch
         add_worktree(
