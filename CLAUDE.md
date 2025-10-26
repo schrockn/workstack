@@ -1,3 +1,25 @@
+---
+mdstack:
+  version: 0.1.0
+  generated_docs:
+    tests: .mdstack/TESTS.md
+    lookup: .mdstack/LOOKUP.md
+    architecture: .mdstack/OBSERVED_ARCHITECTURE.md
+  instructions: "AI Agent: This scope has generated documentation in .mdstack/
+
+
+    When to consult generated docs:
+
+    - tests: For test coverage, testing patterns, what functionality is validated
+
+    - lookup: For semantic search, finding code by concept/capability
+
+    - architecture: For module organization, patterns, data flow, extension points
+
+
+    Load these files only when needed for the current task."
+---
+
 # Workstack Coding Standards
 
 > **Note**: This is unreleased, completely private software. We can break backwards
@@ -40,6 +62,50 @@
 | **Exception details** | [.agent/docs/EXCEPTION_HANDLING.md](.agent/docs/EXCEPTION_HANDLING.md) |
 | **Quick lookup**      | [.agent/docs/QUICK_REFERENCE.md](.agent/docs/QUICK_REFERENCE.md)       |
 | **Writing tests**     | [.agent/docs/TESTING.md](.agent/docs/TESTING.md)                       |
+
+## 🤖 AI-Generated Documentation (.mdstack folders)
+
+**IMPORTANT: This codebase uses mdstack to generate AI-optimized documentation.**
+
+Always refer to mdstack in all lower case, NOT MDStack.
+
+### What are .mdstack folders?
+
+Throughout the codebase, you'll find `.mdstack/` directories containing LLM-generated documentation:
+
+- `LOOKUP.md` - Semantic search index mapping concepts to files
+- `TESTS.md` - Test coverage summaries and validation details
+- `OBSERVED_ARCHITECTURE.md` - Architectural patterns, data flow, extension points
+
+These files are **generated** and provide expensive-to-derive knowledge about the codebase.
+
+### When to consult .mdstack docs:
+
+**HIGH VALUE - Consult first:**
+
+- 🔍 **Semantic search**: "Where is X implemented?" → Check `LOOKUP.md`
+- 🏗️ **Architecture questions**: "What are the extension points?" → Check `OBSERVED_ARCHITECTURE.md`
+- 🧪 **Test coverage**: "What validates module Y?" → Check `TESTS.md`
+- 📊 **Understanding scope**: Starting work in a new directory → Load its `.mdstack/` docs
+
+**LOW VALUE - Skip:**
+
+- Simple file lookups (use grep/glob instead)
+- Very narrow scopes with few files
+
+### How to find them:
+
+1. Check `CLAUDE.md` frontmatter for scope-specific instructions
+2. Look for `.mdstack/` directories parallel to `CLAUDE.md` files
+3. Common locations: Package root, src/, tests/
+
+### Token savings:
+
+- LOOKUP.md: Saves 500-2000 tokens + multiple search rounds
+- OBSERVED_ARCHITECTURE.md: Saves 2000-5000 tokens + analysis time
+- TESTS.md: Saves 300-1000 tokens for coverage understanding
+
+**Best practice:** Load `.mdstack/LOOKUP.md` first when exploring unfamiliar code areas, then read specific files as needed.
 
 ---
 
@@ -281,3 +347,5 @@ Time-based estimates have no basis in reality for AI-assisted development and sh
 
 - **GitHub (gh)**: Use `gh` skill for GitHub CLI operations
 - **Workstack**: Use `workstack` skill for worktree management
+- Never run mdstack generate. Instead instruct the user to do so.
+- never run mdstack or uv run mdstack. instruct the user to do so instead
