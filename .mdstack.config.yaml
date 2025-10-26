@@ -1,0 +1,12 @@
+llm:
+  api_key_env: ANTHROPIC_API_KEY
+  max_tokens: 4000
+  provider: anthropic
+  temperature: 0.1
+  models:
+    # lookup: claude-sonnet-4-5-20250929
+    # tests: claude-sonnet-4-5-20250929
+    # architecture: claude-sonnet-4-5-20250929
+    lookup: claude-haiku-4-5-20251001
+    tests: claude-haiku-4-5-20251001
+    architecture: claude-haiku-4-5-20251001

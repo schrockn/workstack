@@ -1,0 +1,36 @@
+[project]
+name = "mdstack"
+version = "0.1.0"
+description = "Hierarchical documentation generator for codebases"
+requires-python = ">=3.13"
+dependencies = [
+    "click>=8.1.0",
+    "pyyaml>=6.0",
+    "anthropic>=0.18.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "ruff>=0.1.0",
+]
+
+[project.scripts]
+mdstack = "mdstack.cli:cli"
+
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pyright]
+include = ["src"]
+pythonVersion = "3.13"
+typeCheckingMode = "basic"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]

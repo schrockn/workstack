@@ -1,0 +1,18 @@
+# Ignore generated documentation
+**/.mdstack/**
+
+# Ignore build artifacts
+dist/
+build/
+*.egg-info/
+
+# Ignore node modules
+node_modules/
+
+# Ignore Python cache
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Ignore git
+.git/
