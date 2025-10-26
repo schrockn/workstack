@@ -107,6 +107,7 @@ class FakeGitOps(GitOps):
         self._added_worktrees: list[tuple[Path, str | None]] = []
         self._removed_worktrees: list[Path] = []
         self._checked_out_branches: list[tuple[Path, str]] = []
+        self._detached_checkouts: list[tuple[Path, str]] = []
 
     def list_worktrees(self, repo_root: Path) -> list[WorktreeInfo]:
         """List all worktrees in the repository."""
@@ -202,6 +203,8 @@ class FakeGitOps(GitOps):
                 if wt.path.resolve() == cwd.resolve():
                     self._worktrees[repo_root][i] = WorktreeInfo(path=wt.path, branch=None)
                     break
+        # Track the detached checkout
+        self._detached_checkouts.append((cwd, ref))
 
     def delete_branch_with_graphite(self, repo_root: Path, branch: str, *, force: bool) -> None:
         """Track which branches were deleted (mutates internal state)."""
@@ -273,3 +276,12 @@ class FakeGitOps(GitOps):
         This property is for test assertions only.
         """
         return self._checked_out_branches.copy()
+
+    @property
+    def detached_checkouts(self) -> list[tuple[Path, str]]:
+        """Get list of detached HEAD checkouts during test.
+
+        Returns list of (cwd, ref) tuples.
+        This property is for test assertions only.
+        """
+        return self._detached_checkouts.copy()
