@@ -1,0 +1,10 @@
+{
+  "content_hash": "1facebd10371f4c90ca4549e86f65a65d021aaa69cd625aaa30faf6fc12115d3",
+  "generated_at": "2025-10-26T15:49:23.825695",
+  "llm_provider": "anthropic",
+  "llm_model": "claude-haiku-4-5-20251001",
+  "generator_version": "0.1.0",
+  "tests_hash": "ccb534f3339ee670466ad57859b21175855da57991e274d7f90b393bd09a019e",
+  "lookup_hash": "05aa1268c93a2202226da6b892fdb090099a4e7085111bcd781a507b9ff345d9",
+  "architecture_hash": "6655c624fa2bb9637545d2c9dd8ba5c817496aa65469c1a255f9d8594a205431"
+}
