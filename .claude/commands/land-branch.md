@@ -58,6 +58,8 @@ Display the success message to the user. The JSON will include:
 
 If `child_branch` is not null, inform the user they can run `/land-branch` again.
 
+After successfully landing a branch, suggest to the user that they can run `workstack sync -f` to clean up the current worktree (note that this will delete both the worktree and the branch).
+
 **On failure (`success: false`):**
 
 Display the error message from the JSON response and exit with error status. The JSON will include:
