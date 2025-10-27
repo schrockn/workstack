@@ -1,0 +1,10 @@
+[project]
+name = "dev-runners-da-kit"
+version = "0.1.0"
+description = "Cost-optimized runner agents for development tools"
+readme = "README.md"
+requires-python = ">=3.13"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
