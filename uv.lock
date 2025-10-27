@@ -4,7 +4,6 @@ requires-python = ">=3.13"
 
 [manifest]
 members = [
-    "dot-agent-kit",
     "workstack",
     "workstack-dev",
 ]
@@ -89,21 +88,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/c9/76/44ba876e0942b4e62fdde23ccb029ddb16d19ba1bef081edd00857ba0b16/coverage-7.11.0-cp314-cp314t-win_amd64.whl", hash = "sha256:b56efee146c98dbf2cf5cffc61b9829d1e94442df4d7398b26892a53992d3547", size = 220687, upload-time = "2025-10-15T15:15:02.322Z" },
     { url = "https://files.pythonhosted.org/packages/b9/0c/0df55ecb20d0d0ed5c322e10a441775e1a3a5d78c60f0c4e1abfe6fcf949/coverage-7.11.0-cp314-cp314t-win_arm64.whl", hash = "sha256:b5c2705afa83f49bd91962a4094b6b082f94aef7626365ab3f8f4bd159c5acf3", size = 218711, upload-time = "2025-10-15T15:15:04.575Z" },
     { url = "https://files.pythonhosted.org/packages/5f/04/642c1d8a448ae5ea1369eac8495740a79eb4e581a9fb0cbdce56bbf56da1/coverage-7.11.0-py3-none-any.whl", hash = "sha256:4b7589765348d78fb4e5fb6ea35d07564e387da2fc5efff62e0222971f155f68", size = 207761, upload-time = "2025-10-15T15:15:06.439Z" },
-]
-
-[[package]]
-name = "dot-agent-kit"
-version = "0.1.18"
-source = { editable = "packages/dot-agent-kit" }
-dependencies = [
-    { name = "click" },
-    { name = "pyyaml" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "click", specifier = ">=8.1.7" },
-    { name = "pyyaml", specifier = ">=6.0.0" },
 ]
 
 [[package]]
@@ -288,7 +272,6 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
-    { name = "dot-agent-kit" },
     { name = "pyright" },
     { name = "pytest" },
     { name = "pytest-cov" },
@@ -304,7 +287,6 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "dot-agent-kit", editable = "packages/dot-agent-kit" },
     { name = "pyright", specifier = ">=1.1.406" },
     { name = "pytest", specifier = ">=8.0.0" },
     { name = "pytest-cov", specifier = ">=5.0.0" },
