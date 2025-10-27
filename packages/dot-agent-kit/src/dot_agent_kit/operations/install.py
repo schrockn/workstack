@@ -7,6 +7,7 @@ import click
 
 from dot_agent_kit.models.config import ConflictPolicy, InstalledKit, ProjectConfig
 from dot_agent_kit.models.kit import KitManifest
+from dot_agent_kit.sources.bundled import BundledSource
 from dot_agent_kit.sources.standalone import StandaloneSource
 
 
@@ -23,7 +24,10 @@ def check_conflicts(manifest: KitManifest, config: ProjectConfig, root_dir: Path
 
 
 def install_artifacts(
-    source: StandaloneSource, manifest: KitManifest, root_dir: Path, conflict_policy: ConflictPolicy
+    source: BundledSource | StandaloneSource,
+    manifest: KitManifest,
+    root_dir: Path,
+    conflict_policy: ConflictPolicy,
 ) -> list[str]:
     """Install artifacts from a kit."""
     installed_artifacts = []
@@ -55,18 +59,20 @@ def install_artifacts(
     return installed_artifacts
 
 
-def install_kit(package_name: str, config: ProjectConfig, force: bool = False) -> InstalledKit:
-    """Install a kit from a standalone package."""
-    source = StandaloneSource(package_name)
-
+def install_from_source(
+    source: BundledSource | StandaloneSource,
+    kit_name: str,
+    config: ProjectConfig,
+    force: bool = False,
+) -> InstalledKit:
+    """Install a kit from any source (bundled or standalone)."""
     if not source.is_available():
-        click.echo(f"Package not installed: {package_name}", err=True)
-        click.echo(f"Run: uv pip install {package_name}")
+        click.echo(f"Kit not available: {kit_name}", err=True)
         raise SystemExit(1)
 
     manifest = source.get_manifest()
     if not manifest:
-        click.echo(f"No kit manifest found in package: {package_name}", err=True)
+        click.echo(f"No kit manifest found: {kit_name}", err=True)
         raise SystemExit(1)
 
     # Check for conflicts
@@ -84,16 +90,26 @@ def install_kit(package_name: str, config: ProjectConfig, force: bool = False) -
     conflict_policy = ConflictPolicy.OVERWRITE if force else config.conflict_policy
     installed_artifacts = install_artifacts(source, manifest, root_dir, conflict_policy)
 
-    # Create installed kit record
-    from dot_agent_kit.utils.packaging import get_package_version
+    # Determine version and source type
+    if isinstance(source, BundledSource):
+        version = manifest.version
+        source_type = "bundled"
+        package_name = kit_name
+    else:
+        from dot_agent_kit.utils.packaging import get_package_version
 
+        version = get_package_version(kit_name) or manifest.version
+        source_type = "standalone"
+        package_name = kit_name
+
+    # Create installed kit record
     kit = InstalledKit(
         kit_id=manifest.kit_id,
         package_name=package_name,
-        version=get_package_version(package_name) or "unknown",
+        version=version,
         artifacts=installed_artifacts,
         install_date=datetime.now().isoformat(),
-        source_type="standalone",
+        source_type=source_type,
     )
 
     click.echo(
@@ -101,3 +117,15 @@ def install_kit(package_name: str, config: ProjectConfig, force: bool = False) -
     )
 
     return kit
+
+
+def install_kit(package_name: str, config: ProjectConfig, force: bool = False) -> InstalledKit:
+    """Install a kit from a standalone package."""
+    source = StandaloneSource(package_name)
+
+    if not source.is_available():
+        click.echo(f"Package not installed: {package_name}", err=True)
+        click.echo(f"Run: uv pip install {package_name}")
+        raise SystemExit(1)
+
+    return install_from_source(source, package_name, config, force)

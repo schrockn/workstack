@@ -1,6 +1,7 @@
 """Source resolver for finding kits from various inputs."""
 
 from dot_agent_kit.io.registry import load_bundled_registry
+from dot_agent_kit.sources.bundled import BundledSource
 from dot_agent_kit.sources.standalone import StandaloneSource
 from dot_agent_kit.utils.github import github_url_to_package_name
 
@@ -27,7 +28,7 @@ class SourceResolver:
         click.echo(f"  uv pip install git+{github_url}", err=True)
         return None
 
-    def resolve_from_registry(self, kit_name: str) -> StandaloneSource | None:
+    def resolve_from_registry(self, kit_name: str) -> BundledSource | StandaloneSource | None:
         """Resolve a source from a registry name."""
         registry = load_bundled_registry()
         entry = registry.find_by_name(kit_name)
@@ -36,6 +37,18 @@ class SourceResolver:
             import click
 
             click.echo(f"Kit not found in registry: {kit_name}", err=True)
+            return None
+
+        # Check if this is a bundled kit
+        if entry.bundled:
+            source = BundledSource(entry.name)
+            if source.is_available():
+                return source
+
+            # Bundled kit not found (should not happen in normal use)
+            import click
+
+            click.echo(f"Bundled kit not found: {kit_name}", err=True)
             return None
 
         # Use the explicit package_name from the registry entry

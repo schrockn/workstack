@@ -44,8 +44,7 @@ def test_init_package_not_installed(tmp_project):
         result = runner.invoke(cli, ["init", "--package", "nonexistent-kit"])
 
         assert result.exit_code == 1
-        assert "Package not installed" in result.output
-        assert "uv pip install" in result.output
+        assert "Kit not available" in result.output
 
 
 def test_init_with_conflicts(tmp_project, mock_package_installed):

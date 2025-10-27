@@ -4,6 +4,7 @@ import click
 
 from dot_agent_kit.commands.check import check
 from dot_agent_kit.commands.init import init
+from dot_agent_kit.commands.list import list_cmd
 from dot_agent_kit.commands.search import search
 from dot_agent_kit.commands.sync import sync
 
@@ -17,6 +18,8 @@ def cli():
 
 cli.add_command(check)
 cli.add_command(init)
+cli.add_command(list_cmd, name="list")
+cli.add_command(list_cmd, name="ls")
 cli.add_command(search)
 cli.add_command(sync)
 

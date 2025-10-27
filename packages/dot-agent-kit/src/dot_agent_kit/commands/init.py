@@ -3,7 +3,7 @@
 import click
 
 from dot_agent_kit.io.state import load_project_config, save_project_config
-from dot_agent_kit.operations.install import install_kit
+from dot_agent_kit.operations.install import install_from_source, install_kit
 from dot_agent_kit.sources.resolver import SourceResolver
 
 
@@ -25,21 +25,22 @@ def init(package: str, github: str, kit: str, force: bool) -> None:
     # Resolve the source
     if package:
         source = resolver.resolve_from_package(package)
-        package_name = package
+        kit_name = package
     elif github:
         source = resolver.resolve_from_github(github)
         if not source:
             raise SystemExit(1)
-        package_name = source.package_name
+        # Extract kit name from github url or use package name
+        kit_name = github.split("/")[-1]
     else:  # kit
         source = resolver.resolve_from_registry(kit)
         if not source:
             raise SystemExit(1)
-        package_name = source.package_name
+        kit_name = kit
 
     # Install the kit
     config = load_project_config()
-    installed_kit = install_kit(package_name, config, force=force)
+    installed_kit = install_from_source(source, kit_name, config, force=force)
 
     # Update configuration
     config.add_kit(installed_kit)

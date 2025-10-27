@@ -1,5 +1,10 @@
 version: "1.0.0"
 entries:
+  - name: dev-runners-da-kit
+    url: ""
+    description: Development runner agents for Claude Code (pytest, ruff, pyright, prettier)
+    package_name: dev-runners-da-kit
+    bundled: true
   - name: gt-dot-agent-kit
     url: https://github.com/dagsterlabs/gt-dot-agent-kit
     description: Graphite (gt) CLI tool support for Claude Code

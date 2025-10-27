@@ -11,6 +11,7 @@ class RegistryEntry:
     url: str  # e.g., "https://github.com/dagsterlabs/gt-dot-agent-kit"
     description: str  # Brief description of the kit
     package_name: str  # Python package name (may differ from registry name)
+    bundled: bool = False  # Whether the kit is bundled with dot-agent-kit
 
     def matches_search(self, term: str) -> bool:
         """Check if this entry matches a search term."""

@@ -20,6 +20,7 @@ def load_bundled_registry() -> Registry:
             url=entry["url"],
             description=entry.get("description", ""),
             package_name=entry.get("package_name", entry["name"]),
+            bundled=entry.get("bundled", False),
         )
         for entry in data["entries"]
     ]
@@ -37,6 +38,7 @@ def save_registry(registry: Registry, path: Path) -> None:
                 "url": entry.url,
                 "description": entry.description,
                 "package_name": entry.package_name,
+                "bundled": entry.bundled,
             }
             for entry in registry.entries
         ],
