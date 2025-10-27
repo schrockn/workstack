@@ -21,6 +21,9 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["src/dot_agent_kit"]
 
+[tool.hatch.build.targets.wheel.force-include]
+"src/dot_agent_kit/data" = "dot_agent_kit/data"
+
 [tool.pyright]
 include = ["src", "tests"]
 pythonVersion = "3.13"

@@ -11,22 +11,18 @@ from dot_agent_kit.io import (
 )
 from dot_agent_kit.models import ProjectConfig
 from dot_agent_kit.operations.install import install_kit
-from dot_agent_kit.sources import KitResolver, StandalonePackageSource
+from dot_agent_kit.sources import BundledKitSource, KitResolver, StandalonePackageSource
 
 
 @click.command()
-@click.option(
-    "--package",
-    required=True,
-    help="Python package name to install kit from",
-)
+@click.argument("package")
 @click.option(
     "--force",
     is_flag=True,
     help="Overwrite existing artifacts",
 )
 def init(package: str, force: bool) -> None:
-    """Initialize and install a kit."""
+    """Initialize and install a kit from bundled data or Python package."""
     project_dir = Path.cwd()
 
     # Load or create project config
@@ -34,8 +30,8 @@ def init(package: str, force: bool) -> None:
     if config is None:
         config = create_default_config()
 
-    # Resolve the kit
-    resolver = KitResolver(sources=[StandalonePackageSource()])
+    # Resolve the kit (try bundled kits first, then standalone packages)
+    resolver = KitResolver(sources=[BundledKitSource(), StandalonePackageSource()])
 
     try:
         resolved = resolver.resolve(package)

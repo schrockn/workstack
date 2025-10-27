@@ -1,7 +1,7 @@
 import click
 
 from dot_agent_kit import __version__
-from dot_agent_kit.commands import check, init, search, sync
+from dot_agent_kit.commands import check, init, list, search, sync
 
 
 @click.group(invoke_without_command=True)
@@ -17,6 +17,8 @@ cli.add_command(init.init)
 cli.add_command(check.check)
 cli.add_command(sync.sync)
 cli.add_command(search.search)
+cli.add_command(list.list_cmd)
+cli.add_command(list.ls_cmd)
 
 
 if __name__ == "__main__":
