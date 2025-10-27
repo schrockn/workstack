@@ -20,7 +20,7 @@ def test_publish_to_pypi_help() -> None:
     runner = CliRunner()
     result = runner.invoke(cli, ["publish-to-pypi", "--help"])
     assert result.exit_code == 0
-    assert "Publish workstack and dot-agent-kit packages to PyPI." in result.output
+    assert "Publish packages to PyPI." in result.output
 
 
 def test_reserve_pypi_name_help() -> None:

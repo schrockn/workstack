@@ -4,7 +4,7 @@
 
 This project uses a uv workspace with two packages that are published to PyPI:
 
-1. **dot-agent-kit** - CLI tool for managing .agent/ automated documentation folders
+1. **dot-agent-kit** - (Under reimplementation)
 2. **workstack** - Main worktree management tool
 
 All packages share the same version number and are published together.
@@ -233,8 +233,8 @@ workstack/                           # Root workspace
 ├── pyproject.toml                   # Workspace config + workstack package
 ├── packages/
 │   ├── dot-agent-kit/
-│   │   ├── pyproject.toml           # dot-agent-kit package metadata
-│   │   └── src/dot_agent_kit/       # dot-agent-kit source
+│   │   ├── pyproject.toml           # dot-agent-kit package metadata (under reimplementation)
+│   │   └── src/dot_agent_kit/       # dot-agent-kit source (under reimplementation)
 │   └── workstack-dev/
 │       ├── pyproject.toml           # workstack-dev (dev tools, not published)
 │       └── src/workstack_dev/       # workstack-dev source

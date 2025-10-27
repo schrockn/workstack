@@ -361,7 +361,7 @@ def commit_changes(
     dry_run: bool,
 ) -> str:
     """Commit version bump changes for all packages."""
-    commit_message = f"""Published workstack and dot-agent-kit {version}
+    commit_message = f"""Published packages {version}
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 
@@ -490,7 +490,7 @@ def run_pep723_script(dry_run: bool) -> None:
 @click.command(name="publish-to-pypi")
 @click.option("--dry-run", is_flag=True, help="Show what would be done without making changes")
 def publish_to_pypi_command(dry_run: bool) -> None:
-    """Publish workstack and dot-agent-kit packages to PyPI."""
+    """Publish packages to PyPI."""
     try:
         run_pep723_script(dry_run)
     except KeyboardInterrupt:
