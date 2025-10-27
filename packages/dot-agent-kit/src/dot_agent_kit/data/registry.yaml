@@ -1,0 +1,10 @@
+version: "1.0.0"
+entries:
+  - name: gt-dot-agent-kit
+    url: https://github.com/dagsterlabs/gt-dot-agent-kit
+    description: Graphite (gt) CLI tool support for Claude Code
+    package_name: gt-dot-agent-kit
+  - name: workstack-dot-agent-kit
+    url: https://github.com/workstack/workstack-dot-agent-kit
+    description: Workstack worktree management for Claude Code
+    package_name: workstack-dot-agent-kit

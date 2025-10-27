@@ -281,3 +281,94 @@ Time-based estimates have no basis in reality for AI-assisted development and sh
 
 - **GitHub (gh)**: Use `gh` skill for GitHub CLI operations
 - **Workstack**: Use `workstack` skill for worktree management
+
+---
+
+## Dot-Agent Kit Development (Inverted Workflow)
+
+**IMPORTANT**: This repo uses an **inverted workflow** for developing dot-agent kits, which is the OPPOSITE of the standard dot-agent workflow documented in `packages/dot-agent/README.md`.
+
+### Standard Workflow (External Users)
+
+According to `packages/dot-agent/README.md`, the standard workflow is:
+
+1. **Kit package is source of truth** - Developers edit files in their kit package
+2. **Users install from package** - Via `dot-agent init --package my-kit`
+3. **Users sync from package** - Via `dot-agent sync` to pull updates from package to `.claude/`
+
+### Inverted Workflow (This Repo Only)
+
+For developing kits IN THIS REPO, we use the opposite direction:
+
+1. **`.claude/` is source of truth** - Edit agents/commands/skills in `.claude/` during normal development
+2. **Sync TO package** - Use `make sync-dev-runners-kit` to export from `.claude/` → kit package
+3. **Package is for distribution** - The kit package in `packages/` is the build artifact
+
+**Why inverted?**
+
+- Allows organic development of agents/commands in `.claude/` using normal workflows
+- Claude Code can understand and work with `.claude/` files directly
+- Kit package becomes a publication target, not the working directory
+- Can test dot-agent's installation features locally
+
+### Available Kits in This Repo
+
+#### dev-runners-da-kit
+
+Package: `packages/dev-runners-da-kit/`
+CLI tool: `mdstack-dev` (in `packages/mdstack-dev/`)
+
+**Contents**: 4 cost-optimized runner agents (pytest, ruff, pyright, prettier)
+
+**Sync workflow**:
+
+```bash
+# Develop normally in .claude/agents/
+vim .claude/agents/pytest-runner.md
+
+# Sync changes to kit package
+make sync-dev-runners-kit
+
+# Or with dry-run to preview
+uv run --package mdstack-dev mdstack-dev sync-kit --dry-run --verbose
+
+# Or sync all kits (when more are added)
+uv run --package mdstack-dev mdstack-dev sync-kit
+```
+
+**Key files**:
+
+- Source: `.claude/agents/*-runner.md` (pytest, ruff, pyright, prettier)
+- Destination: `packages/dev-runners-da-kit/agents/`
+- Manifest: `packages/dev-runners-da-kit/kit.yaml`
+- Sync script: `packages/mdstack-dev/src/mdstack_dev/commands/sync_kit/command.py`
+
+### Adding New Kits
+
+To add a new kit to this repo:
+
+1. Create package structure in `packages/my-new-kit/`
+2. Add kit.yaml manifest
+3. Add kit configuration to `KIT_CONFIGS` in `mdstack_dev/commands/sync_kit/command.py`
+4. Add Makefile target: `make sync-my-new-kit`
+5. Develop artifacts in `.claude/` and sync when ready to publish
+
+### mdstack-dev CLI
+
+The `mdstack-dev` tool (modeled after `workstack-dev`) manages kit syncing operations:
+
+```bash
+# Show help
+uv run --package mdstack-dev mdstack-dev --help
+
+# Sync specific kit
+uv run --package mdstack-dev mdstack-dev sync-kit dev-runners-da-kit
+
+# Sync all kits
+uv run --package mdstack-dev mdstack-dev sync-kit
+
+# Dry run with verbose output
+uv run --package mdstack-dev mdstack-dev sync-kit --dry-run --verbose
+```
+
+**Architecture**: Follows `workstack-dev` pattern with static imports for shell completion support.
