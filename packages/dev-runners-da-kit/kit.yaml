@@ -1,0 +1,19 @@
+kit_id: dev-runners-da-kit
+version: 0.1.0
+description: Development runner agents for Claude Code (pytest, ruff, pyright, prettier)
+requires_python: ">=3.11"
+dependencies: []
+
+artifacts:
+  - source: agents/pytest-runner.md
+    dest: agents/pytest-runner.md
+    type: agent
+  - source: agents/ruff-runner.md
+    dest: agents/ruff-runner.md
+    type: agent
+  - source: agents/pyright-runner.md
+    dest: agents/pyright-runner.md
+    type: agent
+  - source: agents/prettier-runner.md
+    dest: agents/prettier-runner.md
+    type: agent

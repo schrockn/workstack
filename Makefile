@@ -1,4 +1,4 @@
-.PHONY: format format-check lint prettier prettier-check pyright upgrade-pyright test all-ci clean publish fix
+.PHONY: format format-check lint prettier prettier-check pyright upgrade-pyright test all-ci clean publish fix sync-dev-runners-kit
 
 prettier:
 	prettier --write '**/*.md' --ignore-path .gitignore
@@ -25,7 +25,9 @@ upgrade-pyright:
 	uv remove pyright --group dev && uv add --dev pyright
 
 test:
-	uv run pytest
+	uv run pytest tests
+	uv run pytest packages/workstack-dev/tests
+	uv run pytest packages/dot-agent-kit/tests
 
 all-ci: lint format-check prettier-check pyright test
 
@@ -46,3 +48,7 @@ publish: build
 	@echo "Publishing workstack..."
 	uvx uv-publish ./dist/workstack-*.whl ./dist/workstack-*.tar.gz
 	@echo "✓ Packages published successfully"
+
+# Sync dev-runners-da-kit from .claude/agents to package
+sync-dev-runners-kit:
+	uv run --package mdstack-dev mdstack-dev sync-kit dev-runners-da-kit
