@@ -9,6 +9,7 @@ Execute ruff commands for code linting and formatting. Uses Haiku model for cost
 ## Usage
 
 Invoke this agent when you need to:
+
 - Run ruff check for linting
 - Run ruff format for code formatting
 - Apply automatic fixes

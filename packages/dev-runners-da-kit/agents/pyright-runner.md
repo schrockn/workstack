@@ -9,6 +9,7 @@ Execute pyright commands for Python type checking. Uses Haiku model for cost eff
 ## Usage
 
 Invoke this agent when you need to:
+
 - Run pyright type checking
 - Verify type annotations
 - Check for type errors

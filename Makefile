@@ -38,10 +38,22 @@ all-ci: lint format-check prettier-check pyright test
 clean:
 	rm -rf dist/*.whl dist/*.tar.gz
 
+# Kit development
+sync-dev-runners-kit:
+	@echo "Syncing dev-runners kit..."
+	@mkdir -p packages/dev-runners-da-kit/agents
+	@rsync -av --delete \
+		.claude/agents/pytest-runner.md \
+		.claude/agents/ruff-runner.md \
+		.claude/agents/pyright-runner.md \
+		.claude/agents/prettier-runner.md \
+		packages/dev-runners-da-kit/agents/ 2>/dev/null || true
+
 # Build workstack and dot-agent-kit packages
 build: clean
 	uv build --package dot-agent-kit -o dist
 	uv build --package workstack -o dist
+	uv build --package dev-runners-da-kit -o dist
 
 # Publish packages to PyPI
 # Use workstack-dev publish-to-pypi command instead (recommended)

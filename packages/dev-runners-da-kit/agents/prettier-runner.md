@@ -9,6 +9,7 @@ Execute prettier commands for code formatting. Uses Haiku model for cost efficie
 ## Usage
 
 Invoke this agent when you need to:
+
 - Run prettier formatting checks
 - Apply prettier formatting
 - Check markdown file formatting
