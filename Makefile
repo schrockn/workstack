@@ -1,10 +1,10 @@
-.PHONY: format format-check lint prettier prettier-check pyright upgrade-pyright test all-ci clean publish fix
+.PHONY: format format-check lint prettier prettier-check pyright upgrade-pyright test all-ci clean clean-mdstack publish fix
 
 prettier:
-	prettier --write '**/*.md' --ignore-path .gitignore
+	prettier --write '**/*.md'
 
 prettier-check:
-	prettier --check '**/*.md' --ignore-path .gitignore
+	prettier --check '**/*.md'
 
 format:
 	uv run ruff format
@@ -32,6 +32,10 @@ all-ci: lint format-check prettier-check pyright test
 # Clean build artifacts
 clean:
 	rm -rf dist/*.whl dist/*.tar.gz
+
+# Clean all .mdstack folders
+clean-mdstack:
+	find . -type d -name '.mdstack' -exec rm -rf {} +
 
 # Build workstack and dot-agent-kit packages
 build: clean
