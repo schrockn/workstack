@@ -23,13 +23,9 @@ This directory contains curated documentation and context for AI agents.
 
 ### Installed Packages (`packages/`)
 
-All directories under `packages/` are installed by `dot-agent-kit` and should not be edited directly:
+The `packages/` directory contains documentation packages. The management system for these packages is currently being reimplemented.
 
-- **Bundled packages** are synced from dot-agent-kit releases
-- **Local packages** are copied from other locations
-- **Git packages** are pulled from external repositories
-
-To update installed packages, use `dot-agent sync`.
+**Note**: The `dot-agent-kit` tool that manages this directory is under active reimplementation.
 
 ### Tool Packages (`packages/tools/`)
 
