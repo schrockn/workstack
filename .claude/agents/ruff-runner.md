@@ -1,6 +1,6 @@
 ---
 name: ruff-runner
-description: Use this agent when the user needs to run ruff linting or formatting commands. This includes:\n\n- Direct ruff invocations: 'ruff check', 'ruff format', 'ruff check --fix'\n- UV-wrapped ruff commands: 'uv run ruff check', 'uv run ruff format'\n- Linting specific files or directories\n- Running with various ruff flags (--fix, --unsafe-fixes, --show-fixes, etc.)\n- Formatting Python code\n- Debugging lint violations\n- Running checks after code changes\n\nExamples:\n\n<example>\nContext: User has just written new code and wants to lint it.\nuser: "Can you run ruff on the new module?"\nassistant: "I'll use the ruff-runner agent to execute linting."\n<uses Task tool to launch ruff-runner agent with appropriate ruff command>\nassistant: "The ruff-runner agent found 3 fixable issues and auto-fixed them."\n</example>\n\n<example>\nContext: User mentions lint errors and wants to investigate.\nuser: "uv run ruff check src/module.py"\nassistant: "I'll use the ruff-runner agent to run linting with ruff."\n<uses Task tool to launch ruff-runner agent>\nassistant: "The ruff-runner agent executed linting. Here are the results: [summary of output]"\n</example>\n\n<example>\nContext: After implementing code changes, proactively verify code quality.\nuser: "I've updated the implementation"\nassistant: "Let me verify the code passes linting after your changes."\n<uses Task tool to launch ruff-runner agent with 'uv run ruff check --fix'>\nassistant: "The ruff-runner confirmed the code passes all lint checks."\n</example>
+description: Use this agent when the user needs to run ruff linting or formatting commands. This includes:\n\n- Direct ruff invocations: 'ruff check', 'ruff format', 'ruff check --fix'\n- Python module invocations: 'python -m ruff check', 'python -m ruff format', 'python -m ruff check --fix'\n- UV-wrapped ruff commands: 'uv run ruff check', 'uv run ruff format'\n- Linting specific files or directories\n- Running with various ruff flags (--fix, --unsafe-fixes, --show-fixes, etc.)\n- Formatting Python code\n- Debugging lint violations\n- Running checks after code changes\n\nExamples:\n\n<example>\nContext: User has just written new code and wants to lint it.\nuser: "Can you run ruff on the new module?"\nassistant: "I'll use the ruff-runner agent to execute linting."\n<uses Task tool to launch ruff-runner agent with appropriate ruff command>\nassistant: "The ruff-runner agent found 3 fixable issues and auto-fixed them."\n</example>\n\n<example>\nContext: User mentions lint errors and wants to investigate.\nuser: "uv run ruff check src/module.py"\nassistant: "I'll use the ruff-runner agent to run linting with ruff."\n<uses Task tool to launch ruff-runner agent>\nassistant: "The ruff-runner agent executed linting. Here are the results: [summary of output]"\n</example>\n\n<example>\nContext: After implementing code changes, proactively verify code quality.\nuser: "I've updated the implementation"\nassistant: "Let me verify the code passes linting after your changes."\n<uses Task tool to launch ruff-runner agent with 'uv run ruff check --fix'>\nassistant: "The ruff-runner confirmed the code passes all lint checks."\n</example>
 model: haiku
 color: orange
 ---
@@ -43,6 +43,9 @@ uv run ruff format [args] # Formatting
 # or
 ruff check [args]
 ruff format [args]
+# or
+python -m ruff check [args]
+python -m ruff format [args]
 ```
 
 **Common ruff patterns:**
