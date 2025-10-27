@@ -1,0 +1,44 @@
+"""Frontmatter parsing and injection."""
+
+import re
+
+import yaml
+
+from dot_agent_kit.models import ArtifactFrontmatter
+
+FRONTMATTER_PATTERN = re.compile(
+    r"<!--\s*dot-agent-kit:\s*\n(.*?)\n\s*-->", re.DOTALL | re.MULTILINE
+)
+
+
+def parse_frontmatter(content: str) -> ArtifactFrontmatter | None:
+    """Extract frontmatter from markdown content."""
+    match = FRONTMATTER_PATTERN.search(content)
+    if not match:
+        return None
+
+    yaml_content = match.group(1)
+    data = yaml.safe_load(yaml_content)
+
+    return ArtifactFrontmatter(
+        kit_id=data["kit_id"],
+        kit_version=data["kit_version"],
+        artifact_type=data["artifact_type"],
+        artifact_path=data["artifact_path"],
+    )
+
+
+def add_frontmatter(content: str, frontmatter: ArtifactFrontmatter) -> str:
+    """Add frontmatter to markdown content."""
+    fm_yaml = yaml.dump(
+        {
+            "kit_id": frontmatter.kit_id,
+            "kit_version": frontmatter.kit_version,
+            "artifact_type": frontmatter.artifact_type,
+            "artifact_path": frontmatter.artifact_path,
+        },
+        default_flow_style=False,
+    )
+
+    fm_block = f"<!-- dot-agent-kit:\n{fm_yaml}-->\n\n"
+    return fm_block + content
