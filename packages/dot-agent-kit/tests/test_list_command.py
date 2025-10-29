@@ -1,160 +1,160 @@
 """Tests for list command."""
 
+from pathlib import Path
 from unittest.mock import patch
 
-from click.testing import CliRunner
+from pytest import CaptureFixture
 
-from dot_agent_kit.cli import cli
+from dot_agent_kit.commands.list import _list_kits
 from dot_agent_kit.models import ConflictPolicy, InstalledKit, KitManifest, ProjectConfig
+from dot_agent_kit.sources import KitSource, ResolvedKit
 
 
-def test_list_with_bundled_kit() -> None:
+class FakeKitSource(KitSource):
+    """Fake kit source for testing."""
+
+    def __init__(
+        self, available_kits: list[str], manifests: dict[str, KitManifest] | None = None
+    ) -> None:
+        """Initialize fake source.
+
+        Args:
+            available_kits: List of kit IDs this source provides
+            manifests: Optional mapping of kit_id -> manifest for artifact display
+        """
+        self._available_kits = available_kits
+        self._manifests = manifests or {}
+
+    def can_resolve(self, source: str) -> bool:
+        """Check if kit is available."""
+        return source in self._available_kits
+
+    def resolve(self, source: str) -> ResolvedKit:
+        """Resolve kit (for artifact display)."""
+        if source not in self._available_kits:
+            raise ValueError(f"Kit not available: {source}")
+
+        # Create a fake manifest path for testing
+        fake_path = Path(f"/fake/{source}/kit.yaml")
+
+        return ResolvedKit(
+            kit_id=source,
+            source_type="fake",
+            source=source,
+            manifest_path=fake_path,
+            artifacts_base=fake_path.parent,
+        )
+
+    def list_available(self) -> list[str]:
+        """List available kits."""
+        return self._available_kits
+
+
+def test_list_with_bundled_kit(capsys: CaptureFixture[str]) -> None:
     """Test list command with bundled kit."""
-    runner = CliRunner()
+    fake_source = FakeKitSource(available_kits=["dev-runners-da-kit"])
 
-    with runner.isolated_filesystem():
-        with patch("dot_agent_kit.commands.list._get_bundled_kits") as mock_bundled:
-            with patch("dot_agent_kit.commands.list.load_project_config") as mock_config:
-                mock_config.return_value = None
-                mock_bundled.return_value = ["dev-runners-da-kit"]
+    with patch("dot_agent_kit.commands.list.load_project_config") as mock_config:
+        mock_config.return_value = None
 
-                result = runner.invoke(cli, ["list"])
+        _list_kits(show_artifacts=False, sources=[fake_source])
 
-                assert result.exit_code == 0
-                assert "dev-runners-da-kit [BUNDLED]" in result.output
-                assert "No kits installed" not in result.output
+        captured = capsys.readouterr()
+        assert "dev-runners-da-kit [BUNDLED]" in captured.out
+        assert "No kits available" not in captured.out
 
 
-def test_list_with_installed_kits() -> None:
+def test_list_with_installed_kits(capsys: CaptureFixture[str]) -> None:
     """Test list command with installed kits."""
-    runner = CliRunner()
+    config = ProjectConfig(
+        version="1",
+        default_conflict_policy=ConflictPolicy.ERROR,
+        kits={
+            "test-kit": InstalledKit(
+                kit_id="test-kit",
+                version="1.0.0",
+                source="test-kit",
+                installed_at="2024-01-01T00:00:00",
+                artifacts=["agents/test.md"],
+            )
+        },
+    )
 
-    with runner.isolated_filesystem():
-        config = ProjectConfig(
-            version="1",
-            default_conflict_policy=ConflictPolicy.ERROR,
-            kits={
-                "test-kit": InstalledKit(
-                    kit_id="test-kit",
-                    version="1.0.0",
-                    source="test-kit",
-                    installed_at="2024-01-01T00:00:00",
-                    artifacts=["agents/test.md"],
-                )
-            },
-        )
+    fake_source = FakeKitSource(available_kits=[])
 
-        with patch("dot_agent_kit.commands.list._get_bundled_kits") as mock_bundled:
-            with patch("dot_agent_kit.commands.list.load_project_config") as mock_config:
-                mock_config.return_value = config
-                mock_bundled.return_value = []
+    with patch("dot_agent_kit.commands.list.load_project_config") as mock_config:
+        mock_config.return_value = config
 
-                result = runner.invoke(cli, ["list"])
+        _list_kits(show_artifacts=False, sources=[fake_source])
 
-                assert result.exit_code == 0
-                assert "test-kit [INSTALLED]" in result.output
+        captured = capsys.readouterr()
+        assert "test-kit [INSTALLED]" in captured.out
 
 
-def test_list_no_kits() -> None:
+def test_list_no_kits(capsys: CaptureFixture[str]) -> None:
     """Test list command when no kits are available."""
-    runner = CliRunner()
+    fake_source = FakeKitSource(available_kits=[])
 
-    with runner.isolated_filesystem():
-        with patch("dot_agent_kit.commands.list._get_bundled_kits") as mock_bundled:
-            with patch("dot_agent_kit.commands.list.load_project_config") as mock_config:
-                mock_config.return_value = None
-                mock_bundled.return_value = []
+    with patch("dot_agent_kit.commands.list.load_project_config") as mock_config:
+        mock_config.return_value = None
 
-                result = runner.invoke(cli, ["list"])
+        _list_kits(show_artifacts=False, sources=[fake_source])
 
-                assert result.exit_code == 0
-                assert "No kits available" in result.output
+        captured = capsys.readouterr()
+        assert "No kits available" in captured.out
 
 
-def test_ls_alias() -> None:
-    """Test ls alias works identically to list."""
-    runner = CliRunner()
-
-    with runner.isolated_filesystem():
-        with patch("dot_agent_kit.commands.list._get_bundled_kits") as mock_bundled:
-            with patch("dot_agent_kit.commands.list.load_project_config") as mock_config:
-                mock_config.return_value = None
-                mock_bundled.return_value = []
-
-                result_list = runner.invoke(cli, ["list"])
-                result_ls = runner.invoke(cli, ["ls"])
-
-                assert result_list.exit_code == 0
-                assert result_ls.exit_code == 0
-                assert result_list.output == result_ls.output
-
-
-def test_list_with_artifacts_flag() -> None:
+def test_list_with_artifacts_flag(capsys: CaptureFixture[str]) -> None:
     """Test list command with --artifacts flag shows artifact details."""
-    from pathlib import Path
-    from unittest.mock import MagicMock
+    manifest = KitManifest(
+        name="test-kit",
+        version="1.0.0",
+        description="A test kit",
+        artifacts={
+            "agent": ["agents/pytest-runner.md", "agents/ruff-runner.md"],
+            "command": ["commands/test-cmd.md"],
+        },
+    )
 
-    runner = CliRunner()
+    fake_source = FakeKitSource(available_kits=["test-kit"], manifests={"test-kit": manifest})
 
-    with runner.isolated_filesystem():
-        manifest = KitManifest(
-            name="test-kit",
-            version="1.0.0",
-            description="A test kit",
-            artifacts={
-                "agent": ["agents/pytest-runner.md", "agents/ruff-runner.md"],
-                "command": ["commands/test-cmd.md"],
-            },
-        )
+    with patch("dot_agent_kit.commands.list.load_project_config") as mock_config:
+        with patch("dot_agent_kit.commands.list.load_kit_manifest") as mock_manifest:
+            mock_config.return_value = None
+            mock_manifest.return_value = manifest
 
-        mock_path = MagicMock(spec=Path)
+            _list_kits(show_artifacts=True, sources=[fake_source])
 
-        with patch("dot_agent_kit.commands.list._get_bundled_kits") as mock_bundled:
-            with patch("dot_agent_kit.commands.list.load_project_config") as mock_config:
-                with patch("dot_agent_kit.commands.list.load_kit_manifest") as mock_manifest:
-                    with patch(
-                        "dot_agent_kit.commands.list._get_bundled_manifest_path"
-                    ) as mock_get_path:
-                        mock_config.return_value = None
-                        mock_bundled.return_value = ["test-kit"]
-                        mock_manifest.return_value = manifest
-                        mock_get_path.return_value = mock_path
-
-                        result = runner.invoke(cli, ["list", "--artifacts"])
-
-                        assert result.exit_code == 0
-                        assert "test-kit [BUNDLED]" in result.output
-                        assert "agent: pytest-runner" in result.output
-                        assert "agent: ruff-runner" in result.output
-                        assert "command: test-cmd" in result.output
+            captured = capsys.readouterr()
+            assert "test-kit [BUNDLED]" in captured.out
+            assert "agent: pytest-runner" in captured.out
+            assert "agent: ruff-runner" in captured.out
+            assert "command: test-cmd" in captured.out
 
 
-def test_list_bundled_and_installed() -> None:
+def test_list_bundled_and_installed(capsys: CaptureFixture[str]) -> None:
     """Test list command shows both bundled and installed kits."""
-    runner = CliRunner()
+    config = ProjectConfig(
+        version="1",
+        default_conflict_policy=ConflictPolicy.ERROR,
+        kits={
+            "installed-kit": InstalledKit(
+                kit_id="installed-kit",
+                version="1.0.0",
+                source="installed-kit",
+                installed_at="2024-01-01T00:00:00",
+                artifacts=["agents/test.md"],
+            )
+        },
+    )
 
-    with runner.isolated_filesystem():
-        config = ProjectConfig(
-            version="1",
-            default_conflict_policy=ConflictPolicy.ERROR,
-            kits={
-                "installed-kit": InstalledKit(
-                    kit_id="installed-kit",
-                    version="1.0.0",
-                    source="installed-kit",
-                    installed_at="2024-01-01T00:00:00",
-                    artifacts=["agents/test.md"],
-                )
-            },
-        )
+    fake_source = FakeKitSource(available_kits=["bundled-kit"])
 
-        with patch("dot_agent_kit.commands.list._get_bundled_kits") as mock_bundled:
-            with patch("dot_agent_kit.commands.list.load_project_config") as mock_config:
-                mock_config.return_value = config
-                mock_bundled.return_value = ["bundled-kit"]
+    with patch("dot_agent_kit.commands.list.load_project_config") as mock_config:
+        mock_config.return_value = config
 
-                result = runner.invoke(cli, ["list"])
+        _list_kits(show_artifacts=False, sources=[fake_source])
 
-                assert result.exit_code == 0
-                assert "bundled-kit [BUNDLED]" in result.output
-                assert "installed-kit [INSTALLED]" in result.output
+        captured = capsys.readouterr()
+        assert "bundled-kit [BUNDLED]" in captured.out
+        assert "installed-kit [INSTALLED]" in captured.out

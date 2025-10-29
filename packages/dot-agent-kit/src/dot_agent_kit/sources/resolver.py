@@ -29,6 +29,11 @@ class KitSource(ABC):
         """Resolve a kit from the source."""
         pass
 
+    @abstractmethod
+    def list_available(self) -> list[str]:
+        """List all kit IDs available from this source."""
+        pass
+
 
 class KitResolver:
     """Multi-source kit resolver."""

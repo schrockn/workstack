@@ -5,20 +5,7 @@ from pathlib import Path
 import click
 
 from dot_agent_kit.io import load_kit_manifest, load_project_config
-
-
-def _get_bundled_kits() -> list[str]:
-    """Get list of bundled kit IDs."""
-    data_dir = Path(__file__).parent.parent / "data" / "kits"
-    if not data_dir.exists():
-        return []
-
-    bundled_kits = []
-    for kit_dir in data_dir.iterdir():
-        if kit_dir.is_dir() and (kit_dir / "kit.yaml").exists():
-            bundled_kits.append(kit_dir.name)
-
-    return bundled_kits
+from dot_agent_kit.sources import BundledKitSource, KitSource
 
 
 def _get_artifact_name(artifact_path: str) -> str:
@@ -26,28 +13,29 @@ def _get_artifact_name(artifact_path: str) -> str:
     return Path(artifact_path).stem
 
 
-def _get_bundled_manifest_path(kit_id: str) -> Path | None:
-    """Get path to bundled kit manifest if it exists."""
-    data_dir = Path(__file__).parent.parent / "data" / "kits" / kit_id
-    manifest_path = data_dir / "kit.yaml"
-    if manifest_path.exists():
-        return manifest_path
-    return None
+def _list_kits(show_artifacts: bool, sources: list[KitSource] | None = None) -> None:
+    """Internal function to list installed and available kits.
 
+    Args:
+        show_artifacts: Whether to display individual artifacts for each kit
+        sources: List of kit sources to check for available kits (defaults to bundled only)
+    """
+    if sources is None:
+        sources = [BundledKitSource()]
 
-def _list_kits(show_artifacts: bool) -> None:
-    """Internal function to list installed and available kits."""
     project_dir = Path.cwd()
     config = load_project_config(project_dir)
 
-    # Get bundled kits
-    bundled_kit_ids = _get_bundled_kits()
+    # Get available kits from all sources
+    available_kit_ids: set[str] = set()
+    for source in sources:
+        available_kit_ids.update(source.list_available())
 
     # Get installed kit IDs
     installed_kit_ids: set[str] = set(config.kits.keys()) if config else set()
 
-    # Combine all kits (bundled + installed)
-    all_kit_ids = set(bundled_kit_ids) | installed_kit_ids
+    # Combine all kits (available + installed)
+    all_kit_ids = available_kit_ids | installed_kit_ids
 
     if len(all_kit_ids) == 0:
         click.echo("No kits available")
@@ -56,10 +44,10 @@ def _list_kits(show_artifacts: bool) -> None:
     # Display each kit with status
     for kit_id in sorted(all_kit_ids):
         # Determine status
-        is_bundled = kit_id in bundled_kit_ids
+        is_available = kit_id in available_kit_ids
         is_installed = kit_id in installed_kit_ids
 
-        if is_bundled:
+        if is_available:
             status = "[BUNDLED]"
         elif is_installed:
             status = "[INSTALLED]"
@@ -70,16 +58,16 @@ def _list_kits(show_artifacts: bool) -> None:
 
         # Show artifacts if requested
         if show_artifacts:
-            # Load manifest to get artifacts
+            # Try to resolve the kit from sources to get manifest
             manifest_path = None
 
-            if is_bundled:
-                manifest_path = _get_bundled_manifest_path(kit_id)
-            elif is_installed and config:
-                # For installed kits, we need to resolve the manifest
-                # For now, skip showing artifacts for non-bundled installed kits
-                pass
+            for source in sources:
+                if source.can_resolve(kit_id):
+                    resolved = source.resolve(kit_id)
+                    manifest_path = resolved.manifest_path
+                    break
 
+            # Load manifest if we found a path
             if manifest_path:
                 manifest = load_kit_manifest(manifest_path)
 
@@ -99,9 +87,14 @@ def _list_kits(show_artifacts: bool) -> None:
     is_flag=True,
     help="Show individual artifacts within each kit",
 )
-def list_cmd(artifacts: bool) -> None:
-    """List installed and available kits (alias: ls)."""
-    _list_kits(artifacts)
+def list_cmd(artifacts: bool, sources: list[KitSource] | None = None) -> None:
+    """List installed and available kits (alias: ls).
+
+    Args:
+        artifacts: Whether to show individual artifacts within each kit
+        sources: List of kit sources to check (for testing only)
+    """
+    _list_kits(artifacts, sources)
 
 
 @click.command("ls", hidden=True)
@@ -111,6 +104,11 @@ def list_cmd(artifacts: bool) -> None:
     is_flag=True,
     help="Show individual artifacts within each kit",
 )
-def ls_cmd(artifacts: bool) -> None:
-    """List installed and available kits (alias of 'list')."""
-    _list_kits(artifacts)
+def ls_cmd(artifacts: bool, sources: list[KitSource] | None = None) -> None:
+    """List installed and available kits (alias of 'list').
+
+    Args:
+        artifacts: Whether to show individual artifacts within each kit
+        sources: List of kit sources to check (for testing only)
+    """
+    _list_kits(artifacts, sources)
