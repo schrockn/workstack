@@ -11,29 +11,29 @@
 
 **This codebase has strong opinions. Check these patterns BEFORE coding:**
 
-| If you're about to write...                 | STOP! Check this instead                                                      |
-| ------------------------------------------- | ----------------------------------------------------------------------------- |
-| `try:` or `except:`                         | → [Exception Handling](#exception-handling) - Default: let exceptions bubble  |
-| `from __future__ import annotations`        | → **FORBIDDEN** - Python 3.13+ doesn't need it                                |
-| `List[...]`, `Dict[...]`, `Union[...]`      | → Use `list[...]`, `dict[...]`, `X \| Y`                                      |
-| `typing.Protocol`                           | → Use `abc.ABC` instead                                                       |
-| `dict[key]` without checking                | → Use `if key in dict:` or `.get()`                                           |
-| `path.resolve()` or `path.is_relative_to()` | → Check `path.exists()` first                                                 |
-| Function with default argument              | → Make explicit at call sites                                                 |
-| `from .module import`                       | → Use absolute imports only                                                   |
-| `print(...)` in CLI code                    | → Use `click.echo()`                                                          |
-| `subprocess.run(...)`                       | → Add `check=True`                                                            |
-| `make ...` or user says "make"              | → Use runner agent (Task tool) instead of Bash; loads make skill              |
-| `pyright` or `uv run pyright`               | → Use runner agent (Task tool); target paths directly, never `cd`             |
-| `pytest` or `uv run pytest`                 | → Use runner agent (Task tool) for running tests                              |
-| `ruff` or `uv run ruff`                     | → Use runner agent (Task tool) for linting/formatting                         |
-| Prettier formatting issues                  | → Use `make prettier` (via runner agent with Task tool)                       |
-| Summarizing code changes in a branch        | → Use git-diff-summarizer agent (Task tool) for branch analysis               |
-| Updating commit message with code changes   | → Use git-diff-summarizer agent (Task tool) to analyze first                  |
-| `gt ...` or user says "gt" or "graphite"    | → Use gt-runner agent (Task tool) for execution, graphite skill for knowledge |
-| 4+ levels of indentation                    | → Extract helper functions                                                    |
-| Code in `__init__.py`                       | → Keep empty or docstring-only (except package entry points)                  |
-| Tests for speculative features              | → **FORBIDDEN** - Only test actively implemented code (TDD is fine)           |
+| If you're about to write...                 | STOP! Check this instead                                                                    |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `try:` or `except:`                         | → [Exception Handling](#exception-handling) - Default: let exceptions bubble                |
+| `from __future__ import annotations`        | → **FORBIDDEN** - Python 3.13+ doesn't need it                                              |
+| `List[...]`, `Dict[...]`, `Union[...]`      | → Use `list[...]`, `dict[...]`, `X \| Y`                                                    |
+| `typing.Protocol`                           | → Use `abc.ABC` instead                                                                     |
+| `dict[key]` without checking                | → Use `if key in dict:` or `.get()`                                                         |
+| `path.resolve()` or `path.is_relative_to()` | → Check `path.exists()` first                                                               |
+| Function with default argument              | → Make explicit at call sites                                                               |
+| `from .module import`                       | → Use absolute imports only                                                                 |
+| `print(...)` in CLI code                    | → Use `click.echo()`                                                                        |
+| `subprocess.run(...)`                       | → Add `check=True`                                                                          |
+| `make ...` or user says "make"              | → Use runner agent (Task tool) instead of Bash; loads devrun/make skill                     |
+| `pyright` or `uv run pyright`               | → Use runner agent (Task tool); target paths directly, never `cd`                           |
+| `pytest` or `uv run pytest`                 | → Use runner agent (Task tool) for running tests                                            |
+| `ruff` or `uv run ruff`                     | → Use runner agent (Task tool) for linting/formatting                                       |
+| Prettier formatting issues                  | → Use `make prettier` (via runner agent with Task tool)                                     |
+| Summarizing code changes in a branch        | → Use git-diff-summarizer agent (Task tool) for branch analysis                             |
+| Updating commit message with code changes   | → Use git-diff-summarizer agent (Task tool) to analyze first                                |
+| `gt ...` or user says "gt" or "graphite"    | → Use runner agent (Task tool, devrun subagent) for execution, graphite skill for knowledge |
+| 4+ levels of indentation                    | → Extract helper functions                                                                  |
+| Code in `__init__.py`                       | → Keep empty or docstring-only (except package entry points)                                |
+| Tests for speculative features              | → **FORBIDDEN** - Only test actively implemented code (TDD is fine)                         |
 
 ## 📚 Quick Reference
 
