@@ -102,6 +102,10 @@ def install_kit(
             # Write artifact
             target.write_text(content_with_fm, encoding="utf-8")
 
+            # Log installation with namespace visibility
+            relative_path = target.relative_to(claude_dir)
+            click.echo(f"  Installed {artifact_type}: {relative_path}", err=True)
+
             # Track installation
             installed_artifacts.append(str(target.relative_to(project_dir)))
 

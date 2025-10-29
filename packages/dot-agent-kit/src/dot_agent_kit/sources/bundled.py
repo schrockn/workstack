@@ -29,6 +29,17 @@ class BundledKitSource(KitSource):
 
         manifest = load_kit_manifest(manifest_path)
 
+        # Validate namespace pattern for bundled kits (required)
+        namespace_errors = manifest.validate_namespace_pattern()
+        if namespace_errors:
+            raise ValueError(
+                f"Bundled kit '{manifest.name}' does not follow "
+                f"required namespace pattern:\n"
+                + "\n".join(f"  - {w}" for w in namespace_errors)
+                + f"\n\nAll bundled kit artifacts must use the pattern: "
+                f"{{type}}s/{manifest.name}/..."
+            )
+
         # Artifacts are relative to manifest location
         artifacts_base = manifest_path.parent
 
