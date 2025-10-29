@@ -14,8 +14,17 @@ def install_kit(
     resolved: ResolvedKit,
     project_dir: Path,
     conflict_policy: ConflictPolicy = ConflictPolicy.ERROR,
+    filtered_artifacts: dict[str, list[str]] | None = None,
 ) -> InstalledKit:
-    """Install a kit to the project."""
+    """Install a kit to the project.
+
+    Args:
+        resolved: Resolved kit to install
+        project_dir: Directory to install to
+        conflict_policy: How to handle file conflicts
+        filtered_artifacts: Optional filtered artifacts dict (type -> paths).
+                          If None, installs all artifacts from manifest.
+    """
     manifest = load_kit_manifest(resolved.manifest_path)
     claude_dir = project_dir / ".claude"
 
@@ -25,8 +34,13 @@ def install_kit(
 
     installed_artifacts: list[str] = []
 
+    # Use filtered artifacts if provided, otherwise use all from manifest
+    artifacts_to_install = (
+        filtered_artifacts if filtered_artifacts is not None else manifest.artifacts
+    )
+
     # Process each artifact type
-    for artifact_type, paths in manifest.artifacts.items():
+    for artifact_type, paths in artifacts_to_install.items():
         # Map artifact type to .claude subdirectory
         target_dir = claude_dir / f"{artifact_type}s"  # agents, commands, skills
         if not target_dir.exists():
