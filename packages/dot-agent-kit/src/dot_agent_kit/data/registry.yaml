@@ -1,2 +1,12 @@
 version: "1"
-kits: []
+kits:
+  - kit_id: dev-runners-da-kit
+    name: Dev Runners Kit
+    description: Cost-optimized runner agents using Haiku model for pytest, ruff, pyright, and prettier
+    source: dev-runners-da-kit
+    author: workstack
+    tags:
+      - testing
+      - linting
+      - formatting
+      - development
