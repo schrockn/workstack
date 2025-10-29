@@ -8,11 +8,14 @@ import tomli_w
 from dot_agent_kit.models import ConflictPolicy, InstalledKit, ProjectConfig
 
 
-def load_project_config(project_dir: Path) -> ProjectConfig | None:
-    """Load dot-agent.toml from project directory."""
+def load_project_config(project_dir: Path) -> ProjectConfig:
+    """Load dot-agent.toml from project directory.
+
+    Returns default config if file doesn't exist.
+    """
     config_path = project_dir / "dot-agent.toml"
     if not config_path.exists():
-        return None
+        return create_default_config()
 
     with open(config_path, "rb") as f:
         data = tomli.load(f)

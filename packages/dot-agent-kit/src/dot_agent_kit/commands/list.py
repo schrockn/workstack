@@ -5,6 +5,7 @@ from pathlib import Path
 import click
 
 from dot_agent_kit.io import load_kit_manifest, load_project_config
+from dot_agent_kit.models import KitManifest, ProjectConfig
 from dot_agent_kit.sources import BundledKitSource, KitSource
 
 
@@ -13,26 +14,27 @@ def _get_artifact_name(artifact_path: str) -> str:
     return Path(artifact_path).stem
 
 
-def _list_kits(show_artifacts: bool, sources: list[KitSource] | None = None) -> None:
+def _list_kits(
+    show_artifacts: bool,
+    config: ProjectConfig,
+    manifests: dict[str, KitManifest],
+    sources: list[KitSource],
+) -> None:
     """Internal function to list installed and available kits.
 
     Args:
         show_artifacts: Whether to display individual artifacts for each kit
-        sources: List of kit sources to check for available kits (defaults to bundled only)
+        config: Project configuration
+        manifests: Mapping of kit_id -> manifest for artifact display
+        sources: List of kit sources to check for available kits
     """
-    if sources is None:
-        sources = [BundledKitSource()]
-
-    project_dir = Path.cwd()
-    config = load_project_config(project_dir)
-
     # Get available kits from all sources
     available_kit_ids: set[str] = set()
     for source in sources:
         available_kit_ids.update(source.list_available())
 
     # Get installed kit IDs
-    installed_kit_ids: set[str] = set(config.kits.keys()) if config else set()
+    installed_kit_ids: set[str] = set(config.kits.keys())
 
     # Combine all kits (available + installed)
     all_kit_ids = available_kit_ids | installed_kit_ids
@@ -58,19 +60,10 @@ def _list_kits(show_artifacts: bool, sources: list[KitSource] | None = None) -> 
 
         # Show artifacts if requested
         if show_artifacts:
-            # Try to resolve the kit from sources to get manifest
-            manifest_path = None
+            # Look up manifest from provided dict
+            manifest = manifests.get(kit_id)
 
-            for source in sources:
-                if source.can_resolve(kit_id):
-                    resolved = source.resolve(kit_id)
-                    manifest_path = resolved.manifest_path
-                    break
-
-            # Load manifest if we found a path
-            if manifest_path:
-                manifest = load_kit_manifest(manifest_path)
-
+            if manifest:
                 # Display artifacts grouped by type
                 for artifact_type, artifact_paths in manifest.artifacts.items():
                     for artifact_path in artifact_paths:
@@ -94,7 +87,23 @@ def list_cmd(artifacts: bool, sources: list[KitSource] | None = None) -> None:
         artifacts: Whether to show individual artifacts within each kit
         sources: List of kit sources to check (for testing only)
     """
-    _list_kits(artifacts, sources)
+    if sources is None:
+        sources = [BundledKitSource()]
+
+    # Load project config
+    project_dir = Path.cwd()
+    config = load_project_config(project_dir)
+
+    # Load manifests for all available kits
+    manifests: dict[str, KitManifest] = {}
+    for source in sources:
+        for kit_id in source.list_available():
+            if source.can_resolve(kit_id):
+                resolved = source.resolve(kit_id)
+                if resolved.manifest_path.exists():
+                    manifests[kit_id] = load_kit_manifest(resolved.manifest_path)
+
+    _list_kits(artifacts, config, manifests, sources)
 
 
 @click.command("ls", hidden=True)
@@ -111,4 +120,20 @@ def ls_cmd(artifacts: bool, sources: list[KitSource] | None = None) -> None:
         artifacts: Whether to show individual artifacts within each kit
         sources: List of kit sources to check (for testing only)
     """
-    _list_kits(artifacts, sources)
+    if sources is None:
+        sources = [BundledKitSource()]
+
+    # Load project config
+    project_dir = Path.cwd()
+    config = load_project_config(project_dir)
+
+    # Load manifests for all available kits
+    manifests: dict[str, KitManifest] = {}
+    for source in sources:
+        for kit_id in source.list_available():
+            if source.can_resolve(kit_id):
+                resolved = source.resolve(kit_id)
+                if resolved.manifest_path.exists():
+                    manifests[kit_id] = load_kit_manifest(resolved.manifest_path)
+
+    _list_kits(artifacts, config, manifests, sources)

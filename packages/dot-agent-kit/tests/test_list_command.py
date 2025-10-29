@@ -1,11 +1,11 @@
 """Tests for list command."""
 
 from pathlib import Path
-from unittest.mock import patch
 
 from pytest import CaptureFixture
 
 from dot_agent_kit.commands.list import _list_kits
+from dot_agent_kit.io import create_default_config
 from dot_agent_kit.models import ConflictPolicy, InstalledKit, KitManifest, ProjectConfig
 from dot_agent_kit.sources import KitSource, ResolvedKit
 
@@ -54,14 +54,16 @@ def test_list_with_bundled_kit(capsys: CaptureFixture[str]) -> None:
     """Test list command with bundled kit."""
     fake_source = FakeKitSource(available_kits=["dev-runners-da-kit"])
 
-    with patch("dot_agent_kit.commands.list.load_project_config") as mock_config:
-        mock_config.return_value = None
+    _list_kits(
+        show_artifacts=False,
+        config=create_default_config(),
+        manifests={},
+        sources=[fake_source],
+    )
 
-        _list_kits(show_artifacts=False, sources=[fake_source])
-
-        captured = capsys.readouterr()
-        assert "dev-runners-da-kit [BUNDLED]" in captured.out
-        assert "No kits available" not in captured.out
+    captured = capsys.readouterr()
+    assert "dev-runners-da-kit [BUNDLED]" in captured.out
+    assert "No kits available" not in captured.out
 
 
 def test_list_with_installed_kits(capsys: CaptureFixture[str]) -> None:
@@ -82,26 +84,25 @@ def test_list_with_installed_kits(capsys: CaptureFixture[str]) -> None:
 
     fake_source = FakeKitSource(available_kits=[])
 
-    with patch("dot_agent_kit.commands.list.load_project_config") as mock_config:
-        mock_config.return_value = config
+    _list_kits(show_artifacts=False, config=config, manifests={}, sources=[fake_source])
 
-        _list_kits(show_artifacts=False, sources=[fake_source])
-
-        captured = capsys.readouterr()
-        assert "test-kit [INSTALLED]" in captured.out
+    captured = capsys.readouterr()
+    assert "test-kit [INSTALLED]" in captured.out
 
 
 def test_list_no_kits(capsys: CaptureFixture[str]) -> None:
     """Test list command when no kits are available."""
     fake_source = FakeKitSource(available_kits=[])
 
-    with patch("dot_agent_kit.commands.list.load_project_config") as mock_config:
-        mock_config.return_value = None
+    _list_kits(
+        show_artifacts=False,
+        config=create_default_config(),
+        manifests={},
+        sources=[fake_source],
+    )
 
-        _list_kits(show_artifacts=False, sources=[fake_source])
-
-        captured = capsys.readouterr()
-        assert "No kits available" in captured.out
+    captured = capsys.readouterr()
+    assert "No kits available" in captured.out
 
 
 def test_list_with_artifacts_flag(capsys: CaptureFixture[str]) -> None:
@@ -118,18 +119,18 @@ def test_list_with_artifacts_flag(capsys: CaptureFixture[str]) -> None:
 
     fake_source = FakeKitSource(available_kits=["test-kit"], manifests={"test-kit": manifest})
 
-    with patch("dot_agent_kit.commands.list.load_project_config") as mock_config:
-        with patch("dot_agent_kit.commands.list.load_kit_manifest") as mock_manifest:
-            mock_config.return_value = None
-            mock_manifest.return_value = manifest
+    _list_kits(
+        show_artifacts=True,
+        config=create_default_config(),
+        manifests={"test-kit": manifest},
+        sources=[fake_source],
+    )
 
-            _list_kits(show_artifacts=True, sources=[fake_source])
-
-            captured = capsys.readouterr()
-            assert "test-kit [BUNDLED]" in captured.out
-            assert "agent: pytest-runner" in captured.out
-            assert "agent: ruff-runner" in captured.out
-            assert "command: test-cmd" in captured.out
+    captured = capsys.readouterr()
+    assert "test-kit [BUNDLED]" in captured.out
+    assert "agent: pytest-runner" in captured.out
+    assert "agent: ruff-runner" in captured.out
+    assert "command: test-cmd" in captured.out
 
 
 def test_list_bundled_and_installed(capsys: CaptureFixture[str]) -> None:
@@ -150,11 +151,8 @@ def test_list_bundled_and_installed(capsys: CaptureFixture[str]) -> None:
 
     fake_source = FakeKitSource(available_kits=["bundled-kit"])
 
-    with patch("dot_agent_kit.commands.list.load_project_config") as mock_config:
-        mock_config.return_value = config
+    _list_kits(show_artifacts=False, config=config, manifests={}, sources=[fake_source])
 
-        _list_kits(show_artifacts=False, sources=[fake_source])
-
-        captured = capsys.readouterr()
-        assert "bundled-kit [BUNDLED]" in captured.out
-        assert "installed-kit [INSTALLED]" in captured.out
+    captured = capsys.readouterr()
+    assert "bundled-kit [BUNDLED]" in captured.out
+    assert "installed-kit [INSTALLED]" in captured.out
