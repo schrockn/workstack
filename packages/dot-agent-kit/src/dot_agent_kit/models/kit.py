@@ -12,7 +12,6 @@ class KitManifest:
     version: str
     description: str
     artifacts: dict[str, list[str]]  # type -> paths
-    author: str | None = None
     license: str | None = None
     homepage: str | None = None
 

@@ -24,8 +24,6 @@ def load_registry() -> list[RegistryEntry]:
             name=kit["name"],
             description=kit["description"],
             source=kit["source"],
-            author=kit.get("author"),
-            tags=kit.get("tags"),
         )
         for kit in data["kits"]
     ]

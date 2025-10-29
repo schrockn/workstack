@@ -17,7 +17,6 @@ def load_kit_manifest(manifest_path: Path) -> KitManifest:
         version=data["version"],
         description=data["description"],
         artifacts=data.get("artifacts", {}),
-        author=data.get("author"),
         license=data.get("license"),
         homepage=data.get("homepage"),
     )

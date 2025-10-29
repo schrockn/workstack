@@ -94,7 +94,6 @@ def test_kit_manifest_required_fields() -> None:
     assert manifest.version == "1.0.0"
     assert manifest.description == "Test kit"
     assert manifest.artifacts == {"agent": ["agents/test.md"]}
-    assert manifest.author is None
     assert manifest.license is None
     assert manifest.homepage is None
 
@@ -106,12 +105,10 @@ def test_kit_manifest_with_optional_fields() -> None:
         version="1.0.0",
         description="Test kit",
         artifacts={"agent": ["agents/test.md"]},
-        author="Test Author",
         license="MIT",
         homepage="https://example.com",
     )
 
-    assert manifest.author == "Test Author"
     assert manifest.license == "MIT"
     assert manifest.homepage == "https://example.com"
 
@@ -170,23 +167,6 @@ def test_registry_entry_required_fields() -> None:
     assert entry.name == "Test Kit"
     assert entry.description == "A test kit"
     assert entry.source == "test-kit-package"
-    assert entry.author is None
-    assert entry.tags is None
-
-
-def test_registry_entry_with_optional_fields() -> None:
-    """Test RegistryEntry with all fields."""
-    entry = RegistryEntry(
-        kit_id="test-kit",
-        name="Test Kit",
-        description="A test kit",
-        source="test-kit-package",
-        author="Test Author",
-        tags=["testing", "example"],
-    )
-
-    assert entry.author == "Test Author"
-    assert entry.tags == ["testing", "example"]
 
 
 def test_registry_entry_immutable() -> None:

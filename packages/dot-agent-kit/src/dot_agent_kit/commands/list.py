@@ -51,9 +51,6 @@ def _show_kit_details(kit_id: str) -> None:
     click.echo(f"Version: {manifest.version}")
     click.echo(f"Description: {manifest.description}")
 
-    if manifest.author:
-        click.echo(f"Author: {manifest.author}")
-
     if manifest.license:
         click.echo(f"License: {manifest.license}")
 
