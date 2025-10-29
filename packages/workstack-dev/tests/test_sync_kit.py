@@ -242,3 +242,169 @@ class TestSyncKitCommand:
 
         assert result.exit_code == 1
         assert "Error: Invalid manifest YAML" in result.output
+
+    def test_sync_all_dev_kits(self, tmp_path, monkeypatch):
+        """Test syncing all kits marked with sync_source: workstack-dev."""
+        monkeypatch.chdir(tmp_path)
+
+        # Create .claude directory with artifacts for multiple kits
+        claude_dir = tmp_path / ".claude"
+        claude_dir.mkdir()
+
+        # Kit 1: devkit
+        (claude_dir / "agents" / "devkit").mkdir(parents=True)
+        (claude_dir / "agents" / "devkit" / "agent.md").write_text("# Dev Agent")
+
+        # Kit 2: testkit
+        (claude_dir / "skills" / "testkit").mkdir(parents=True)
+        (claude_dir / "skills" / "testkit" / "SKILL.md").write_text("# Test Skill")
+
+        # Create bundle structure for both kits
+        devkit_bundle = get_bundle_dir(tmp_path, "devkit")
+        devkit_bundle.mkdir(parents=True)
+        (devkit_bundle / "kit.yaml").write_text(
+            yaml.dump(
+                {
+                    "name": "devkit",
+                    "version": "1.0.0",
+                    "sync_source": "workstack-dev",
+                    "artifacts": {"agent": ["agents/devkit/agent.md"]},
+                }
+            )
+        )
+
+        testkit_bundle = get_bundle_dir(tmp_path, "testkit")
+        testkit_bundle.mkdir(parents=True)
+        (testkit_bundle / "kit.yaml").write_text(
+            yaml.dump(
+                {
+                    "name": "testkit",
+                    "version": "1.0.0",
+                    "sync_source": "workstack-dev",
+                    "artifacts": {"skill": ["skills/testkit/SKILL.md"]},
+                }
+            )
+        )
+
+        # Run sync without kit_name argument
+        runner = CliRunner()
+        result = runner.invoke(sync_kit_command, [])
+
+        assert result.exit_code == 0
+        assert "Syncing 2 kit(s): devkit, testkit" in result.output
+        assert "Syncing kit: devkit" in result.output
+        assert "Syncing kit: testkit" in result.output
+        assert "All 2 kit(s) synced successfully" in result.output
+
+        # Verify files were synced
+        assert (devkit_bundle / "agents" / "devkit" / "agent.md").exists()
+        assert (testkit_bundle / "skills" / "testkit" / "SKILL.md").exists()
+
+    def test_sync_all_kits_skips_non_dev_kits(self, tmp_path, monkeypatch):
+        """Test that syncing all kits only syncs those with sync_source: workstack-dev."""
+        monkeypatch.chdir(tmp_path)
+
+        # Create .claude directory
+        claude_dir = tmp_path / ".claude"
+        claude_dir.mkdir()
+
+        # Create bundle structure with dev and non-dev kits
+        devkit_bundle = get_bundle_dir(tmp_path, "devkit")
+        devkit_bundle.mkdir(parents=True)
+        (devkit_bundle / "kit.yaml").write_text(
+            yaml.dump(
+                {
+                    "name": "devkit",
+                    "version": "1.0.0",
+                    "sync_source": "workstack-dev",
+                    "artifacts": {"agent": ["agents/devkit/agent.md"]},
+                }
+            )
+        )
+
+        otherkit_bundle = get_bundle_dir(tmp_path, "otherkit")
+        otherkit_bundle.mkdir(parents=True)
+        (otherkit_bundle / "kit.yaml").write_text(
+            yaml.dump(
+                {
+                    "name": "otherkit",
+                    "version": "1.0.0",
+                    "sync_source": "external-source",  # Different source
+                    "artifacts": {"skill": ["skills/otherkit/SKILL.md"]},
+                }
+            )
+        )
+
+        # Create agent file for devkit
+        (claude_dir / "agents" / "devkit").mkdir(parents=True)
+        (claude_dir / "agents" / "devkit" / "agent.md").write_text("# Dev Agent")
+
+        # Run sync without kit_name argument
+        runner = CliRunner()
+        result = runner.invoke(sync_kit_command, [])
+
+        assert result.exit_code == 0
+        assert "Syncing 1 kit(s): devkit" in result.output
+        assert "devkit" in result.output
+        assert "otherkit" not in result.output
+
+    def test_sync_all_kits_dry_run(self, tmp_path, monkeypatch):
+        """Test dry-run mode when syncing all kits."""
+        monkeypatch.chdir(tmp_path)
+
+        # Create .claude directory
+        claude_dir = tmp_path / ".claude"
+        claude_dir.mkdir()
+        (claude_dir / "agents" / "devkit").mkdir(parents=True)
+        (claude_dir / "agents" / "devkit" / "agent.md").write_text("# Dev Agent")
+
+        # Create bundle structure
+        devkit_bundle = get_bundle_dir(tmp_path, "devkit")
+        devkit_bundle.mkdir(parents=True)
+        (devkit_bundle / "kit.yaml").write_text(
+            yaml.dump(
+                {
+                    "name": "devkit",
+                    "version": "1.0.0",
+                    "sync_source": "workstack-dev",
+                    "artifacts": {"agent": ["agents/devkit/agent.md"]},
+                }
+            )
+        )
+
+        # Run dry-run sync without kit_name argument
+        runner = CliRunner()
+        result = runner.invoke(sync_kit_command, ["--dry-run"])
+
+        assert result.exit_code == 0
+        assert "Found 1 kit(s) to sync: devkit" in result.output
+        assert "(DRY RUN)" in result.output
+        assert "1 artifacts would be synced (no changes made)" in result.output
+
+        # Verify files were NOT synced
+        assert not (devkit_bundle / "agents" / "devkit" / "agent.md").exists()
+
+    def test_sync_all_kits_no_dev_kits(self, tmp_path, monkeypatch):
+        """Test error when no kits have sync_source: workstack-dev."""
+        monkeypatch.chdir(tmp_path)
+
+        # Create bundle structure with no dev kits
+        otherkit_bundle = get_bundle_dir(tmp_path, "otherkit")
+        otherkit_bundle.mkdir(parents=True)
+        (otherkit_bundle / "kit.yaml").write_text(
+            yaml.dump(
+                {
+                    "name": "otherkit",
+                    "version": "1.0.0",
+                    "sync_source": "external-source",
+                    "artifacts": {},
+                }
+            )
+        )
+
+        # Run sync without kit_name argument
+        runner = CliRunner()
+        result = runner.invoke(sync_kit_command, [])
+
+        assert result.exit_code == 1
+        assert "No kits found with sync_source: workstack-dev" in result.output

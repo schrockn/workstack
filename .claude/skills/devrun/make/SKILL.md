@@ -3,6 +3,8 @@ name: devrun/make
 description: GNU Make build automation patterns, Makefile targets, and output parsing guidance for project build and maintenance tasks.
 ---
 
+# test
+
 # make Skill
 
 Comprehensive guide for executing make commands and parsing build automation results.
