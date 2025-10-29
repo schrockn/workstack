@@ -40,6 +40,19 @@ class BundledKitSource(KitSource):
             artifacts_base=artifacts_base,
         )
 
+    def list_available(self) -> list[str]:
+        """List all bundled kit IDs."""
+        data_dir = Path(__file__).parent.parent / "data" / "kits"
+        if not data_dir.exists():
+            return []
+
+        bundled_kits = []
+        for kit_dir in data_dir.iterdir():
+            if kit_dir.is_dir() and (kit_dir / "kit.yaml").exists():
+                bundled_kits.append(kit_dir.name)
+
+        return bundled_kits
+
     def _get_bundled_kit_path(self, source: str) -> Path | None:
         """Get path to bundled kit if it exists."""
         # Path to bundled kits in package data

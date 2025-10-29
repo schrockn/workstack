@@ -38,3 +38,12 @@ class StandalonePackageSource(KitSource):
             manifest_path=manifest_path,
             artifacts_base=artifacts_base,
         )
+
+    def list_available(self) -> list[str]:
+        """List available kits from standalone packages.
+
+        For standalone packages, we cannot enumerate all installed packages
+        that might be kits, so we return an empty list. Users must explicitly
+        specify package names to install.
+        """
+        return []
