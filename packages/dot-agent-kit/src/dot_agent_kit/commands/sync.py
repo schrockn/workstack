@@ -4,7 +4,7 @@ from pathlib import Path
 
 import click
 
-from dot_agent_kit.io import load_project_config
+from dot_agent_kit.io import load_project_config, save_project_config
 from dot_agent_kit.operations import check_for_updates, sync_all_kits, sync_kit
 from dot_agent_kit.sources import KitResolver, StandalonePackageSource
 
@@ -29,6 +29,8 @@ def sync(kit_id: str | None, verbose: bool) -> None:
         click.echo("No kits installed")
         return
 
+    # TODO: Add BundledKitSource() to support syncing bundled kits
+    # resolver = KitResolver(sources=[BundledKitSource(), StandalonePackageSource()])
     resolver = KitResolver(sources=[StandalonePackageSource()])
 
     # Sync specific kit or all kits
@@ -51,6 +53,11 @@ def sync(kit_id: str | None, verbose: bool) -> None:
             if verbose:
                 click.echo(f"  Artifacts: {result.artifacts_updated}")
 
+            # Save updated config
+            if result.updated_kit is not None:
+                updated_config = config.update_kit(result.updated_kit)
+                save_project_config(project_dir, updated_config)
+
     else:
         # Sync all kits
         results = sync_all_kits(config, project_dir, resolver)
@@ -63,6 +70,14 @@ def sync(kit_id: str | None, verbose: bool) -> None:
                     click.echo(f"✓ {result.kit_id}: {result.old_version} → {result.new_version}")
                 elif verbose:
                     click.echo(f"  {result.kit_id}: up to date")
+
+        # Save updated config if any kits were updated
+        if updated_count > 0:
+            updated_config = config
+            for result in results:
+                if result.was_updated and result.updated_kit is not None:
+                    updated_config = updated_config.update_kit(result.updated_kit)
+            save_project_config(project_dir, updated_config)
 
         if updated_count == 0:
             click.echo("All kits are up to date")

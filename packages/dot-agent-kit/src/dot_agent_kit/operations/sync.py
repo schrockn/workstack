@@ -18,6 +18,7 @@ class SyncResult:
     new_version: str
     was_updated: bool
     artifacts_updated: int
+    updated_kit: InstalledKit | None = None
 
 
 def check_for_updates(
@@ -57,6 +58,7 @@ def sync_kit(
             new_version=new_version,
             was_updated=False,
             artifacts_updated=0,
+            updated_kit=None,
         )
 
     # Remove old artifacts
@@ -78,6 +80,7 @@ def sync_kit(
         new_version=new_version,
         was_updated=True,
         artifacts_updated=len(new_installed.artifacts),
+        updated_kit=new_installed,
     )
 
 
@@ -100,6 +103,7 @@ def sync_all_kits(
                     new_version=installed.version,
                     was_updated=False,
                     artifacts_updated=0,
+                    updated_kit=None,
                 )
             )
             continue
