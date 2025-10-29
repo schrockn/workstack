@@ -24,16 +24,18 @@ Identify which tool is being executed from the command:
 - **ruff**: `ruff check`, `ruff format`, `python -m ruff`, `uv run ruff`
 - **prettier**: `prettier`, `uv run prettier`, `make prettier`
 - **make**: `make <target>`
+- **gt**: `gt <command>`, graphite commands
 
 ### 2. Load Skill
 
 Load the appropriate skill using the Skill tool to get tool-specific guidance:
 
-- `pytest` skill - for test execution patterns
-- `pyright` skill - for type checking patterns
-- `ruff` skill - for linting/formatting patterns
-- `prettier` skill - for code formatting patterns
-- `make` skill - for build automation patterns
+- `devrun/pytest` skill - for test execution patterns
+- `devrun/pyright` skill - for type checking patterns
+- `devrun/ruff` skill - for linting/formatting patterns
+- `devrun/prettier` skill - for code formatting patterns
+- `devrun/make` skill - for build automation patterns
+- `devrun/gt` skill - for graphite command execution patterns
 
 **CRITICAL**: Always load the skill FIRST before executing the command. The skill contains essential parsing patterns and output interpretation guidance.
 
