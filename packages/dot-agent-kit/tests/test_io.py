@@ -183,9 +183,10 @@ def test_add_frontmatter_roundtrip() -> None:
     assert parsed_fm.artifact_path == frontmatter_obj.artifact_path
 
 
-def test_load_empty_registry() -> None:
-    """Test loading empty registry."""
+def test_load_registry() -> None:
+    """Test loading registry with entries."""
     registry = load_registry()
 
     assert isinstance(registry, list)
-    assert len(registry) == 0
+    assert len(registry) >= 1  # Should have at least dev-runners-da-kit
+    assert any(entry.kit_id == "dev-runners-da-kit" for entry in registry)
