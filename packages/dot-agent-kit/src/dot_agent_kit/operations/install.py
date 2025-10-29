@@ -3,6 +3,8 @@
 from datetime import datetime
 from pathlib import Path
 
+import click
+
 from dot_agent_kit.io import add_frontmatter, load_kit_manifest
 from dot_agent_kit.models import ArtifactFrontmatter, ConflictPolicy, InstalledKit
 from dot_agent_kit.sources import ResolvedKit
@@ -50,12 +52,20 @@ def install_kit(
             # Determine target path
             target = target_dir / source.name
 
-            # Check for conflicts (ERROR policy only for now)
+            # Handle conflicts based on policy
             if target.exists():
-                raise FileExistsError(
-                    f"Artifact already exists: {target}\n"
-                    f"Use --force to overwrite or change conflict policy"
-                )
+                if conflict_policy == ConflictPolicy.ERROR:
+                    raise FileExistsError(
+                        f"Artifact already exists: {target}\nUse --force to overwrite"
+                    )
+                elif conflict_policy == ConflictPolicy.SKIP:
+                    click.echo(f"  Skipping (exists): {target.name}", err=True)
+                    continue
+                elif conflict_policy == ConflictPolicy.OVERWRITE:
+                    click.echo(f"  Overwriting: {target.name}", err=True)
+                    # Will overwrite below
+                else:
+                    raise ValueError(f"Unsupported policy: {conflict_policy}")
 
             # Write artifact
             target.write_text(content_with_fm, encoding="utf-8")

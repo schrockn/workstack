@@ -132,3 +132,92 @@ def test_install_kit_creates_directories(tmp_project: Path) -> None:
     assert (tmp_project / ".claude").exists()
     assert (tmp_project / ".claude" / "commands").exists()
     assert (tmp_project / ".claude" / "commands" / "test-command.md").exists()
+
+
+def test_install_kit_skip_policy(tmp_project: Path) -> None:
+    """Test SKIP policy skips existing files."""
+    # Create existing artifact
+    claude_dir = tmp_project / ".claude/agents"
+    claude_dir.mkdir(parents=True)
+    existing = claude_dir / "test-agent.md"
+    existing.write_text("Original content", encoding="utf-8")
+
+    # Create mock kit
+    kit_dir = tmp_project / "mock_kit"
+    kit_dir.mkdir()
+
+    manifest = kit_dir / "kit.yaml"
+    manifest.write_text(
+        "name: test-kit\n"
+        "version: 1.0.0\n"
+        "description: Test\n"
+        "artifacts:\n"
+        "  agent:\n"
+        "    - agents/test-agent.md\n",
+        encoding="utf-8",
+    )
+
+    agents_source = kit_dir / "agents"
+    agents_source.mkdir()
+    (agents_source / "test-agent.md").write_text("# New Agent", encoding="utf-8")
+
+    resolved = ResolvedKit(
+        kit_id="test-kit",
+        source_type="package",
+        source="test-kit",
+        manifest_path=manifest,
+        artifacts_base=kit_dir,
+    )
+
+    # Install with SKIP policy
+    installed = install_kit(resolved, tmp_project, ConflictPolicy.SKIP)
+
+    # Verify original content preserved
+    assert existing.read_text(encoding="utf-8") == "Original content"
+    # Verify no artifacts were installed (since all were skipped)
+    assert len(installed.artifacts) == 0
+
+
+def test_install_kit_overwrite_policy(tmp_project: Path) -> None:
+    """Test OVERWRITE policy replaces existing files."""
+    # Create existing artifact
+    claude_dir = tmp_project / ".claude/agents"
+    claude_dir.mkdir(parents=True)
+    existing = claude_dir / "test-agent.md"
+    existing.write_text("Original content", encoding="utf-8")
+
+    # Create mock kit
+    kit_dir = tmp_project / "mock_kit"
+    kit_dir.mkdir()
+
+    manifest = kit_dir / "kit.yaml"
+    manifest.write_text(
+        "name: test-kit\n"
+        "version: 1.0.0\n"
+        "description: Test\n"
+        "artifacts:\n"
+        "  agent:\n"
+        "    - agents/test-agent.md\n",
+        encoding="utf-8",
+    )
+
+    agents_source = kit_dir / "agents"
+    agents_source.mkdir()
+    (agents_source / "test-agent.md").write_text("# New Agent", encoding="utf-8")
+
+    resolved = ResolvedKit(
+        kit_id="test-kit",
+        source_type="package",
+        source="test-kit",
+        manifest_path=manifest,
+        artifacts_base=kit_dir,
+    )
+
+    # Install with OVERWRITE policy
+    installed = install_kit(resolved, tmp_project, ConflictPolicy.OVERWRITE)
+
+    # Verify new content written
+    content = existing.read_text(encoding="utf-8")
+    assert "dot-agent-kit:" in content
+    assert "# New Agent" in content
+    assert len(installed.artifacts) == 1
