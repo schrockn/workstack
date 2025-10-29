@@ -1,5 +1,5 @@
 ---
-name: gt
+name: devrun/gt
 description: Graphite (gt) command execution patterns, output parsing guidance, and special handling for gt CLI operations.
 ---
 

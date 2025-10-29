@@ -39,15 +39,8 @@ clean:
 	rm -rf dist/*.whl dist/*.tar.gz
 
 # Kit development
-sync-dev-runners-kit:
-	@echo "Syncing dev-runners kit..."
-	@mkdir -p packages/dev-runners-da-kit/agents
-	@rsync -av --delete \
-		.claude/agents/pytest-runner.md \
-		.claude/agents/ruff-runner.md \
-		.claude/agents/pyright-runner.md \
-		.claude/agents/prettier-runner.md \
-		packages/dev-runners-da-kit/agents/ 2>/dev/null || true
+sync-kit:
+	uv run workstack-dev sync-kit devrun
 
 # Build workstack and dot-agent-kit packages
 build: clean

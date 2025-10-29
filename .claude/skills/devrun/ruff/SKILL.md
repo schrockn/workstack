@@ -1,5 +1,5 @@
 ---
-name: ruff
+name: devrun/ruff
 description: ruff linter and formatter patterns, command syntax, and output parsing guidance for Python code quality enforcement.
 ---
 
