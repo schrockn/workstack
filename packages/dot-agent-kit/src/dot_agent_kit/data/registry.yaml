@@ -4,9 +4,7 @@ kits:
     name: Dev Runners Kit
     description: Cost-optimized runner agents using Haiku model for pytest, ruff, pyright, and prettier
     source: dev-runners-da-kit
-    author: workstack
-    tags:
-      - testing
-      - linting
-      - formatting
-      - development
+  - kit_id: gt
+    name: Graphite Kit
+    description: Graphite stack management with landing and submission commands
+    source: gt

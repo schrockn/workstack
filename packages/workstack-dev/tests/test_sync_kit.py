@@ -495,3 +495,94 @@ class TestSyncKitCommand:
         result = runner.invoke(sync_kit_command, ["--check"])
         assert result.exit_code == 1
         assert "content differs" in result.output
+
+    def test_directory_sync(self, tmp_path, monkeypatch):
+        """Test syncing entire directories recursively."""
+        monkeypatch.chdir(tmp_path)
+
+        # Create .claude directory with a skill that has subdirectories
+        claude_dir = tmp_path / ".claude"
+        skill_dir = claude_dir / "skills" / "testkit" / "graphite"
+        skill_dir.mkdir(parents=True)
+
+        # Create main skill file
+        (skill_dir / "SKILL.md").write_text("# Graphite Skill")
+
+        # Create references subdirectory with multiple files
+        references_dir = skill_dir / "references"
+        references_dir.mkdir()
+        (references_dir / "gt-reference.md").write_text("# GT Reference")
+        (references_dir / "examples.md").write_text("# Examples")
+
+        # Create another nested subdirectory
+        advanced_dir = references_dir / "advanced"
+        advanced_dir.mkdir()
+        (advanced_dir / "tips.md").write_text("# Advanced Tips")
+
+        # Create bundle structure
+        bundle_dir = get_bundle_dir(tmp_path, "testkit")
+        bundle_dir.mkdir(parents=True)
+
+        # Manifest with directory path (ends with /)
+        manifest = {
+            "name": "testkit",
+            "version": "1.0.0",
+            "artifacts": {
+                "skill": ["skills/testkit/graphite/"],
+            },
+        }
+        (bundle_dir / "kit.yaml").write_text(yaml.dump(manifest))
+
+        # Run sync
+        runner = CliRunner()
+        result = runner.invoke(sync_kit_command, ["testkit"])
+
+        assert result.exit_code == 0
+        assert "1 artifacts synced successfully" in result.output
+
+        # Verify all files were copied recursively
+        synced_skill_dir = bundle_dir / "skills" / "testkit" / "graphite"
+        assert (synced_skill_dir / "SKILL.md").exists()
+        assert (synced_skill_dir / "SKILL.md").read_text() == "# Graphite Skill"
+
+        assert (synced_skill_dir / "references" / "gt-reference.md").exists()
+        assert (synced_skill_dir / "references" / "gt-reference.md").read_text() == "# GT Reference"
+
+        assert (synced_skill_dir / "references" / "examples.md").exists()
+        assert (synced_skill_dir / "references" / "examples.md").read_text() == "# Examples"
+
+        assert (synced_skill_dir / "references" / "advanced" / "tips.md").exists()
+        tips_file = synced_skill_dir / "references" / "advanced" / "tips.md"
+        assert tips_file.read_text() == "# Advanced Tips"
+
+    def test_directory_sync_verbose(self, tmp_path, monkeypatch):
+        """Test verbose output for directory syncing."""
+        monkeypatch.chdir(tmp_path)
+
+        # Create .claude directory with a skill directory
+        claude_dir = tmp_path / ".claude"
+        skill_dir = claude_dir / "skills" / "testkit" / "simple"
+        skill_dir.mkdir(parents=True)
+        (skill_dir / "SKILL.md").write_text("# Simple Skill")
+        (skill_dir / "readme.md").write_text("# Readme")
+
+        # Create bundle structure
+        bundle_dir = get_bundle_dir(tmp_path, "testkit")
+        bundle_dir.mkdir(parents=True)
+
+        manifest = {
+            "name": "testkit",
+            "version": "1.0.0",
+            "artifacts": {
+                "skill": ["skills/testkit/simple/"],
+            },
+        }
+        (bundle_dir / "kit.yaml").write_text(yaml.dump(manifest))
+
+        # Run sync with verbose flag
+        runner = CliRunner()
+        result = runner.invoke(sync_kit_command, ["testkit", "--verbose"])
+
+        assert result.exit_code == 0
+        assert "(directory - will sync recursively)" in result.output
+        assert "Synced directory (2 files)" in result.output
