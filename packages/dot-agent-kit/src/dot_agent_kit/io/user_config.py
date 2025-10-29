@@ -1,6 +1,7 @@
-"""State file I/O for dot-agent.toml."""
+"""User-level configuration management for ~/.claude/dot-agent.toml."""
 
 from pathlib import Path
+from typing import Any
 
 import tomli
 import tomli_w
@@ -8,14 +9,24 @@ import tomli_w
 from dot_agent_kit.models import ConflictPolicy, InstalledKit, ProjectConfig
 
 
-def load_project_config(project_dir: Path) -> ProjectConfig | None:
-    """Load dot-agent.toml from project directory.
+def get_user_claude_dir() -> Path:
+    """Get the user-level .claude directory (~/.claude)."""
+    return Path.home() / ".claude"
 
-    Returns None if file doesn't exist.
+
+def get_user_config_path() -> Path:
+    """Get the user-level dot-agent.toml path."""
+    return get_user_claude_dir() / "dot-agent.toml"
+
+
+def load_user_config() -> ProjectConfig:
+    """Load user-level dot-agent.toml from ~/.claude/.
+
+    Returns default config if file doesn't exist.
     """
-    config_path = project_dir / "dot-agent.toml"
+    config_path = get_user_config_path()
     if not config_path.exists():
-        return None
+        return create_default_user_config()
 
     with open(config_path, "rb") as f:
         data = tomli.load(f)
@@ -44,12 +55,17 @@ def load_project_config(project_dir: Path) -> ProjectConfig | None:
     )
 
 
-def save_project_config(project_dir: Path, config: ProjectConfig) -> None:
-    """Save dot-agent.toml to project directory."""
-    config_path = project_dir / "dot-agent.toml"
+def save_user_config(config: ProjectConfig) -> None:
+    """Save user-level dot-agent.toml to ~/.claude/."""
+    config_path = get_user_config_path()
+
+    # Ensure ~/.claude directory exists
+    user_claude_dir = get_user_claude_dir()
+    if not user_claude_dir.exists():
+        user_claude_dir.mkdir(parents=True)
 
     # Convert ProjectConfig to dict
-    data = {
+    data: dict[str, Any] = {
         "version": config.version,
         "default_conflict_policy": config.default_conflict_policy.value,
         "kits": {},
@@ -69,8 +85,8 @@ def save_project_config(project_dir: Path, config: ProjectConfig) -> None:
         tomli_w.dump(data, f)
 
 
-def create_default_config() -> ProjectConfig:
-    """Create default project configuration."""
+def create_default_user_config() -> ProjectConfig:
+    """Create default user-level configuration."""
     return ProjectConfig(
         version="1",
         default_conflict_policy=ConflictPolicy.ERROR,

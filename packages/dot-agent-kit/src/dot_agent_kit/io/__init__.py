@@ -12,6 +12,13 @@ from dot_agent_kit.io.state import (
     load_project_config,
     save_project_config,
 )
+from dot_agent_kit.io.user_config import (
+    create_default_user_config,
+    get_user_claude_dir,
+    get_user_config_path,
+    load_user_config,
+    save_user_config,
+)
 
 __all__ = [
     "add_frontmatter",
@@ -20,6 +27,11 @@ __all__ = [
     "load_kit_manifest",
     "load_registry",
     "create_default_config",
+    "create_default_user_config",
+    "get_user_claude_dir",
+    "get_user_config_path",
     "load_project_config",
+    "load_user_config",
     "save_project_config",
+    "save_user_config",
 ]

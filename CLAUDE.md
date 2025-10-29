@@ -24,6 +24,9 @@
 | `print(...)` in CLI code                    | → Use `click.echo()`                                                          |
 | `subprocess.run(...)`                       | → Add `check=True`                                                            |
 | `make ...` or user says "make"              | → Use makefile-runner agent (Task tool) instead of Bash                       |
+| `pyright` or `uv run pyright`               | → Use pyright-runner agent (Task tool); target paths directly, never `cd`     |
+| `pytest` or `uv run pytest`                 | → Use pytest-runner agent (Task tool) for running tests                       |
+| `ruff` or `uv run ruff`                     | → Use ruff-runner agent (Task tool) for linting/formatting                    |
 | Prettier formatting issues                  | → Use `make prettier` (via makefile-runner agent)                             |
 | Summarizing code changes in a branch        | → Use git-diff-summarizer agent (Task tool) for branch analysis               |
 | Updating commit message with code changes   | → Use git-diff-summarizer agent (Task tool) to analyze first                  |
