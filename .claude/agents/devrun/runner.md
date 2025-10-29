@@ -30,12 +30,12 @@ Identify which tool is being executed from the command:
 
 Load the appropriate skill using the Skill tool to get tool-specific guidance:
 
-- `devrun/pytest` skill - for test execution patterns
-- `devrun/pyright` skill - for type checking patterns
-- `devrun/ruff` skill - for linting/formatting patterns
-- `devrun/prettier` skill - for code formatting patterns
-- `devrun/make` skill - for build automation patterns
-- `devrun/gt` skill - for graphite command execution patterns
+- `devrun-pytest` skill - when pytest is invoked
+- `devrun-pyright` skill - when pyright is invoked
+- `devrun-ruff` skill - when ruff is invoked
+- `devrun-prettier` skill - when prettier is invoked
+- `devrun-make` skill - when make is invoked
+- `devrun-gt` skill - when gt is invoked
 
 **CRITICAL**: Always load the skill FIRST before executing the command. The skill contains essential parsing patterns and output interpretation guidance.
 

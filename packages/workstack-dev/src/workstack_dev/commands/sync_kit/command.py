@@ -40,33 +40,32 @@ def discover_dev_kits(bundle_base: Path) -> list[str]:
     return sorted(dev_kits)
 
 
-def validate_namespace_pattern(artifact_path: str, kit_name: str) -> tuple[bool, str | None]:
-    """Validate that an artifact path follows the namespace pattern.
+def check_artifact_in_sync(
+    source_path: Path,
+    dest_path: Path,
+    artifact_path: str,
+) -> tuple[bool, str | None]:
+    """Check if an artifact is in sync between source and destination.
 
     Args:
-        artifact_path: The artifact path from the manifest (e.g., "agents/devrun/runner.md")
-        kit_name: The name of the kit
+        source_path: The source file path
+        dest_path: The destination file path
+        artifact_path: The relative artifact path for display
 
     Returns:
-        Tuple of (is_valid, error_message)
+        Tuple of (is_in_sync, error_message)
     """
-    parts = artifact_path.split("/")
+    if not source_path.exists():
+        return False, "source not found"
 
-    if len(parts) < 3:
-        return False, f"Artifact '{artifact_path}' is not namespaced (too shallow)."
+    if not dest_path.exists():
+        return False, "destination not found"
 
-    artifact_type = parts[0]
-    namespace = parts[1]
-
-    # Check that the namespace matches the kit name
-    if namespace != kit_name:
-        expected_pattern = f"{artifact_type}/{kit_name}/..."
-        return (
-            False,
-            f"Artifact '{artifact_path}' is not namespaced correctly.\n"
-            f"    Expected pattern: {expected_pattern}",
-        )
-
+    # Compare file contents
+    source_content = source_path.read_bytes()
+    dest_content = dest_path.read_bytes()
+    if source_content != dest_content:
+        return False, "content differs"
     return True, None
 
 
@@ -125,6 +124,7 @@ def sync_single_kit(
     bundle_base: Path,
     dry_run: bool,
     verbose: bool,
+    check: bool,
 ) -> bool:
     """Sync a single kit's artifacts.
 
@@ -135,9 +135,10 @@ def sync_single_kit(
         bundle_base: Base path for bundled kits
         dry_run: Whether to perform a dry run
         verbose: Whether to show verbose output
+        check: Whether to check if files are in sync (no modifications)
 
     Returns:
-        True if sync succeeded, False otherwise
+        True if sync succeeded or files are in sync, False otherwise
     """
     kit_path = bundle_base / kit_name
     manifest_path = kit_path / "kit.yaml"
@@ -153,7 +154,9 @@ def sync_single_kit(
         return False
 
     # Header output
-    if dry_run:
+    if check:
+        click.echo(f"Checking kit: {kit_name}")
+    elif dry_run:
         click.echo(f"Syncing kit: {kit_name} (DRY RUN)")
     else:
         click.echo(f"Syncing kit: {kit_name}")
@@ -202,36 +205,11 @@ def sync_single_kit(
         click.echo("No artifacts found in manifest.", err=True)
         return False
 
-    # Validate namespace patterns
-    if verbose:
-        click.echo("Validating namespace patterns...")
-
-    validation_errors = []
-    for artifact_path in all_artifacts:
-        is_valid, error_msg = validate_namespace_pattern(artifact_path, kit_name)
-        if not is_valid:
-            validation_errors.append((artifact_path, error_msg))
-        elif verbose:
-            click.echo(f"✓ {artifact_path} (valid)")
-
-    if validation_errors:
-        click.echo(
-            f"\nError: Kit '{kit_name}' does not follow required namespace pattern:",
-            err=True,
-        )
-        for _, error_msg in validation_errors:
-            click.echo(f"  - {error_msg}", err=True)
-        click.echo(
-            "\nSync aborted. Fix namespace patterns in kit.yaml and try again.",
-            err=True,
-        )
-        return False
-
-    if verbose:
-        click.echo()
-
     # Perform sync operations
-    if verbose:
+    if check:
+        if verbose:
+            click.echo("Checking if artifacts are in sync...")
+    elif verbose:
         click.echo("Syncing artifacts...")
 
     if dry_run:
@@ -239,32 +217,25 @@ def sync_single_kit(
 
     success_count = 0
     failed_count = 0
+    out_of_sync_artifacts = []
 
     for artifact_path in all_artifacts:
-        # Determine artifact type from path
-        parts = artifact_path.split("/")
-        artifact_type = parts[0]
-
-        # Map source and destination paths
-        # Source: .claude/{type}/{kit_name}/...
-        # But the artifact_path already includes the type and kit_name
-        # So source is: .claude/{artifact_path without the s suffix on type}
-
-        # Remove the 's' from the artifact type for the source path
-        artifact_type.rstrip("s")
-        if artifact_type == "agents":
-            pass  # agents stays as agents in .claude/
-        elif artifact_type == "skills":
-            pass  # skills stays as skills in .claude/
-        elif artifact_type == "commands":
-            pass  # commands stays as commands in .claude/
-        elif artifact_type == "hooks":
-            pass  # hooks stays as hooks in .claude/
-
+        # Map source and destination paths directly
         source_path = claude_dir / artifact_path
         dest_path = kit_path / artifact_path
 
-        if dry_run:
+        if check:
+            # Check mode - verify files are in sync
+            is_in_sync, error_msg = check_artifact_in_sync(source_path, dest_path, artifact_path)
+            if is_in_sync:
+                success_count += 1
+                if verbose:
+                    click.echo(f"✓ {artifact_path}")
+            else:
+                failed_count += 1
+                out_of_sync_artifacts.append((artifact_path, error_msg))
+                click.echo(f"✗ {artifact_path} ({error_msg})", err=True)
+        elif dry_run:
             click.echo(f"  {artifact_path}")
             success_count += 1
         else:
@@ -275,7 +246,17 @@ def sync_single_kit(
 
     # Summary
     click.echo()
-    if dry_run:
+    if check:
+        if failed_count > 0:
+            click.echo(
+                f"Check failed: {failed_count} artifact(s) out of sync, {success_count} in sync",
+                err=True,
+            )
+            return False
+        else:
+            click.echo(f"All {success_count} artifact(s) are in sync")
+            return True
+    elif dry_run:
         click.echo(f"{success_count} artifacts would be synced (no changes made)")
     else:
         if failed_count > 0:
@@ -300,7 +281,8 @@ def sync_single_kit(
 @click.argument("kit_name", required=False)
 @click.option("--dry-run", is_flag=True, help="Preview changes without writing files")
 @click.option("--verbose", "-v", is_flag=True, help="Show detailed sync operations")
-def sync_kit_command(kit_name: str | None, dry_run: bool, verbose: bool) -> None:
+@click.option("--check", is_flag=True, help="Check if files are in sync (no modifications)")
+def sync_kit_command(kit_name: str | None, dry_run: bool, verbose: bool, check: bool) -> None:
     """Sync project-local artifacts from .claude/ to bundled kit.
 
     When KIT_NAME is provided, syncs only that kit.
@@ -308,6 +290,10 @@ def sync_kit_command(kit_name: str | None, dry_run: bool, verbose: bool) -> None
 
     Syncs artifacts from .claude/ to packages/dot-agent-kit/src/dot_agent_kit/data/kits/.
     """
+    # Validate that check and dry_run are not used together
+    if check and dry_run:
+        click.echo("Error: --check and --dry-run cannot be used together", err=True)
+        raise SystemExit(1)
     # Path resolution
     project_root = Path.cwd()
     claude_dir = project_root / ".claude"
@@ -324,7 +310,9 @@ def sync_kit_command(kit_name: str | None, dry_run: bool, verbose: bool) -> None
             click.echo("No kits found with sync_source: workstack-dev", err=True)
             raise SystemExit(1)
 
-        if dry_run:
+        if check:
+            click.echo(f"Checking {len(kits_to_sync)} kit(s): {', '.join(kits_to_sync)}")
+        elif dry_run:
             click.echo(f"Found {len(kits_to_sync)} kit(s) to sync: {', '.join(kits_to_sync)}")
         else:
             click.echo(f"Syncing {len(kits_to_sync)} kit(s): {', '.join(kits_to_sync)}")
@@ -340,6 +328,7 @@ def sync_kit_command(kit_name: str | None, dry_run: bool, verbose: bool) -> None
             bundle_base,
             dry_run,
             verbose,
+            check,
         )
         if not success:
             failed_kits.append(current_kit)
