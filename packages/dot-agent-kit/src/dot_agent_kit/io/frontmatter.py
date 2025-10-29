@@ -11,6 +11,28 @@ FRONTMATTER_PATTERN = re.compile(
 )
 
 
+def validate_frontmatter(frontmatter: ArtifactFrontmatter) -> list[str]:
+    """Validate frontmatter structure and return errors."""
+    errors: list[str] = []
+
+    # Validate kit_id format (kebab-case)
+    if not re.match(r"^[a-z0-9]+(-[a-z0-9]+)*$", frontmatter.kit_id):
+        errors.append(f"Invalid kit_id format: {frontmatter.kit_id}")
+
+    # Validate version format (semver-ish)
+    if not re.match(r"^\d+\.\d+\.\d+", frontmatter.kit_version):
+        errors.append(f"Invalid version format: {frontmatter.kit_version}")
+
+    # Validate artifact_type
+    valid_types = {"agent", "command", "skill"}
+    if frontmatter.artifact_type not in valid_types:
+        errors.append(
+            f"Invalid artifact_type: {frontmatter.artifact_type} (must be one of {valid_types})"
+        )
+
+    return errors
+
+
 def parse_frontmatter(content: str) -> ArtifactFrontmatter | None:
     """Extract frontmatter from markdown content."""
     match = FRONTMATTER_PATTERN.search(content)
