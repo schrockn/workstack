@@ -4,9 +4,19 @@ from pathlib import Path
 
 import click
 
-from dot_agent_kit.io import load_kit_manifest, load_project_config, load_user_config
+from dot_agent_kit.io import (
+    create_default_config,
+    load_kit_manifest,
+    load_project_config,
+    load_user_config,
+)
 from dot_agent_kit.models import KitManifest, ProjectConfig
-from dot_agent_kit.sources import BundledKitSource, KitResolver, KitSource, StandalonePackageSource
+from dot_agent_kit.sources import (
+    BundledKitSource,
+    KitResolver,
+    KitSource,
+    StandalonePackageSource,
+)
 
 
 def _get_artifact_name(artifact_path: str) -> str:
@@ -87,7 +97,7 @@ def _show_kit_details(kit_id: str) -> None:
 
 def _list_kits(
     show_artifacts: bool,
-    config: ProjectConfig | None,
+    config: ProjectConfig,
     manifests: dict[str, KitManifest],
     sources: list[KitSource],
 ) -> None:
@@ -95,7 +105,7 @@ def _list_kits(
 
     Args:
         show_artifacts: Whether to display individual artifacts for each kit
-        config: Project configuration (None if no project config exists)
+        config: Project configuration
         manifests: Mapping of kit_id -> manifest for artifact display
         sources: List of kit sources to check for available kits
     """
@@ -105,7 +115,7 @@ def _list_kits(
         available_kit_ids.update(source.list_available())
 
     # Get installed kit IDs
-    installed_kit_ids: set[str] = set(config.kits.keys()) if config is not None else set()
+    installed_kit_ids: set[str] = set(config.kits.keys())
 
     # Combine all kits (available + installed)
     all_kit_ids = available_kit_ids | installed_kit_ids
@@ -174,7 +184,8 @@ def list_cmd(kit_id: str | None, artifacts: bool, sources: list[KitSource] | Non
 
     # Load project config
     project_dir = Path.cwd()
-    config = load_project_config(project_dir)
+    loaded_config = load_project_config(project_dir)
+    config = loaded_config if loaded_config is not None else create_default_config()
 
     # Load manifests for all available kits
     manifests: dict[str, KitManifest] = {}
@@ -215,7 +226,8 @@ def ls_cmd(kit_id: str | None, artifacts: bool, sources: list[KitSource] | None 
 
     # Load project config
     project_dir = Path.cwd()
-    config = load_project_config(project_dir)
+    loaded_config = load_project_config(project_dir)
+    config = loaded_config if loaded_config is not None else create_default_config()
 
     # Load manifests for all available kits
     manifests: dict[str, KitManifest] = {}

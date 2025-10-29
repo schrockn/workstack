@@ -1,6 +1,6 @@
 [project]
 name = "dot-agent-kit"
-version = "0.1.0"
+version = "0.1.20"
 description = "Kit management for Claude Code"
 readme = "README.md"
 requires-python = ">=3.13"
@@ -20,9 +20,6 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/dot_agent_kit"]
-
-[tool.hatch.build.targets.wheel.force-include]
-"src/dot_agent_kit/data" = "dot_agent_kit/data"
 
 [tool.pyright]
 include = ["src", "tests"]
