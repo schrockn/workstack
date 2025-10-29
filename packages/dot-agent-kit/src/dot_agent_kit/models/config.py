@@ -1,6 +1,6 @@
 """Configuration models for dot-agent-kit."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from enum import Enum
 
 
@@ -32,3 +32,8 @@ class ProjectConfig:
     version: str
     default_conflict_policy: ConflictPolicy
     kits: dict[str, InstalledKit]
+
+    def update_kit(self, kit: InstalledKit) -> "ProjectConfig":
+        """Return new config with updated kit (maintaining immutability)."""
+        new_kits = {**self.kits, kit.kit_id: kit}
+        return replace(self, kits=new_kits)

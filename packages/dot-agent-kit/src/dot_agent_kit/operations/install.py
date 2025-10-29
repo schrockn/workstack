@@ -49,8 +49,26 @@ def install_kit(
             )
             content_with_fm = add_frontmatter(content, frontmatter)
 
-            # Determine target path
-            target = target_dir / source.name
+            # Determine target path - preserve nested directory structure
+            # Artifact paths are like "agents/test.md" or "agents/subdir/test.md"
+            # We need to strip the type prefix to avoid duplication
+            artifact_rel_path = Path(artifact_path)
+            type_prefix = f"{artifact_type}s"
+
+            if artifact_rel_path.parts[0] == type_prefix:
+                # Strip the type prefix (e.g., "agents/") and keep the rest
+                relative_parts = artifact_rel_path.parts[1:]
+                if relative_parts:
+                    target = target_dir / Path(*relative_parts)
+                else:
+                    target = target_dir / artifact_rel_path.name
+            else:
+                # Fallback: use the whole path if prefix doesn't match
+                target = target_dir / artifact_rel_path
+
+            # Ensure parent directories exist
+            if not target.parent.exists():
+                target.parent.mkdir(parents=True, exist_ok=True)
 
             # Handle conflicts based on policy
             if target.exists():
