@@ -1,7 +1,7 @@
 import click
 
 from dot_agent_kit import __version__
-from dot_agent_kit.commands import check, init
+from dot_agent_kit.commands import check, init, sync
 
 
 @click.group(invoke_without_command=True)
@@ -15,6 +15,7 @@ def cli(ctx: click.Context) -> None:
 
 cli.add_command(init.init)
 cli.add_command(check.check)
+cli.add_command(sync.sync)
 
 
 if __name__ == "__main__":
