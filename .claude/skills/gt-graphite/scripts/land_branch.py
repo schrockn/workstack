@@ -1,11 +1,60 @@
-"""Land a single PR from Graphite stack without affecting upstack branches."""
+#!/usr/bin/env -S uv run
+# /// script
+# requires-python = ">=3.13"
+# dependencies = []
+# ///
+"""Land a single PR from Graphite stack without affecting upstack branches.
 
+This script safely lands a single branch from a Graphite stack by:
+1. Validating the branch is exactly one level up from main
+2. Checking an open pull request exists
+3. Validating the stack is linear (0 or 1 children)
+4. Squash-merging the PR to main
+5. Navigating to the child branch if one exists
+
+Usage:
+    uv run land_branch.py
+
+Output:
+    JSON object with either success or error information:
+
+    Success:
+    {
+      "success": true,
+      "pr_number": 123,
+      "branch_name": "feature-branch",
+      "child_branch": "next-feature",
+      "message": "Successfully merged PR #123 for branch feature-branch"
+    }
+
+    Error:
+    {
+      "success": false,
+      "error_type": "parent_not_main",
+      "message": "Detailed error message...",
+      "details": {...}
+    }
+
+Exit Codes:
+    0: Success
+    1: Error (validation failed or merge failed)
+
+Error Types:
+    - parent_not_main: Branch parent is not "main"
+    - no_pr_found: No PR exists for this branch
+    - pr_not_open: PR exists but is not in OPEN state
+    - multiple_children: Branch has >1 children (non-linear stack)
+    - merge_failed: PR merge operation failed
+
+Examples:
+    $ uv run land_branch.py
+    {"success": true, "pr_number": 123, ...}
+"""
 import json
 import subprocess
+import sys
 from dataclasses import asdict, dataclass
 from typing import Literal
-
-import click
 
 ErrorType = Literal[
     "parent_not_main",
@@ -48,21 +97,36 @@ def get_current_branch() -> str:
     return result.stdout.strip()
 
 
-def get_branch_metadata(branch_name: str) -> dict | None:
-    """Get metadata for a specific branch from workstack graphite branches."""
+def get_parent_branch() -> str | None:
+    """Get the parent branch using gt parent. Returns None if command fails."""
     result = subprocess.run(
-        ["workstack", "graphite", "branches", "--format", "json"],
+        ["gt", "parent"],
         capture_output=True,
         text=True,
-        check=True,
+        check=False,
     )
-    data = json.loads(result.stdout)
 
-    for branch in data["branches"]:
-        if branch["name"] == branch_name:
-            return branch
+    if result.returncode != 0:
+        return None
 
-    return None
+    return result.stdout.strip()
+
+
+def get_children_branches() -> list[str]:
+    """Get list of child branches using gt children. Returns empty list if command fails."""
+    result = subprocess.run(
+        ["gt", "children"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    if result.returncode != 0:
+        return []
+
+    # gt children outputs one branch per line
+    children = [line.strip() for line in result.stdout.strip().split("\n") if line.strip()]
+    return children
 
 
 def get_pr_info() -> tuple[int, str] | None:
@@ -92,38 +156,35 @@ def merge_pr() -> bool:
     return result.returncode == 0
 
 
-def navigate_to_child() -> str | None:
-    """Navigate to child branch using workstack up. Returns child branch name or None."""
+def navigate_to_child(child_name: str) -> bool:
+    """Navigate to child branch using gt up. Returns True on success."""
     result = subprocess.run(
-        ["workstack", "up"],
+        ["gt", "up"],
         capture_output=True,
         text=True,
         check=False,
     )
-
-    if result.returncode != 0:
-        return None
-
-    return get_current_branch()
+    return result.returncode == 0
 
 
 def land_branch() -> LandBranchSuccess | LandBranchError:
     """Execute the land-branch workflow. Returns success or error result."""
 
-    # Step 1: Get current branch and metadata
+    # Step 1: Get current branch
     branch_name = get_current_branch()
-    metadata = get_branch_metadata(branch_name)
 
-    if metadata is None:
+    # Step 2: Get parent branch
+    parent = get_parent_branch()
+
+    if parent is None:
         return LandBranchError(
             success=False,
             error_type="parent_not_main",
-            message=f"Could not find branch metadata for: {branch_name}",
+            message=f"Could not determine parent branch for: {branch_name}",
             details={"current_branch": branch_name},
         )
 
-    # Step 2: Validate parent is main
-    parent = metadata.get("parent")
+    # Step 3: Validate parent is main
     if parent != "main":
         return LandBranchError(
             success=False,
@@ -136,11 +197,11 @@ def land_branch() -> LandBranchSuccess | LandBranchError:
             ),
             details={
                 "current_branch": branch_name,
-                "parent_branch": parent or "",
+                "parent_branch": parent,
             },
         )
 
-    # Step 3: Check PR exists and is open
+    # Step 4: Check PR exists and is open
     pr_info = get_pr_info()
     if pr_info is None:
         return LandBranchError(
@@ -168,8 +229,8 @@ def land_branch() -> LandBranchSuccess | LandBranchError:
             },
         )
 
-    # Step 4: Validate linear stack (0-1 children)
-    children = metadata.get("children", [])
+    # Step 5: Get and validate children (0-1 children only)
+    children = get_children_branches()
     if len(children) > 1:
         return LandBranchError(
             success=False,
@@ -186,7 +247,7 @@ def land_branch() -> LandBranchSuccess | LandBranchError:
             },
         )
 
-    # Step 5: Merge the PR
+    # Step 6: Merge the PR
     if not merge_pr():
         return LandBranchError(
             success=False,
@@ -198,10 +259,12 @@ def land_branch() -> LandBranchSuccess | LandBranchError:
             },
         )
 
-    # Step 6: Navigate to child if exists
+    # Step 7: Navigate to child if exists
     child_branch = None
     if len(children) == 1:
-        child_branch = navigate_to_child()
+        child_name = children[0]
+        if navigate_to_child(child_name):
+            child_branch = child_name
 
     return LandBranchSuccess(
         success=True,
@@ -212,46 +275,39 @@ def land_branch() -> LandBranchSuccess | LandBranchError:
     )
 
 
-def format_text_output(result: LandBranchSuccess | LandBranchError) -> str:
-    """Format result as user-friendly text."""
-    if isinstance(result, LandBranchError):
-        return f"Error: {result.message}"
+def main() -> int:
+    """Main entry point.
 
-    output = f"✓ {result.message}"
-
-    if result.child_branch:
-        output += f"\n✓ Navigated to child branch: {result.child_branch}"
-        output += "\n\nYou can now run /land-branch again to merge the next PR in the stack."
-    else:
-        output += "\n✓ Stack complete! No more branches to land."
-
-    return output
-
-
-@click.command(name="land-branch")
-@click.option(
-    "--format",
-    type=click.Choice(["text", "json"]),
-    default="text",
-    help="Output format (text or json)",
-)
-def land_branch_command(format: str) -> None:
-    """Merge a single PR from Graphite stack without affecting upstack branches.
-
-    This command safely lands a single branch from a Graphite stack by:
-
-    1. Validating the branch is exactly one level up from main
-    2. Checking an open pull request exists
-    3. Validating the stack is linear (0 or 1 children)
-    4. Squash-merging the PR to main
-    5. Navigating to the child branch if one exists
+    Returns:
+        Exit code (0 for success, 1 for error)
     """
-    result = land_branch()
+    try:
+        result = land_branch()
+        print(json.dumps(asdict(result), indent=2))
 
-    if format == "json":
-        click.echo(json.dumps(asdict(result), indent=2))
-    else:
-        click.echo(format_text_output(result))
+        if isinstance(result, LandBranchError):
+            return 1
 
-    if isinstance(result, LandBranchError):
-        raise SystemExit(1)
+        return 0
+    except subprocess.CalledProcessError as e:
+        error = LandBranchError(
+            success=False,
+            error_type="merge_failed",
+            message=f"Command failed: {e}",
+            details={"error": str(e)},
+        )
+        print(json.dumps(asdict(error), indent=2), file=sys.stderr)
+        return 1
+    except Exception as e:
+        error = LandBranchError(
+            success=False,
+            error_type="merge_failed",
+            message=f"Unexpected error: {e}",
+            details={"error": str(e)},
+        )
+        print(json.dumps(asdict(error), indent=2), file=sys.stderr)
+        return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())
