@@ -1,0 +1,11 @@
+name: gt
+version: 0.1.0
+description: Graphite stack management with landing and submission commands
+license: MIT
+artifacts:
+  command:
+  - commands/gt/land-branch.md
+  - commands/gt/submit-branch.md
+  skill:
+  - skills/gt/graphite/
+sync_source: workstack-dev

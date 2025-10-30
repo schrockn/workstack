@@ -42,6 +42,9 @@ clean:
 sync-kit:
 	uv run workstack-dev sync-kit devrun
 
+sync-gt-kit:
+	uv run workstack-dev sync-kit gt
+
 # Build workstack and dot-agent-kit packages
 build: clean
 	uv build --package dot-agent-kit -o dist

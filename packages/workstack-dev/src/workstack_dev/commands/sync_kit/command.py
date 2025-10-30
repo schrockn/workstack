@@ -48,8 +48,8 @@ def check_artifact_in_sync(
     """Check if an artifact is in sync between source and destination.
 
     Args:
-        source_path: The source file path
-        dest_path: The destination file path
+        source_path: The source file or directory path
+        dest_path: The destination file or directory path
         artifact_path: The relative artifact path for display
 
     Returns:
@@ -61,12 +61,47 @@ def check_artifact_in_sync(
     if not dest_path.exists():
         return False, "destination not found"
 
-    # Compare file contents
-    source_content = source_path.read_bytes()
-    dest_content = dest_path.read_bytes()
-    if source_content != dest_content:
-        return False, "content differs"
-    return True, None
+    # Check if source is a directory
+    if source_path.is_dir():
+        # Ensure destination is also a directory
+        if not dest_path.is_dir():
+            return False, "source is directory, destination is not"
+
+        # Compare directory contents recursively
+        source_files = {
+            p.relative_to(source_path): p for p in source_path.rglob("*") if p.is_file()
+        }
+        dest_files = {p.relative_to(dest_path): p for p in dest_path.rglob("*") if p.is_file()}
+
+        # Check for missing files in destination
+        missing_in_dest = source_files.keys() - dest_files.keys()
+        if missing_in_dest:
+            return False, f"missing in destination: {sorted(missing_in_dest)[0]}"
+
+        # Check for extra files in destination
+        extra_in_dest = dest_files.keys() - source_files.keys()
+        if extra_in_dest:
+            return False, f"extra in destination: {sorted(extra_in_dest)[0]}"
+
+        # Compare contents of common files
+        for rel_path in source_files:
+            source_content = source_files[rel_path].read_bytes()
+            dest_content = dest_files[rel_path].read_bytes()
+            if source_content != dest_content:
+                return False, f"content differs: {rel_path}"
+
+        return True, None
+    else:
+        # Ensure destination is also a file
+        if dest_path.is_dir():
+            return False, "source is file, destination is directory"
+
+        # Compare file contents
+        source_content = source_path.read_bytes()
+        dest_content = dest_path.read_bytes()
+        if source_content != dest_content:
+            return False, "content differs"
+        return True, None
 
 
 def sync_artifact(
@@ -78,9 +113,11 @@ def sync_artifact(
 ) -> bool:
     """Sync a single artifact from source to destination.
 
+    Auto-detects whether source is a file or directory and syncs accordingly.
+
     Args:
-        source_path: The source file path
-        dest_path: The destination file path
+        source_path: The source file or directory path
+        dest_path: The destination file or directory path
         artifact_path: The relative artifact path for display
         dry_run: Whether this is a dry run
         verbose: Whether to show verbose output
@@ -92,22 +129,34 @@ def sync_artifact(
         click.echo(f"  ⚠ {artifact_path} (source not found)", err=True)
         return False
 
+    is_directory = source_path.is_dir()
+
     if verbose:
         click.echo(f"  {source_path}")
         click.echo(f"  → {dest_path}")
+        if is_directory:
+            click.echo("  (directory - will sync recursively)")
 
     if not dry_run:
-        # Create parent directories if needed
-        dest_path.parent.mkdir(parents=True, exist_ok=True)
-
-        # Copy the file
         try:
-            shutil.copy2(source_path, dest_path)
-            if verbose:
-                size_kb = source_path.stat().st_size / 1024
-                click.echo(f"  ✓ Synced ({size_kb:.1f} KB)")
+            if is_directory:
+                # Copy entire directory recursively
+                shutil.copytree(source_path, dest_path, dirs_exist_ok=True)
+                if verbose:
+                    # Count files in directory
+                    file_count = sum(1 for _ in dest_path.rglob("*") if _.is_file())
+                    click.echo(f"  ✓ Synced directory ({file_count} files)")
+                else:
+                    click.echo(f"✓ {artifact_path}")
             else:
-                click.echo(f"✓ {artifact_path}")
+                # Copy single file
+                dest_path.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(source_path, dest_path)
+                if verbose:
+                    size_kb = source_path.stat().st_size / 1024
+                    click.echo(f"  ✓ Synced ({size_kb:.1f} KB)")
+                else:
+                    click.echo(f"✓ {artifact_path}")
             return True
         except Exception as e:
             click.echo(f"  ✗ {artifact_path} (error: {e})", err=True)
