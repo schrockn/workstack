@@ -3,8 +3,10 @@ import click
 from dot_agent_kit import __version__
 from dot_agent_kit.commands import check, init, install, list, remove, search, status, sync, update
 
+CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
-@click.group(invoke_without_command=True)
+
+@click.group(invoke_without_command=True, context_settings=CONTEXT_SETTINGS)
 @click.version_option(version=__version__)
 @click.pass_context
 def cli(ctx: click.Context) -> None:
