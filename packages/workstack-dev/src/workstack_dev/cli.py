@@ -17,8 +17,10 @@ from workstack_dev.commands.publish_to_pypi.command import publish_to_pypi_comma
 from workstack_dev.commands.reserve_pypi_name.command import reserve_pypi_name_command
 from workstack_dev.commands.sync_kit.command import sync_kit_command
 
+CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
-@click.group(name="workstack-dev")
+
+@click.group(name="workstack-dev", context_settings=CONTEXT_SETTINGS)
 def cli() -> None:
     """Development tools for workstack."""
     pass
