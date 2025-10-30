@@ -223,6 +223,72 @@ gt submit --stack
 - **Combine work** → `gt fold` (merge into parent)
 - **Split work** → `gt split` (break into branches)
 
+## Python Scripts
+
+This skill includes Python scripts using `uv run` for isolated execution:
+
+### land_branch.py
+
+Lands a single PR from a Graphite stack without affecting upstack branches.
+
+**Usage**:
+
+```bash
+uv run .claude/skills/gt-graphite/scripts/land_branch.py
+```
+
+**Output**: JSON object with success or error information
+
+**Success Example**:
+
+```json
+{
+  "success": true,
+  "pr_number": 123,
+  "branch_name": "feature-branch",
+  "child_branch": "next-feature",
+  "message": "Successfully merged PR #123 for branch feature-branch"
+}
+```
+
+**Error Example**:
+
+```json
+{
+  "success": false,
+  "error_type": "multiple_children",
+  "message": "Branch has multiple children (not a linear stack)\n\nChildren: child-1, child-2\n\nThis command only works with linear stacks. Please use a branch with 0 or 1 children.",
+  "details": {
+    "current_branch": "feature-branch",
+    "children": ["child-1", "child-2"]
+  }
+}
+```
+
+**Dependencies**: None (uses standard library only)
+
+**How it works**:
+
+1. Uses `git branch --show-current` to get current branch
+2. Uses `gt parent` to validate parent is "main"
+3. Uses `gh pr view --json state,number` to check PR exists and is open
+4. Uses `gt children` to validate linear stack (0 or 1 children)
+5. Uses `gh pr merge -s` to squash-merge the PR
+6. Uses `gt up` to navigate to child branch if one exists
+
+**Exit codes**:
+
+- `0` - Success (PR merged successfully)
+- `1` - Error (validation failed or merge failed)
+
+**Error types**:
+
+- `parent_not_main` - Branch parent is not "main"
+- `no_pr_found` - No PR exists for this branch
+- `pr_not_open` - PR exists but is not in OPEN state
+- `multiple_children` - Branch has more than 1 child (non-linear stack)
+- `merge_failed` - PR merge operation failed
+
 ## Resources
 
 ### references/
