@@ -48,8 +48,8 @@ def check_artifact_in_sync(
     """Check if an artifact is in sync between source and destination.
 
     Args:
-        source_path: The source file path
-        dest_path: The destination file path
+        source_path: The source file or directory path
+        dest_path: The destination file or directory path
         artifact_path: The relative artifact path for display
 
     Returns:
@@ -61,12 +61,45 @@ def check_artifact_in_sync(
     if not dest_path.exists():
         return False, "destination not found"
 
-    # Compare file contents
-    source_content = source_path.read_bytes()
-    dest_content = dest_path.read_bytes()
-    if source_content != dest_content:
-        return False, "content differs"
-    return True, None
+    # Check if source is a directory
+    if source_path.is_dir():
+        # Ensure destination is also a directory
+        if not dest_path.is_dir():
+            return False, "source is directory, destination is not"
+
+        # Compare directory contents recursively
+        source_files = {p.relative_to(source_path): p for p in source_path.rglob("*") if p.is_file()}
+        dest_files = {p.relative_to(dest_path): p for p in dest_path.rglob("*") if p.is_file()}
+
+        # Check for missing files in destination
+        missing_in_dest = source_files.keys() - dest_files.keys()
+        if missing_in_dest:
+            return False, f"missing in destination: {sorted(missing_in_dest)[0]}"
+
+        # Check for extra files in destination
+        extra_in_dest = dest_files.keys() - source_files.keys()
+        if extra_in_dest:
+            return False, f"extra in destination: {sorted(extra_in_dest)[0]}"
+
+        # Compare contents of common files
+        for rel_path in source_files:
+            source_content = source_files[rel_path].read_bytes()
+            dest_content = dest_files[rel_path].read_bytes()
+            if source_content != dest_content:
+                return False, f"content differs: {rel_path}"
+
+        return True, None
+    else:
+        # Ensure destination is also a file
+        if dest_path.is_dir():
+            return False, "source is file, destination is directory"
+
+        # Compare file contents
+        source_content = source_path.read_bytes()
+        dest_content = dest_path.read_bytes()
+        if source_content != dest_content:
+            return False, "content differs"
+        return True, None
 
 
 def sync_artifact(

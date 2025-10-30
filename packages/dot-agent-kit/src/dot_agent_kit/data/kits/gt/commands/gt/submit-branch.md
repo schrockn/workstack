@@ -162,6 +162,15 @@ Flags explained:
 - `--no-interactive`: Skip interactive prompts and automatically sync commit message to PR description
 - `--restack`: Restack branches before submitting. If there are conflicts, output the branch names that could not be restacked
 
+**If `gt submit` fails with "updated remotely" or "Must sync" error:**
+
+1. **STOP immediately** - do not retry or attempt to resolve automatically
+2. Report to the user that the branch has diverged from remote
+3. Show the error message from `gt submit`
+4. Exit the command and let the user manually resolve the divergence with `gt sync` or force push
+
+**Rationale**: Branch divergence requires user decision about how to resolve (sync, force push, or manual merge). The command should not make this decision automatically
+
 ### 5. Show Results
 
 After submission, show:
@@ -180,7 +189,21 @@ After submission, show:
 
 ## Error Handling
 
-If any step fails:
+### Branch Divergence
+
+If `gt submit` fails with "Branch has been updated remotely" or "Must sync with remote":
+
+1. **STOP immediately** - do not retry or attempt automatic resolution
+2. Report to the user that the branch has diverged from remote
+3. Show the error message from `gt submit`
+4. Explain that the user needs to manually resolve with `gt sync` or other approach
+5. Exit the command
+
+**Rationale**: Branch divergence requires user decision about resolution strategy. The command should not make this decision automatically.
+
+### Other Errors
+
+If any other step fails:
 
 - Report the specific command that failed
 - Show the error message
