@@ -1,5 +1,5 @@
 ---
-name: devrun/prettier
+name: devrun-prettier
 description: prettier code formatter patterns, command syntax, and output parsing guidance for multi-language code formatting.
 ---
 

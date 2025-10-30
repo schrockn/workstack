@@ -1,5 +1,5 @@
 ---
-name: devrun/gt
+name: devrun-gt
 description: Graphite (gt) command execution patterns, output parsing guidance, and special handling for gt CLI operations.
 ---
 
@@ -18,7 +18,7 @@ Counts commits in current branch that aren't in parent branch.
 **Usage**:
 
 ```bash
-uv run .claude/skills/devrun/gt/scripts/count_branch_commits.py [directory]
+uv run .claude/skills/devrun-gt/scripts/count_branch_commits.py [directory]
 ```
 
 **Output**: Single integer (commit count)
@@ -26,7 +26,7 @@ uv run .claude/skills/devrun/gt/scripts/count_branch_commits.py [directory]
 **Example**:
 
 ```bash
-$ uv run .claude/skills/devrun/gt/scripts/count_branch_commits.py
+$ uv run .claude/skills/devrun-gt/scripts/count_branch_commits.py
 3
 ```
 
@@ -248,7 +248,7 @@ Used in squash pre-check - single commit means squash not needed
 
 **Before executing `gt squash`:**
 
-1. Count commits: `uv run .claude/skills/devrun/gt/scripts/count_branch_commits.py`
+1. Count commits: `uv run .claude/skills/devrun-gt/scripts/count_branch_commits.py`
 2. If count equals 1:
    - DO NOT execute squash command
    - Return success with message: "Branch has only 1 commit - squash not required"
@@ -372,7 +372,7 @@ Based on command, determine expected output format:
 
 ### Squash with Single Commit
 
-**Pre-check**: `uv run .claude/skills/devrun/gt/scripts/count_branch_commits.py` returns `1`
+**Pre-check**: `uv run .claude/skills/devrun-gt/scripts/count_branch_commits.py` returns `1`
 
 **Command**: `gt squash` (skipped due to pre-check)
 

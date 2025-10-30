@@ -1,5 +1,5 @@
 ---
-name: devrun/pytest
+name: devrun-pytest
 description: pytest testing framework patterns, command syntax, and output parsing guidance for Python test execution.
 ---
 

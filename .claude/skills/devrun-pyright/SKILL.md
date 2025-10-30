@@ -1,5 +1,5 @@
 ---
-name: devrun/pyright
+name: devrun-pyright
 description: pyright type checker patterns, command syntax, and output parsing guidance for Python static type analysis.
 ---
 

@@ -6,7 +6,7 @@ import pytest
 import yaml
 from click.testing import CliRunner
 
-from workstack_dev.commands.sync_kit.command import sync_kit_command, validate_namespace_pattern
+from workstack_dev.commands.sync_kit.command import sync_kit_command
 
 
 def get_bundle_dir(base_path: Path, kit_name: str) -> Path:
@@ -29,35 +29,6 @@ def get_bundle_dir(base_path: Path, kit_name: str) -> Path:
         / "kits"
         / kit_name
     )
-
-
-class TestNamespaceValidation:
-    """Test namespace pattern validation."""
-
-    def test_valid_agent_namespace(self):
-        """Test valid agent namespace pattern."""
-        is_valid, error = validate_namespace_pattern("agents/devrun/runner.md", "devrun")
-        assert is_valid is True
-        assert error is None
-
-    def test_valid_skill_namespace(self):
-        """Test valid skill namespace pattern."""
-        is_valid, error = validate_namespace_pattern("skills/devrun/make/SKILL.md", "devrun")
-        assert is_valid is True
-        assert error is None
-
-    def test_invalid_too_shallow(self):
-        """Test invalid pattern that's too shallow."""
-        is_valid, error = validate_namespace_pattern("agents/runner.md", "devrun")
-        assert is_valid is False
-        assert "too shallow" in error
-
-    def test_invalid_wrong_namespace(self):
-        """Test invalid pattern with wrong namespace."""
-        is_valid, error = validate_namespace_pattern("skills/pytest/SKILL.md", "devrun")
-        assert is_valid is False
-        assert "not namespaced correctly" in error
-        assert "skills/devrun/" in error
 
 
 class TestSyncKitCommand:
@@ -149,8 +120,6 @@ class TestSyncKitCommand:
         assert result.exit_code == 0
         assert "Bundle path:" in result.output
         assert "Loading manifest: kit.yaml" in result.output
-        assert "Validating namespace patterns..." in result.output
-        assert "✓ agents/testkit/test-agent.md (valid)" in result.output
 
     def test_missing_kit(self, temp_project, monkeypatch):
         """Test error when kit doesn't exist."""
@@ -174,32 +143,6 @@ class TestSyncKitCommand:
 
         assert result.exit_code == 1
         assert "Error: Manifest not found" in result.output
-
-    def test_namespace_validation_failure(self, temp_project, monkeypatch):
-        """Test sync is blocked when namespace validation fails."""
-        monkeypatch.chdir(temp_project)
-
-        # Update manifest with invalid namespace patterns
-        bundle_dir = get_bundle_dir(temp_project, "testkit")
-        manifest = {
-            "name": "testkit",
-            "version": "1.0.0",
-            "artifacts": {
-                "agent": ["agents/runner.md"],  # Missing namespace
-                "skill": ["skills/pytest/SKILL.md"],  # Wrong namespace
-            },
-        }
-        manifest_file = bundle_dir / "kit.yaml"
-        manifest_file.write_text(yaml.dump(manifest))
-
-        runner = CliRunner()
-        result = runner.invoke(sync_kit_command, ["testkit"])
-
-        assert result.exit_code == 1
-        assert "Error: Kit 'testkit' does not follow required namespace pattern" in result.output
-        assert "too shallow" in result.output
-        assert "not namespaced correctly" in result.output
-        assert "Sync aborted" in result.output
 
     def test_missing_source_file(self, temp_project, monkeypatch):
         """Test warning when source file is missing."""
@@ -408,3 +351,147 @@ class TestSyncKitCommand:
 
         assert result.exit_code == 1
         assert "No kits found with sync_source: workstack-dev" in result.output
+
+    def test_check_mode_files_in_sync(self, temp_project, monkeypatch):
+        """Test check mode when files are in sync."""
+        monkeypatch.chdir(temp_project)
+        runner = CliRunner()
+
+        # First sync the files
+        result = runner.invoke(sync_kit_command, ["testkit"])
+        assert result.exit_code == 0
+
+        # Now check - should succeed
+        result = runner.invoke(sync_kit_command, ["testkit", "--check"])
+        assert result.exit_code == 0
+        assert "Checking kit: testkit" in result.output
+        assert "All 2 artifact(s) are in sync" in result.output
+
+    def test_check_mode_files_out_of_sync(self, temp_project, monkeypatch):
+        """Test check mode when files are out of sync."""
+        monkeypatch.chdir(temp_project)
+        runner = CliRunner()
+
+        # First sync the files
+        result = runner.invoke(sync_kit_command, ["testkit"])
+        assert result.exit_code == 0
+
+        # Modify a source file
+        claude_dir = temp_project / ".claude"
+        agent_file = claude_dir / "agents" / "testkit" / "test-agent.md"
+        agent_file.write_text("# Modified Test Agent")
+
+        # Now check - should fail
+        result = runner.invoke(sync_kit_command, ["testkit", "--check"])
+        assert result.exit_code == 1
+        assert "Checking kit: testkit" in result.output
+        assert "content differs" in result.output
+        assert "Check failed: 1 artifact(s) out of sync" in result.output
+
+    def test_check_mode_destination_missing(self, temp_project, monkeypatch):
+        """Test check mode when destination file is missing."""
+        monkeypatch.chdir(temp_project)
+        runner = CliRunner()
+
+        # Run check without syncing first - destination files don't exist
+        result = runner.invoke(sync_kit_command, ["testkit", "--check"])
+        assert result.exit_code == 1
+        assert "destination not found" in result.output
+        assert "Check failed: 2 artifact(s) out of sync" in result.output
+
+    def test_check_mode_verbose(self, temp_project, monkeypatch):
+        """Test check mode with verbose output."""
+        monkeypatch.chdir(temp_project)
+        runner = CliRunner()
+
+        # First sync the files
+        result = runner.invoke(sync_kit_command, ["testkit"])
+        assert result.exit_code == 0
+
+        # Check with verbose flag
+        result = runner.invoke(sync_kit_command, ["testkit", "--check", "--verbose"])
+        assert result.exit_code == 0
+        assert "Checking if artifacts are in sync..." in result.output
+        assert "✓ agents/testkit/test-agent.md" in result.output
+        assert "✓ skills/testkit/test-skill/SKILL.md" in result.output
+
+    def test_check_and_dry_run_conflict(self, temp_project, monkeypatch):
+        """Test that --check and --dry-run cannot be used together."""
+        monkeypatch.chdir(temp_project)
+        runner = CliRunner()
+
+        result = runner.invoke(sync_kit_command, ["testkit", "--check", "--dry-run"])
+        assert result.exit_code == 1
+        assert "--check and --dry-run cannot be used together" in result.output
+
+    def test_check_all_kits_in_sync(self, tmp_path, monkeypatch):
+        """Test check mode for all kits when in sync."""
+        monkeypatch.chdir(tmp_path)
+
+        # Create .claude directory with artifacts
+        claude_dir = tmp_path / ".claude"
+        claude_dir.mkdir()
+        (claude_dir / "agents" / "devkit").mkdir(parents=True)
+        (claude_dir / "agents" / "devkit" / "agent.md").write_text("# Dev Agent")
+
+        # Create bundle structure
+        devkit_bundle = get_bundle_dir(tmp_path, "devkit")
+        devkit_bundle.mkdir(parents=True)
+        (devkit_bundle / "kit.yaml").write_text(
+            yaml.dump(
+                {
+                    "name": "devkit",
+                    "version": "1.0.0",
+                    "sync_source": "workstack-dev",
+                    "artifacts": {"agent": ["agents/devkit/agent.md"]},
+                }
+            )
+        )
+
+        # First sync
+        runner = CliRunner()
+        result = runner.invoke(sync_kit_command, [])
+        assert result.exit_code == 0
+
+        # Now check all kits
+        result = runner.invoke(sync_kit_command, ["--check"])
+        assert result.exit_code == 0
+        assert "Checking 1 kit(s): devkit" in result.output
+        assert "All 1 artifact(s) are in sync" in result.output
+
+    def test_check_all_kits_out_of_sync(self, tmp_path, monkeypatch):
+        """Test check mode for all kits when out of sync."""
+        monkeypatch.chdir(tmp_path)
+
+        # Create .claude directory with artifacts
+        claude_dir = tmp_path / ".claude"
+        claude_dir.mkdir()
+        (claude_dir / "agents" / "devkit").mkdir(parents=True)
+        (claude_dir / "agents" / "devkit" / "agent.md").write_text("# Dev Agent")
+
+        # Create bundle structure
+        devkit_bundle = get_bundle_dir(tmp_path, "devkit")
+        devkit_bundle.mkdir(parents=True)
+        (devkit_bundle / "kit.yaml").write_text(
+            yaml.dump(
+                {
+                    "name": "devkit",
+                    "version": "1.0.0",
+                    "sync_source": "workstack-dev",
+                    "artifacts": {"agent": ["agents/devkit/agent.md"]},
+                }
+            )
+        )
+
+        # First sync
+        runner = CliRunner()
+        result = runner.invoke(sync_kit_command, [])
+        assert result.exit_code == 0
+
+        # Modify source
+        (claude_dir / "agents" / "devkit" / "agent.md").write_text("# Modified Dev Agent")
+
+        # Now check all kits - should fail
+        result = runner.invoke(sync_kit_command, ["--check"])
+        assert result.exit_code == 1
+        assert "content differs" in result.output

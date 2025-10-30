@@ -46,6 +46,69 @@
 
 ---
 
+## 🟢 AGENT EXECUTION (Cost & Context Optimization)
+
+**This codebase uses specialized agents for CLI tool execution and code analysis. These agents are cost-optimized and preserve context better than direct execution.**
+
+### Why Use Agents?
+
+- **Token Efficiency**: Subagent contexts don't pollute parent agent's context
+- **Cost Optimization**: Uses Haiku model for command execution (cheaper than Sonnet)
+- **Output Parsing**: Automatically parses tool output into structured format
+- **Context Isolation**: Large command outputs stay in subagent, not main conversation
+- **Skill Loading**: Automatically loads tool-specific skills for better results
+
+### When to Use Agents
+
+**ALWAYS use the Task tool with appropriate agent for:**
+
+| Tool Type                                       | Agent                 | Example                                                                 |
+| ----------------------------------------------- | --------------------- | ----------------------------------------------------------------------- |
+| `make`, `pytest`, `pyright`, `ruff`, `prettier` | `runner`              | Task(subagent_type="runner", prompt="Execute: make all-ci")             |
+| `gt` commands (Graphite)                        | `runner`              | Task(subagent_type="runner", prompt="Execute: gt submit")               |
+| Branch/diff analysis                            | `git-diff-summarizer` | Task(subagent_type="git-diff-summarizer", prompt="Analyze all changes") |
+
+### Agent Invocation Pattern
+
+```python
+Task(
+    subagent_type="runner",  # or "git-diff-summarizer", etc.
+    description="Brief description of task",
+    prompt="Execute: <command>"
+)
+```
+
+### Common Mistakes
+
+```python
+# ❌ WRONG: Direct Bash for CLI tools
+Bash("make all-ci")
+Bash("uv run pytest tests/")
+Bash("gt submit --publish")
+
+# ✅ CORRECT: Use runner agent
+Task(subagent_type="runner", description="Run CI checks", prompt="Execute: make all-ci")
+Task(subagent_type="runner", description="Run tests", prompt="Execute: uv run pytest tests/")
+Task(subagent_type="runner", description="Submit branch", prompt="Execute: gt submit --publish")
+
+# ❌ WRONG: Manual git diff parsing
+result = Bash("git diff main...HEAD")
+# ...parse output manually...
+
+# ✅ CORRECT: Use git-diff-summarizer agent
+Task(subagent_type="git-diff-summarizer", prompt="Analyze all changes in this branch")
+```
+
+### What Can Use Bash Directly?
+
+Git operations (read-only): `git status`, `git log`, `git diff`, `git branch`, etc.
+File system operations: `ls`, `cat`, `find`, etc.
+Simple shell commands: `echo`, `pwd`, etc.
+
+🔴 **CRITICAL**: Using Bash directly for CLI tools (`make`, `pytest`, `ruff`, `gt`) wastes tokens, pollutes context, and bypasses cost optimization. This is expensive and inefficient.
+
+---
+
 ## 🔴 TOP 5 CRITICAL RULES (Most Violated)
 
 ### 1. Exception Handling 🔴 MUST
