@@ -11,5 +11,3 @@ class RegistryEntry:
     name: str
     description: str
     source: str
-    author: str | None = None
-    tags: list[str] | None = None

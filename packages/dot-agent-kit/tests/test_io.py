@@ -72,7 +72,6 @@ def test_load_kit_manifest(tmp_path: Path) -> None:
         "artifacts:\n"
         "  agent:\n"
         "    - agents/test.md\n"
-        "author: Test Author\n"
         "license: MIT\n"
         "homepage: https://example.com\n",
         encoding="utf-8",
@@ -84,7 +83,6 @@ def test_load_kit_manifest(tmp_path: Path) -> None:
     assert manifest.version == "1.0.0"
     assert manifest.description == "Test kit"
     assert manifest.artifacts == {"agent": ["agents/test.md"]}
-    assert manifest.author == "Test Author"
     assert manifest.license == "MIT"
     assert manifest.homepage == "https://example.com"
 
@@ -103,7 +101,6 @@ def test_load_kit_manifest_minimal(tmp_path: Path) -> None:
     assert manifest.version == "1.0.0"
     assert manifest.description == "Test kit"
     assert manifest.artifacts == {}
-    assert manifest.author is None
     assert manifest.license is None
     assert manifest.homepage is None
 

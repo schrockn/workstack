@@ -24,7 +24,6 @@ def search(query: str | None) -> None:
             if query_lower in entry.name.lower()
             or query_lower in entry.description.lower()
             or query_lower in entry.kit_id.lower()
-            or (entry.tags and any(query_lower in tag.lower() for tag in entry.tags))
         ]
     else:
         filtered = registry
@@ -40,11 +39,4 @@ def search(query: str | None) -> None:
         click.echo(f"  {entry.name}")
         click.echo(f"  └─ {entry.description}")
         click.echo(f"     Source: {entry.source}")
-
-        if entry.author:
-            click.echo(f"     Author: {entry.author}")
-
-        if entry.tags:
-            click.echo(f"     Tags: {', '.join(entry.tags)}")
-
         click.echo()
