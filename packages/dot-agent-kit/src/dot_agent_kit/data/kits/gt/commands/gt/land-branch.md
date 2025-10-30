@@ -28,15 +28,15 @@ This command takes no arguments and operates on the current branch.
 
 When this command is invoked:
 
-### Step 1: Execute land-branch command
+### Step 1: Execute land-branch script
 
-Run the workstack-dev command with JSON output:
+Run the embedded gt-graphite script with JSON output:
 
 ```bash
-workstack-dev land-branch --format json
+uv run .claude/skills/gt-graphite/scripts/land_branch.py
 ```
 
-This command encapsulates all the validation and execution logic in Python, returning a structured JSON result.
+This script encapsulates all the validation and execution logic in Python, returning a structured JSON result.
 
 ### Step 2: Parse and display result
 
@@ -80,7 +80,7 @@ Display the error message from the JSON response and exit with error status. The
 
 When executing this command, create these todos:
 
-1. "Execute workstack-dev land-branch" / "Executing workstack-dev land-branch"
+1. "Execute land-branch script" / "Executing land-branch script"
 2. "Parse result and display to user" / "Parsing result and displaying to user"
 
 Start with todo 1 as `in_progress`, rest as `pending`. Mark each as `completed` immediately after finishing.
@@ -91,7 +91,7 @@ Start with todo 1 as `in_progress`, rest as `pending`. Mark each as `completed` 
 - **Branch must be exactly one level up from main** (parent must be "main")
 - **PR must be open** before running this command
 - **No explicit rebase** - `gh pr merge` will validate mergeability
-- **Use `workstack up`** for navigation to automatically move to the child branch in the stack
+- **Uses `gt up`** for navigation to automatically move to the child branch in the stack
 
 ## Error Handling
 

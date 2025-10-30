@@ -19,6 +19,7 @@ The `make all-ci` target runs these checks in order:
 3. **prettier-check** - Markdown formatting checks
 4. **pyright** - Type checking
 5. **test** - Pytest test suite
+6. **sync-kit** - Kit synchronization validation
 
 ## Iteration Process
 
@@ -80,6 +81,17 @@ Task tool with:
 - subagent_type: runner
 - description: "Run make prettier from repo root"
 - prompt: "Change to repository root and execute: make prettier"
+```
+
+#### Sync-Kit Failures
+
+Use the runner agent via the Task tool:
+
+```
+Task tool with:
+- subagent_type: runner
+- description: "Run workstack-dev sync-kit"
+- prompt: "Execute: uv run workstack-dev sync-kit"
 ```
 
 #### Pyright Type Errors
@@ -181,6 +193,7 @@ All CI checks passed after N iteration(s):
 - Prettier: PASSED
 - Pyright: PASSED
 - Tests: PASSED
+- Sync-Kit: PASSED
 
 The code is ready for commit/PR.
 ```

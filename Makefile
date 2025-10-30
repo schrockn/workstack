@@ -1,4 +1,4 @@
-.PHONY: format format-check lint prettier prettier-check pyright upgrade-pyright test all-ci clean publish fix
+.PHONY: format format-check lint prettier prettier-check pyright upgrade-pyright test all-ci sync-kit-check clean publish fix
 
 prettier:
 	prettier --write '**/*.md' --ignore-path .gitignore
@@ -32,7 +32,11 @@ test-dot-agent-kit:
 
 test: test-workstack-dev test-dot-agent-kit
 
-all-ci: lint format-check prettier-check pyright test
+sync-kit-check:
+	uv run workstack-dev sync-kit --check devrun
+	uv run workstack-dev sync-kit --check gt
+
+all-ci: lint format-check prettier-check pyright test sync-kit-check
 
 # Clean build artifacts
 clean:
