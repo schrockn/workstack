@@ -218,11 +218,6 @@ def list_cmd(kit_id: str | None, artifacts: bool, sources: list[KitSource] | Non
 
     When KIT_ID is provided, shows detailed information about that kit.
     Without arguments, lists all available kits.
-
-    Args:
-        kit_id: Optional kit ID to show details for
-        artifacts: Whether to show individual artifacts within each kit (list mode only)
-        sources: List of kit sources to check (for testing only)
     """
     # If a specific kit is requested, show details
     if kit_id is not None:
@@ -261,12 +256,10 @@ def list_cmd(kit_id: str | None, artifacts: bool, sources: list[KitSource] | Non
     help="Show individual artifacts within each kit",
 )
 def ls_cmd(kit_id: str | None, artifacts: bool, sources: list[KitSource] | None = None) -> None:
-    """List installed and available kits, or show details for a specific kit (alias of 'list').
+    """List installed and available kits, or show details for a specific kit.
 
-    Args:
-        kit_id: Optional kit ID to show details for
-        artifacts: Whether to show individual artifacts within each kit (list mode only)
-        sources: List of kit sources to check (for testing only)
+    When KIT_ID is provided, shows detailed information about that kit.
+    Without arguments, lists all available kits.
     """
     # If a specific kit is requested, show details
     if kit_id is not None:
