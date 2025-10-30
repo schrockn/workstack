@@ -68,7 +68,9 @@ def check_artifact_in_sync(
             return False, "source is directory, destination is not"
 
         # Compare directory contents recursively
-        source_files = {p.relative_to(source_path): p for p in source_path.rglob("*") if p.is_file()}
+        source_files = {
+            p.relative_to(source_path): p for p in source_path.rglob("*") if p.is_file()
+        }
         dest_files = {p.relative_to(dest_path): p for p in dest_path.rglob("*") if p.is_file()}
 
         # Check for missing files in destination
