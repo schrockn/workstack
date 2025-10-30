@@ -6,7 +6,7 @@ import click
 
 from dot_agent_kit.io import load_project_config, save_project_config
 from dot_agent_kit.operations import check_for_updates, sync_all_kits, sync_kit
-from dot_agent_kit.sources import KitResolver, StandalonePackageSource
+from dot_agent_kit.sources import BundledKitSource, KitResolver, StandalonePackageSource
 
 
 @click.command()
@@ -29,9 +29,7 @@ def sync(kit_id: str | None, verbose: bool) -> None:
         click.echo("No kits installed")
         return
 
-    # TODO: Add BundledKitSource() to support syncing bundled kits
-    # resolver = KitResolver(sources=[BundledKitSource(), StandalonePackageSource()])
-    resolver = KitResolver(sources=[StandalonePackageSource()])
+    resolver = KitResolver(sources=[BundledKitSource(), StandalonePackageSource()])
 
     # Sync specific kit or all kits
     if kit_id is not None:
