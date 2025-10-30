@@ -3,6 +3,7 @@
 from pathlib import Path
 
 import click
+import frontmatter
 
 from dot_agent_kit.io import (
     create_default_config,
@@ -19,9 +20,55 @@ from dot_agent_kit.sources import (
 )
 
 
-def _get_artifact_name(artifact_path: str) -> str:
-    """Extract artifact name from path (strip extension)."""
-    return Path(artifact_path).stem
+def _get_artifact_name(
+    artifact_path: str,
+    artifact_type: str,
+    artifacts_base: Path,
+    kit_id: str | None = None,
+) -> str:
+    """Extract artifact name from frontmatter metadata.
+
+    Args:
+        artifact_path: Relative path to artifact file (e.g., "skills/devrun-make/SKILL.md")
+        artifact_type: Type of artifact ("skill", "command", "agent")
+        artifacts_base: Base directory containing the artifacts
+        kit_id: Kit ID for prefixing (used for commands)
+
+    Returns:
+        Artifact name from frontmatter, or derived from path as fallback:
+        - skill: "name" field from frontmatter
+        - command: "kit:filename" format (commands don't have name field)
+        - agent: "name" field from frontmatter
+    """
+    # Construct full path to artifact file
+    full_path = artifacts_base / artifact_path
+
+    # Read and parse frontmatter if file exists
+    if full_path.exists():
+        post = frontmatter.load(str(full_path))
+
+        # For skills and agents, use "name" field from frontmatter
+        if artifact_type in ("skill", "agent") and "name" in post.metadata:
+            return str(post.metadata["name"])
+
+    # Fallback to path-based extraction
+    path = Path(artifact_path)
+
+    if artifact_type == "command":
+        # Commands don't have "name" in frontmatter
+        # Format: "kit:command-name"
+        # e.g., "commands/gt/land-branch.md" -> "gt:land-branch"
+        parent_dir = path.parent.name
+        filename = path.stem
+        return f"{parent_dir}:{filename}"
+    elif artifact_type == "skill":
+        # Fallback for skills: use parent directory name
+        # e.g., "skills/devrun-make/SKILL.md" -> "devrun-make"
+        return path.parent.name
+    else:
+        # Fallback for agents: use filename stem
+        # e.g., "agents/devrun/runner.md" -> "runner"
+        return path.stem
 
 
 def _show_kit_details(kit_id: str) -> None:
@@ -83,7 +130,9 @@ def _show_kit_details(kit_id: str) -> None:
     for artifact_type, artifact_paths in sorted(manifest.artifacts.items()):
         click.echo(f"  {artifact_type}:")
         for artifact_path in sorted(artifact_paths):
-            artifact_name = _get_artifact_name(artifact_path)
+            artifact_name = _get_artifact_name(
+                artifact_path, artifact_type, resolved.artifacts_base, kit_id
+            )
             click.echo(f"    - {artifact_name}")
 
     click.echo()
@@ -96,6 +145,7 @@ def _list_kits(
     show_artifacts: bool,
     config: ProjectConfig,
     manifests: dict[str, KitManifest],
+    artifacts_bases: dict[str, Path],
     sources: list[KitSource],
 ) -> None:
     """Internal function to list installed and available kits.
@@ -104,6 +154,7 @@ def _list_kits(
         show_artifacts: Whether to display individual artifacts for each kit
         config: Project configuration
         manifests: Mapping of kit_id -> manifest for artifact display
+        artifacts_bases: Mapping of kit_id -> artifacts base directory
         sources: List of kit sources to check for available kits
     """
     # Get available kits from all sources
@@ -138,14 +189,17 @@ def _list_kits(
 
         # Show artifacts if requested
         if show_artifacts:
-            # Look up manifest from provided dict
+            # Look up manifest and artifacts_base from provided dicts
             manifest = manifests.get(kit_id)
+            artifacts_base = artifacts_bases.get(kit_id)
 
-            if manifest:
+            if manifest and artifacts_base:
                 # Display artifacts grouped by type
                 for artifact_type, artifact_paths in manifest.artifacts.items():
                     for artifact_path in artifact_paths:
-                        artifact_name = _get_artifact_name(artifact_path)
+                        artifact_name = _get_artifact_name(
+                            artifact_path, artifact_type, artifacts_base, kit_id
+                        )
                         click.echo(f"  {artifact_type}: {artifact_name}")
 
             click.echo()
@@ -184,16 +238,18 @@ def list_cmd(kit_id: str | None, artifacts: bool, sources: list[KitSource] | Non
     loaded_config = load_project_config(project_dir)
     config = loaded_config if loaded_config is not None else create_default_config()
 
-    # Load manifests for all available kits
+    # Load manifests and artifacts bases for all available kits
     manifests: dict[str, KitManifest] = {}
+    artifacts_bases: dict[str, Path] = {}
     for source in sources:
         for kit_id in source.list_available():
             if source.can_resolve(kit_id):
                 resolved = source.resolve(kit_id)
                 if resolved.manifest_path.exists():
                     manifests[kit_id] = load_kit_manifest(resolved.manifest_path)
+                    artifacts_bases[kit_id] = resolved.artifacts_base
 
-    _list_kits(artifacts, config, manifests, sources)
+    _list_kits(artifacts, config, manifests, artifacts_bases, sources)
 
 
 @click.command("ls", hidden=True)
@@ -226,13 +282,15 @@ def ls_cmd(kit_id: str | None, artifacts: bool, sources: list[KitSource] | None 
     loaded_config = load_project_config(project_dir)
     config = loaded_config if loaded_config is not None else create_default_config()
 
-    # Load manifests for all available kits
+    # Load manifests and artifacts bases for all available kits
     manifests: dict[str, KitManifest] = {}
+    artifacts_bases: dict[str, Path] = {}
     for source in sources:
         for kit_id in source.list_available():
             if source.can_resolve(kit_id):
                 resolved = source.resolve(kit_id)
                 if resolved.manifest_path.exists():
                     manifests[kit_id] = load_kit_manifest(resolved.manifest_path)
+                    artifacts_bases[kit_id] = resolved.artifacts_base
 
-    _list_kits(artifacts, config, manifests, sources)
+    _list_kits(artifacts, config, manifests, artifacts_bases, sources)

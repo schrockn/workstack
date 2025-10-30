@@ -7,6 +7,7 @@ requires-python = ">=3.13"
 dependencies = [
     "click>=8.1.0",
     "pyyaml>=6.0",
+    "python-frontmatter>=1.0.0",
     "tomli>=2.0",
     "tomli-w>=1.0",
 ]
