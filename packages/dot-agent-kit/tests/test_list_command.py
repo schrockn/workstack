@@ -58,6 +58,7 @@ def test_list_with_bundled_kit(capsys: CaptureFixture[str]) -> None:
         show_artifacts=False,
         config=create_default_config(),
         manifests={},
+        artifacts_bases={},
         sources=[fake_source],
     )
 
@@ -84,7 +85,9 @@ def test_list_with_installed_kits(capsys: CaptureFixture[str]) -> None:
 
     fake_source = FakeKitSource(available_kits=[])
 
-    _list_kits(show_artifacts=False, config=config, manifests={}, sources=[fake_source])
+    _list_kits(
+        show_artifacts=False, config=config, manifests={}, artifacts_bases={}, sources=[fake_source]
+    )
 
     captured = capsys.readouterr()
     assert "test-kit [INSTALLED]" in captured.out
@@ -98,6 +101,7 @@ def test_list_no_kits(capsys: CaptureFixture[str]) -> None:
         show_artifacts=False,
         config=create_default_config(),
         manifests={},
+        artifacts_bases={},
         sources=[fake_source],
     )
 
@@ -113,7 +117,7 @@ def test_list_with_artifacts_flag(capsys: CaptureFixture[str]) -> None:
         description="A test kit",
         artifacts={
             "agent": ["agents/pytest-runner.md", "agents/ruff-runner.md"],
-            "command": ["commands/test-cmd.md"],
+            "command": ["commands/test-kit/test-cmd.md"],
         },
     )
 
@@ -123,6 +127,7 @@ def test_list_with_artifacts_flag(capsys: CaptureFixture[str]) -> None:
         show_artifacts=True,
         config=create_default_config(),
         manifests={"test-kit": manifest},
+        artifacts_bases={"test-kit": Path("/fake/test-kit")},
         sources=[fake_source],
     )
 
@@ -130,7 +135,7 @@ def test_list_with_artifacts_flag(capsys: CaptureFixture[str]) -> None:
     assert "test-kit [BUNDLED]" in captured.out
     assert "agent: pytest-runner" in captured.out
     assert "agent: ruff-runner" in captured.out
-    assert "command: test-cmd" in captured.out
+    assert "command: test-kit:test-cmd" in captured.out
 
 
 def test_list_bundled_and_installed(capsys: CaptureFixture[str]) -> None:
@@ -151,7 +156,9 @@ def test_list_bundled_and_installed(capsys: CaptureFixture[str]) -> None:
 
     fake_source = FakeKitSource(available_kits=["bundled-kit"])
 
-    _list_kits(show_artifacts=False, config=config, manifests={}, sources=[fake_source])
+    _list_kits(
+        show_artifacts=False, config=config, manifests={}, artifacts_bases={}, sources=[fake_source]
+    )
 
     captured = capsys.readouterr()
     assert "bundled-kit [BUNDLED]" in captured.out

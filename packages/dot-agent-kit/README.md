@@ -78,51 +78,33 @@ artifacts:
 
 The namespace directory (`my-kit/`) is **organizational only** - it doesn't become part of the invocation name.
 
-### Namespace Requirement for Kit Types
+**Hyphenated naming convention**: Artifacts should use hyphenated naming that combines the kit name with the artifact purpose (e.g., `skills/devrun-make/SKILL.md` → invoked as "devrun-make"). This is the standard pattern for bundled kits as it keeps the directory structure flat while maintaining clear namespacing. The directory name determines the invocation name.
 
-**Bundled kits** (distributed with packages): Namespacing is **required** and enforced. Non-namespaced kits will fail to install.
+### Namespace Standards for Kit Types
 
-**Project-local artifacts** (in `.claude/` not from kits): Namespacing is **optional**. These are project-specific and not distributed.
+**Bundled kits** (distributed with packages): Should follow hyphenated naming convention (e.g., `skills/kit-name-tool/`) to avoid naming conflicts and maintain clear organization.
 
-### Validation
+**Project-local artifacts** (in `.claude/` not from kits): Can use any naming structure. These are project-specific and not distributed.
 
-Bundled kits are automatically validated for namespace compliance during installation. If artifacts don't follow the required pattern, installation will fail with a clear error:
+### Adopting Hyphenated Naming
 
-```
-ValueError: Bundled kit 'my-kit' does not follow required namespace pattern:
-  - Artifact 'agents/helper.md' is not namespaced (too shallow).
-    Expected pattern: agents/my-kit/...
+To align with the standard hyphenated naming convention:
 
-All bundled kit artifacts must use the pattern: {type}s/my-kit/...
-```
-
-### Migration Guide
-
-If you have an existing kit without namespacing:
-
-1. **Create namespace directories:**
+1. **Flatten directory structure with hyphenated names:**
 
    ```bash
-   mkdir -p agents/{kit-name}
-   mkdir -p skills/{kit-name}
-   mkdir -p commands/{kit-name}
+   # Example: Convert skills/devrun/make/ to skills/devrun-make/
+   mv skills/devrun/make skills/devrun-make
+   mv skills/devrun/pytest skills/devrun-pytest
    ```
 
-2. **Move artifacts into namespaced directories:**
-
-   ```bash
-   mv agents/*.md agents/{kit-name}/
-   mv skills/* skills/{kit-name}/
-   ```
-
-3. **Update kit.yaml artifact paths:**
+2. **Update kit.yaml artifact paths:**
 
    ```yaml
    artifacts:
-     agent:
-       - agents/{kit-name}/my-agent.md # Was: agents/my-agent.md
      skill:
-       - skills/{kit-name}/my-skill/SKILL.md # Was: skills/my-skill/SKILL.md
+       - skills/devrun-make/SKILL.md # Was: skills/devrun/make/SKILL.md
+       - skills/devrun-pytest/SKILL.md # Was: skills/devrun/pytest/SKILL.md
    ```
 
-4. **Test installation** to verify paths are correct
+3. **Test installation** to verify paths are correct

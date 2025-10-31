@@ -309,55 +309,39 @@ def test_install_kit_namespaced_artifacts(tmp_project: Path) -> None:
 
 
 def test_kit_manifest_namespace_validation() -> None:
-    """Test KitManifest namespace validation."""
+    """Test KitManifest namespace validation (informational only, not enforced)."""
     from dot_agent_kit.models.kit import KitManifest
 
-    # Test valid namespaced kit (no errors)
-    valid_manifest = KitManifest(
+    # Namespace validation is not enforced - all structures are allowed
+    manifest = KitManifest(
         name="my-kit",
         version="1.0.0",
         description="Test",
         artifacts={
-            "agent": ["agents/my-kit/helper.md"],
-            "skill": ["skills/my-kit/tool/SKILL.md"],
+            "agent": ["agents/helper.md"],  # Any structure allowed
+            "skill": ["skills/wrong-namespace/tool/SKILL.md"],  # Any structure allowed
         },
     )
-    errors = valid_manifest.validate_namespace_pattern()
-    assert len(errors) == 0
-
-    # Test non-namespaced kit (should have errors)
-    invalid_manifest = KitManifest(
-        name="my-kit",
-        version="1.0.0",
-        description="Test",
-        artifacts={
-            "agent": ["agents/helper.md"],  # Too shallow
-            "skill": ["skills/wrong-namespace/tool/SKILL.md"],  # Wrong namespace
-        },
-    )
-    errors = invalid_manifest.validate_namespace_pattern()
-    assert len(errors) == 2
-    assert "not namespaced (too shallow)" in errors[0]
-    assert "wrong-namespace" in errors[1]
-    assert "my-kit" in errors[1]
+    errors = manifest.validate_namespace_pattern()
+    assert errors == []  # No enforcement - returns empty list
 
 
 def test_bundled_kit_namespace_enforcement(tmp_path: Path) -> None:
-    """Test that bundled kits with invalid namespaces fail to resolve."""
+    """Test that bundled kits can use any namespace structure (not enforced)."""
     from dot_agent_kit.sources.bundled import BundledKitSource
 
-    # Create a mock bundled kit with invalid namespace
-    kit_dir = tmp_path / "data" / "kits" / "bad-kit"
+    # Create a mock bundled kit with any namespace structure
+    kit_dir = tmp_path / "data" / "kits" / "any-kit"
     kit_dir.mkdir(parents=True)
 
     manifest = kit_dir / "kit.yaml"
     manifest.write_text(
-        "name: bad-kit\n"
+        "name: any-kit\n"
         "version: 1.0.0\n"
-        "description: Kit with invalid namespace\n"
+        "description: Kit with any namespace structure\n"
         "artifacts:\n"
         "  agent:\n"
-        "    - agents/helper.md\n",  # Not namespaced - should fail
+        "    - agents/helper.md\n",  # Any structure is allowed
         encoding="utf-8",
     )
 
@@ -375,9 +359,9 @@ def test_bundled_kit_namespace_enforcement(tmp_path: Path) -> None:
 
     source = TestBundledSource()
 
-    # Should raise ValueError due to namespace violation
-    with pytest.raises(ValueError, match="does not follow required namespace pattern"):
-        source.resolve("bad-kit")
+    # Should resolve successfully - namespace validation is not enforced
+    resolved = source.resolve("any-kit")
+    assert resolved.kit_id == "any-kit"
 
 
 def test_bundled_kit_valid_namespace_succeeds(tmp_path: Path) -> None:
