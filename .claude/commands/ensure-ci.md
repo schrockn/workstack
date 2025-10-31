@@ -85,13 +85,10 @@ Task tool with:
 
 #### Sync-Kit Failures
 
-Use the runner agent via the Task tool:
+Run dot-agent sync to update local artifacts:
 
-```
-Task tool with:
-- subagent_type: runner
-- description: "Run workstack-dev sync-kit"
-- prompt: "Execute: uv run workstack-dev sync-kit"
+```bash
+uv run dot-agent sync
 ```
 
 #### Pyright Type Errors

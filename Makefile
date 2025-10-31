@@ -33,21 +33,13 @@ test-dot-agent-kit:
 test: test-workstack-dev test-dot-agent-kit
 
 sync-kit-check:
-	uv run workstack-dev sync-kit --check devrun
-	uv run workstack-dev sync-kit --check gt
+	uv run dot-agent check-sync
 
 all-ci: lint format-check prettier-check pyright test sync-kit-check
 
 # Clean build artifacts
 clean:
 	rm -rf dist/*.whl dist/*.tar.gz
-
-# Kit development
-sync-kit:
-	uv run workstack-dev sync-kit devrun
-
-sync-gt-kit:
-	uv run workstack-dev sync-kit gt
 
 # Build workstack and dot-agent-kit packages
 build: clean

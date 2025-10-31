@@ -12,9 +12,8 @@ This command safely lands a single branch from a Graphite stack by:
 
 1. **Validates branch position**: Ensures the branch is exactly one level up from main
 2. **Checks PR status**: Verifies an open pull request exists
-3. **Validates linear stack**: Ensures the branch has 0 or 1 children (linear stack only)
-4. **Merges the PR**: Squash-merges the PR to main using `gh pr merge -s`
-5. **Navigates to child**: If a child branch exists, automatically navigates to it
+3. **Merges the PR**: Squash-merges the PR to main using `gh pr merge -s`
+4. **Navigates to child**: If exactly one child branch exists, automatically navigates to it
 
 ## Usage
 
@@ -87,11 +86,11 @@ Start with todo 1 as `in_progress`, rest as `pending`. Mark each as `completed` 
 
 ## Important Notes
 
-- **This command only works with linear stacks** (0 or 1 children per branch)
 - **Branch must be exactly one level up from main** (parent must be "main")
 - **PR must be open** before running this command
 - **No explicit rebase** - `gh pr merge` will validate mergeability
-- **Uses `gt up`** for navigation to automatically move to the child branch in the stack
+- **Auto-navigation**: Uses `gt up` to automatically move to the child branch when exactly one child exists
+- **Multiple children**: If the branch has multiple children, the PR will be merged but navigation is skipped (run `gt up` manually to select a child)
 
 ## Error Handling
 

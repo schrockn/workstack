@@ -8,9 +8,8 @@
 This script safely lands a single branch from a Graphite stack by:
 1. Validating the branch is exactly one level up from main
 2. Checking an open pull request exists
-3. Validating the stack is linear (0 or 1 children)
-4. Squash-merging the PR to main
-5. Navigating to the child branch if one exists
+3. Squash-merging the PR to main
+4. Navigating to the child branch if exactly one exists (skips navigation if multiple children)
 
 Usage:
     uv run land_branch.py
@@ -43,7 +42,6 @@ Error Types:
     - parent_not_main: Branch parent is not "main"
     - no_pr_found: No PR exists for this branch
     - pr_not_open: PR exists but is not in OPEN state
-    - multiple_children: Branch has >1 children (non-linear stack)
     - merge_failed: PR merge operation failed
 
 Examples:
@@ -60,7 +58,6 @@ ErrorType = Literal[
     "parent_not_main",
     "no_pr_found",
     "pr_not_open",
-    "multiple_children",
     "merge_failed",
 ]
 
@@ -229,23 +226,8 @@ def land_branch() -> LandBranchSuccess | LandBranchError:
             },
         )
 
-    # Step 5: Get and validate children (0-1 children only)
+    # Step 5: Get children branches
     children = get_children_branches()
-    if len(children) > 1:
-        return LandBranchError(
-            success=False,
-            error_type="multiple_children",
-            message=(
-                f"Branch has multiple children (not a linear stack)\n\n"
-                f"Children: {', '.join(children)}\n\n"
-                f"This command only works with linear stacks. "
-                f"Please use a branch with 0 or 1 children."
-            ),
-            details={
-                "current_branch": branch_name,
-                "children": children,
-            },
-        )
 
     # Step 6: Merge the PR
     if not merge_pr():
@@ -259,19 +241,31 @@ def land_branch() -> LandBranchSuccess | LandBranchError:
             },
         )
 
-    # Step 7: Navigate to child if exists
+    # Step 7: Navigate to child if exactly one exists
     child_branch = None
     if len(children) == 1:
         child_name = children[0]
         if navigate_to_child(child_name):
             child_branch = child_name
 
+    # Build success message with navigation info
+    if len(children) == 0:
+        message = f"Successfully merged PR #{pr_number} for branch {branch_name}"
+    elif len(children) == 1:
+        if child_branch:
+            message = f"Successfully merged PR #{pr_number} for branch {branch_name}\nNavigated to child branch: {child_branch}"
+        else:
+            message = f"Successfully merged PR #{pr_number} for branch {branch_name}\nFailed to navigate to child: {children[0]}"
+    else:
+        children_list = ", ".join(children)
+        message = f"Successfully merged PR #{pr_number} for branch {branch_name}\nMultiple children detected: {children_list}\nRun 'gt up' to navigate to a child branch"
+
     return LandBranchSuccess(
         success=True,
         pr_number=pr_number,
         branch_name=branch_name,
         child_branch=child_branch,
-        message=f"Successfully merged PR #{pr_number} for branch {branch_name}",
+        message=message,
     )
 
 
