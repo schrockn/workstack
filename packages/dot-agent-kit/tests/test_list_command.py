@@ -9,6 +9,9 @@ from dot_agent_kit.io import create_default_config
 from dot_agent_kit.models import ConflictPolicy, InstalledKit, KitManifest, ProjectConfig
 from dot_agent_kit.sources import KitSource, ResolvedKit
 
+# Use a temp directory for testing
+TEST_PROJECT_DIR = Path("/tmp/test-dot-agent")
+
 
 class FakeKitSource(KitSource):
     """Fake kit source for testing."""
@@ -60,10 +63,11 @@ def test_list_with_bundled_kit(capsys: CaptureFixture[str]) -> None:
         manifests={},
         artifacts_bases={},
         sources=[fake_source],
+        project_dir=TEST_PROJECT_DIR,
     )
 
     captured = capsys.readouterr()
-    assert "dev-runners-da-kit [BUNDLED]" in captured.out
+    assert "dev-runners-da-kit [AVAILABLE]" in captured.out
     assert "No kits available" not in captured.out
 
 
@@ -86,11 +90,16 @@ def test_list_with_installed_kits(capsys: CaptureFixture[str]) -> None:
     fake_source = FakeKitSource(available_kits=[])
 
     _list_kits(
-        show_artifacts=False, config=config, manifests={}, artifacts_bases={}, sources=[fake_source]
+        show_artifacts=False,
+        config=config,
+        manifests={},
+        artifacts_bases={},
+        sources=[fake_source],
+        project_dir=TEST_PROJECT_DIR,
     )
 
     captured = capsys.readouterr()
-    assert "test-kit [INSTALLED]" in captured.out
+    assert "test-kit [MANAGED]" in captured.out
 
 
 def test_list_no_kits(capsys: CaptureFixture[str]) -> None:
@@ -103,6 +112,7 @@ def test_list_no_kits(capsys: CaptureFixture[str]) -> None:
         manifests={},
         artifacts_bases={},
         sources=[fake_source],
+        project_dir=TEST_PROJECT_DIR,
     )
 
     captured = capsys.readouterr()
@@ -129,10 +139,11 @@ def test_list_with_artifacts_flag(capsys: CaptureFixture[str]) -> None:
         manifests={"test-kit": manifest},
         artifacts_bases={"test-kit": Path("/fake/test-kit")},
         sources=[fake_source],
+        project_dir=TEST_PROJECT_DIR,
     )
 
     captured = capsys.readouterr()
-    assert "test-kit [BUNDLED]" in captured.out
+    assert "test-kit [AVAILABLE]" in captured.out
     assert "agent: pytest-runner" in captured.out
     assert "agent: ruff-runner" in captured.out
     assert "command: test-kit:test-cmd" in captured.out
@@ -157,9 +168,14 @@ def test_list_bundled_and_installed(capsys: CaptureFixture[str]) -> None:
     fake_source = FakeKitSource(available_kits=["bundled-kit"])
 
     _list_kits(
-        show_artifacts=False, config=config, manifests={}, artifacts_bases={}, sources=[fake_source]
+        show_artifacts=False,
+        config=config,
+        manifests={},
+        artifacts_bases={},
+        sources=[fake_source],
+        project_dir=TEST_PROJECT_DIR,
     )
 
     captured = capsys.readouterr()
-    assert "bundled-kit [BUNDLED]" in captured.out
-    assert "installed-kit [INSTALLED]" in captured.out
+    assert "bundled-kit [AVAILABLE]" in captured.out
+    assert "installed-kit [MANAGED]" in captured.out

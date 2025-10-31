@@ -7,6 +7,7 @@ import frontmatter
 
 from dot_agent_kit.io import (
     create_default_config,
+    discover_installed_artifacts,
     load_kit_manifest,
     load_project_config,
     load_user_config,
@@ -147,6 +148,7 @@ def _list_kits(
     manifests: dict[str, KitManifest],
     artifacts_bases: dict[str, Path],
     sources: list[KitSource],
+    project_dir: Path,
 ) -> None:
     """Internal function to list installed and available kits.
 
@@ -156,17 +158,22 @@ def _list_kits(
         manifests: Mapping of kit_id -> manifest for artifact display
         artifacts_bases: Mapping of kit_id -> artifacts base directory
         sources: List of kit sources to check for available kits
+        project_dir: Project directory for filesystem discovery
     """
     # Get available kits from all sources
     available_kit_ids: set[str] = set()
     for source in sources:
         available_kit_ids.update(source.list_available())
 
-    # Get installed kit IDs
-    installed_kit_ids: set[str] = set(config.kits.keys())
+    # Get managed kit IDs (tracked in config)
+    managed_kit_ids: set[str] = set(config.kits.keys())
 
-    # Combine all kits (available + installed)
-    all_kit_ids = available_kit_ids | installed_kit_ids
+    # Discover installed artifacts in filesystem
+    discovered = discover_installed_artifacts(project_dir)
+    installed_kit_ids: set[str] = set(discovered.keys())
+
+    # Combine all kits (available + managed + installed)
+    all_kit_ids = available_kit_ids | managed_kit_ids | installed_kit_ids
 
     if len(all_kit_ids) == 0:
         click.echo("No kits available")
@@ -174,14 +181,17 @@ def _list_kits(
 
     # Display each kit with status
     for kit_id in sorted(all_kit_ids):
-        # Determine status
-        is_available = kit_id in available_kit_ids
+        # Determine status based on new vocabulary
+        is_managed = kit_id in managed_kit_ids
         is_installed = kit_id in installed_kit_ids
+        is_available = kit_id in available_kit_ids
 
-        if is_available:
-            status = "[BUNDLED]"
-        elif is_installed:
-            status = "[INSTALLED]"
+        if is_managed:
+            status = "[MANAGED]"
+        elif is_installed and not is_managed:
+            status = "[UNMANAGED]"
+        elif is_available:
+            status = "[AVAILABLE]"
         else:
             status = ""
 
@@ -244,7 +254,7 @@ def list_cmd(kit_id: str | None, artifacts: bool, sources: list[KitSource] | Non
                     manifests[kit_id] = load_kit_manifest(resolved.manifest_path)
                     artifacts_bases[kit_id] = resolved.artifacts_base
 
-    _list_kits(artifacts, config, manifests, artifacts_bases, sources)
+    _list_kits(artifacts, config, manifests, artifacts_bases, sources, project_dir)
 
 
 @click.command("ls", hidden=True)
@@ -286,4 +296,4 @@ def ls_cmd(kit_id: str | None, artifacts: bool, sources: list[KitSource] | None 
                     manifests[kit_id] = load_kit_manifest(resolved.manifest_path)
                     artifacts_bases[kit_id] = resolved.artifacts_base
 
-    _list_kits(artifacts, config, manifests, artifacts_bases, sources)
+    _list_kits(artifacts, config, manifests, artifacts_bases, sources, project_dir)

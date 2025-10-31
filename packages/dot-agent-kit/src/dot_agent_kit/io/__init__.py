@@ -1,5 +1,6 @@
 """I/O operations for dot-agent-kit."""
 
+from dot_agent_kit.io.discovery import discover_installed_artifacts
 from dot_agent_kit.io.frontmatter import (
     add_frontmatter,
     parse_frontmatter,
@@ -22,16 +23,17 @@ from dot_agent_kit.io.user_config import (
 
 __all__ = [
     "add_frontmatter",
-    "parse_frontmatter",
-    "validate_frontmatter",
-    "load_kit_manifest",
-    "load_registry",
     "create_default_config",
     "create_default_user_config",
+    "discover_installed_artifacts",
     "get_user_claude_dir",
     "get_user_config_path",
+    "load_kit_manifest",
     "load_project_config",
+    "load_registry",
     "load_user_config",
+    "parse_frontmatter",
     "save_project_config",
     "save_user_config",
+    "validate_frontmatter",
 ]

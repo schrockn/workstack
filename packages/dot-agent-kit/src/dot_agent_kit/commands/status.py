@@ -4,7 +4,7 @@ from pathlib import Path
 
 import click
 
-from dot_agent_kit.io import load_project_config, load_user_config
+from dot_agent_kit.io import discover_installed_artifacts, load_project_config
 
 
 @click.command()
@@ -15,48 +15,47 @@ from dot_agent_kit.io import load_project_config, load_user_config
     help="Show detailed installation information",
 )
 def status(verbose: bool) -> None:
-    """Show installed kits in user and project directories.
+    """Show status of kits and artifacts.
 
-    Displays which kits are installed globally (user directory) and
-    locally (project directory), along with version information.
+    Displays managed kits (tracked in config) and unmanaged artifacts
+    (present in .claude/ but not tracked).
     """
     project_dir = Path.cwd()
 
-    # Load both configs
-    user_config = load_user_config()
-    loaded_project_config = load_project_config(project_dir)
+    # Load project config for managed kits
+    project_config = load_project_config(project_dir)
 
-    # Check if any kits installed
-    has_user_kits = len(user_config.kits) > 0
-    has_project_kits = loaded_project_config is not None and len(loaded_project_config.kits) > 0
+    # Discover artifacts in filesystem
+    discovered = discover_installed_artifacts(project_dir)
 
-    if not has_user_kits and not has_project_kits:
-        click.echo("No kits installed")
-        return
+    # Determine managed vs unmanaged
+    managed_kits = set(project_config.kits.keys()) if project_config else set()
+    all_installed = set(discovered.keys())
+    unmanaged_kits = all_installed - managed_kits
 
-    # Display user-installed kits
-    if has_user_kits:
-        click.echo("User kits (~/.claude):")
-        for kit_id, kit in sorted(user_config.kits.items()):
-            click.echo(f"  {kit_id} v{kit.version}")
+    # Display managed kits section
+    click.echo("Managed Kits:")
+    if managed_kits and project_config:
+        for kit_id in sorted(managed_kits):
+            kit = project_config.kits[kit_id]
+            click.echo(f"  {kit_id} v{kit.version} ({kit.source})")
             if verbose:
-                click.echo(f"    Source: {kit.source}")
-                click.echo(f"    Artifacts: {len(kit.artifacts)}")
+                artifact_types = discovered.get(kit_id, set())
+                if artifact_types:
+                    types_str = ", ".join(sorted(artifact_types))
+                    click.echo(f"    Artifacts: {types_str}")
                 click.echo(f"    Installed: {kit.installed_at}")
-        click.echo()
+    else:
+        click.echo("  (none)")
 
-    # Display project-installed kits
-    if has_project_kits and loaded_project_config is not None:
-        click.echo("Project kits (./.claude):")
-        for kit_id, kit in sorted(loaded_project_config.kits.items()):
-            click.echo(f"  {kit_id} v{kit.version}")
-            if verbose:
-                click.echo(f"    Source: {kit.source}")
-                click.echo(f"    Artifacts: {len(kit.artifacts)}")
-                click.echo(f"    Installed: {kit.installed_at}")
-        click.echo()
+    click.echo()
 
-    # Summary
-    project_kits_count = len(loaded_project_config.kits) if loaded_project_config is not None else 0
-    total_kits = len(user_config.kits) + project_kits_count
-    click.echo(f"Total: {total_kits} kit(s) installed")
+    # Display unmanaged artifacts section
+    click.echo("Unmanaged Artifacts:")
+    if unmanaged_kits:
+        for kit_id in sorted(unmanaged_kits):
+            artifact_types = discovered[kit_id]
+            types_str = ", ".join(sorted(artifact_types))
+            click.echo(f"  {kit_id} ({types_str})")
+    else:
+        click.echo("  (none)")
