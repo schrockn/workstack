@@ -3,6 +3,7 @@ members = ["packages/*"]
 
 [tool.uv.sources]
 workstack-dev = { workspace = true }
+dot-agent-kit = { workspace = true }
 
 [project]
 name = "workstack"
@@ -24,6 +25,7 @@ workstack = "workstack.cli.cli:main"
 [dependency-groups]
 dev = [
     "workstack-dev",
+    "dot-agent-kit",
     "ruff>=0.5.0",
     "pytest>=8.0.0",
     "pytest-cov>=5.0.0",

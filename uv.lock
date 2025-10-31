@@ -336,6 +336,7 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "dot-agent-kit" },
     { name = "pyright" },
     { name = "pytest" },
     { name = "pytest-cov" },
@@ -351,6 +352,7 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "dot-agent-kit", editable = "packages/dot-agent-kit" },
     { name = "pyright", specifier = ">=1.1.406" },
     { name = "pytest", specifier = ">=8.0.0" },
     { name = "pytest-cov", specifier = ">=5.0.0" },
