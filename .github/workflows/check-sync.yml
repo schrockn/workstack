@@ -1,11 +1,11 @@
-name: Sync Kit Check
+name: Check Sync
 
 on:
   push:
   pull_request:
 
 jobs:
-  sync-kit-check:
+  check-sync:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -16,5 +16,5 @@ jobs:
         run: pip install uv
       - name: Install dependencies
         run: uv sync
-      - name: Check kit sync status
-        run: uv run workstack-dev sync-kit --check
+      - name: Check bundled kit sync status
+        run: uv run --package dot-agent-kit dot-agent check-sync

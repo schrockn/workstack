@@ -7,5 +7,4 @@ artifacts:
   - commands/gt/land-branch.md
   - commands/gt/submit-branch.md
   skill:
-  - skills/gt/graphite/
-sync_source: workstack-dev
+  - skills/gt-graphite/SKILL.md

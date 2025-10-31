@@ -1,7 +1,18 @@
 import click
 
 from dot_agent_kit import __version__
-from dot_agent_kit.commands import check, init, install, list, remove, search, status, sync, update
+from dot_agent_kit.commands import (
+    check,
+    check_sync,
+    init,
+    install,
+    list,
+    remove,
+    search,
+    status,
+    sync,
+    update,
+)
 
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
@@ -18,6 +29,7 @@ def cli(ctx: click.Context) -> None:
 cli.add_command(init.init)
 cli.add_command(install.install)
 cli.add_command(check.check)
+cli.add_command(check_sync.check_sync)
 cli.add_command(sync.sync)
 cli.add_command(update.update)
 cli.add_command(remove.remove)

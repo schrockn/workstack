@@ -12,4 +12,3 @@ artifacts:
   - skills/devrun-pyright/SKILL.md
   - skills/devrun-pytest/SKILL.md
   - skills/devrun-ruff/SKILL.md
-sync_source: workstack-dev
