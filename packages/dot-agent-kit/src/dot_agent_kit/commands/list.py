@@ -1,299 +1,132 @@
-"""List command for showing installed and available kits."""
+"""List command for showing installed artifacts."""
 
 from pathlib import Path
 
 import click
-import frontmatter
 
 from dot_agent_kit.io import (
     create_default_config,
-    discover_installed_artifacts,
-    load_kit_manifest,
     load_project_config,
-    load_user_config,
 )
-from dot_agent_kit.models import KitManifest, ProjectConfig
-from dot_agent_kit.sources import (
-    BundledKitSource,
-    KitResolver,
-    KitSource,
-    StandalonePackageSource,
-)
+from dot_agent_kit.models.artifact import ArtifactSource, InstalledArtifact
+from dot_agent_kit.models.config import ProjectConfig
+from dot_agent_kit.repositories import ArtifactRepository, FilesystemArtifactRepository
 
 
-def _get_artifact_name(
-    artifact_path: str,
-    artifact_type: str,
-    artifacts_base: Path,
-    kit_id: str | None = None,
-) -> str:
-    """Extract artifact name from frontmatter metadata.
+def _format_source(artifact: InstalledArtifact) -> str:
+    """Format the source attribution string for an artifact.
 
     Args:
-        artifact_path: Relative path to artifact file (e.g., "skills/devrun-make/SKILL.md")
-        artifact_type: Type of artifact ("skill", "command", "agent")
-        artifacts_base: Base directory containing the artifacts
-        kit_id: Kit ID for prefixing (used for commands)
+        artifact: The artifact to format
 
     Returns:
-        Artifact name from frontmatter, or derived from path as fallback:
-        - skill: "name" field from frontmatter
-        - command: "kit:filename" format (commands don't have name field)
-        - agent: "name" field from frontmatter
+        Formatted source string like "[devrun@0.1.0]" or "[local]"
     """
-    # Construct full path to artifact file
-    full_path = artifacts_base / artifact_path
-
-    # Read and parse frontmatter if file exists
-    if full_path.exists():
-        post = frontmatter.load(str(full_path))
-
-        # For skills and agents, use "name" field from frontmatter
-        if artifact_type in ("skill", "agent") and "name" in post.metadata:
-            return str(post.metadata["name"])
-
-    # Fallback to path-based extraction
-    path = Path(artifact_path)
-
-    if artifact_type == "command":
-        # Commands don't have "name" in frontmatter
-        # Format: "kit:command-name"
-        # e.g., "commands/gt/land-branch.md" -> "gt:land-branch"
-        parent_dir = path.parent.name
-        filename = path.stem
-        return f"{parent_dir}:{filename}"
-    elif artifact_type == "skill":
-        # Fallback for skills: use parent directory name
-        # e.g., "skills/devrun-make/SKILL.md" -> "devrun-make"
-        return path.parent.name
+    if artifact.source == ArtifactSource.LOCAL:
+        return "[local]"
+    elif artifact.kit_id and artifact.kit_version:
+        return f"[{artifact.kit_id}@{artifact.kit_version}]"
+    elif artifact.kit_id:
+        return f"[{artifact.kit_id}]"
     else:
-        # Fallback for agents: use filename stem
-        # e.g., "agents/devrun/runner.md" -> "runner"
-        return path.stem
+        return "[unknown]"
 
 
-def _show_kit_details(kit_id: str) -> None:
-    """Show detailed information about a specific kit.
-
-    Args:
-        kit_id: The kit to show details for
-    """
-    # Try to resolve the kit
-    resolver = KitResolver(sources=[BundledKitSource(), StandalonePackageSource()])
-    resolved = resolver.resolve(kit_id)
-
-    if resolved is None:
-        click.echo(f"Error: Kit '{kit_id}' not found", err=True)
-        raise SystemExit(1)
-
-    # Load manifest
-    manifest = load_kit_manifest(resolved.manifest_path)
-
-    # Load configs to check installation status
-    project_dir = Path.cwd()
-    user_config = load_user_config()
-    project_config = load_project_config(project_dir)
-
-    # Display kit header
-    click.echo(f"Kit: {manifest.name}")
-    click.echo(f"Version: {manifest.version}")
-    click.echo(f"Description: {manifest.description}")
-
-    if manifest.license:
-        click.echo(f"License: {manifest.license}")
-
-    if manifest.homepage:
-        click.echo(f"Homepage: {manifest.homepage}")
-
-    click.echo()
-
-    # Show installation status
-    installed_in_user = kit_id in user_config.kits
-    installed_in_project = project_config is not None and kit_id in project_config.kits
-
-    if installed_in_user or installed_in_project:
-        click.echo("Installation status:")
-        if installed_in_user:
-            user_kit = user_config.kits[kit_id]
-            click.echo(f"  User (~/.claude): v{user_kit.version}")
-        if installed_in_project and project_config is not None:
-            project_kit = project_config.kits[kit_id]
-            click.echo(f"  Project (./.claude): v{project_kit.version}")
-        click.echo()
-    else:
-        click.echo("Not installed")
-        click.echo()
-
-    # Show artifacts
-    total_artifacts = sum(len(paths) for paths in manifest.artifacts.values())
-    click.echo(f"Artifacts ({total_artifacts} total):")
-
-    for artifact_type, artifact_paths in sorted(manifest.artifacts.items()):
-        click.echo(f"  {artifact_type}:")
-        for artifact_path in sorted(artifact_paths):
-            artifact_name = _get_artifact_name(
-                artifact_path, artifact_type, resolved.artifacts_base, kit_id
-            )
-            click.echo(f"    - {artifact_name}")
-
-    click.echo()
-    click.echo("To install:")
-    click.echo(f"  Entire kit:      dot-agent install {kit_id}")
-    click.echo(f"  Specific artifact: dot-agent install {kit_id}:artifact-name")
-
-
-def _list_kits(
-    show_artifacts: bool,
+def _list_artifacts(
     config: ProjectConfig,
-    manifests: dict[str, KitManifest],
-    artifacts_bases: dict[str, Path],
-    sources: list[KitSource],
     project_dir: Path,
+    repository: ArtifactRepository,
 ) -> None:
-    """Internal function to list installed and available kits.
+    """List all installed artifacts in artifact-focused format.
 
     Args:
-        show_artifacts: Whether to display individual artifacts for each kit
         config: Project configuration
-        manifests: Mapping of kit_id -> manifest for artifact display
-        artifacts_bases: Mapping of kit_id -> artifacts base directory
-        sources: List of kit sources to check for available kits
-        project_dir: Project directory for filesystem discovery
+        project_dir: Project directory for artifact discovery
+        repository: Repository for artifact discovery
     """
-    # Get available kits from all sources
-    available_kit_ids: set[str] = set()
-    for source in sources:
-        available_kit_ids.update(source.list_available())
+    # Discover all artifacts using the provided repository
+    artifacts = repository.discover_all_artifacts(project_dir, config)
 
-    # Get managed kit IDs (tracked in config)
-    managed_kit_ids: set[str] = set(config.kits.keys())
-
-    # Discover installed artifacts in filesystem
-    discovered = discover_installed_artifacts(project_dir)
-    installed_kit_ids: set[str] = set(discovered.keys())
-
-    # Combine all kits (available + managed + installed)
-    all_kit_ids = available_kit_ids | managed_kit_ids | installed_kit_ids
-
-    if len(all_kit_ids) == 0:
-        click.echo("No kits available")
+    if not artifacts:
+        click.echo("No artifacts installed")
         return
 
-    # Display each kit with status
-    for kit_id in sorted(all_kit_ids):
-        # Determine status based on new vocabulary
-        is_managed = kit_id in managed_kit_ids
-        is_installed = kit_id in installed_kit_ids
-        is_available = kit_id in available_kit_ids
+    # Group artifacts by type
+    skills: list[InstalledArtifact] = []
+    commands: list[InstalledArtifact] = []
+    agents: list[InstalledArtifact] = []
 
-        if is_managed:
-            status = "[MANAGED]"
-        elif is_installed and not is_managed:
-            status = "[UNMANAGED]"
-        elif is_available:
-            status = "[AVAILABLE]"
-        else:
-            status = ""
+    for artifact in artifacts:
+        if artifact.artifact_type == "skill":
+            skills.append(artifact)
+        elif artifact.artifact_type == "command":
+            commands.append(artifact)
+        elif artifact.artifact_type == "agent":
+            agents.append(artifact)
 
-        click.echo(f"{kit_id} {status}")
+    # Calculate column widths for alignment
+    max_name_len = 0
+    max_source_len = 0
 
-        # Show artifacts if requested
-        if show_artifacts:
-            # Look up manifest and artifacts_base from provided dicts
-            manifest = manifests.get(kit_id)
-            artifacts_base = artifacts_bases.get(kit_id)
+    for artifact in artifacts:
+        max_name_len = max(max_name_len, len(artifact.artifact_name))
+        max_source_len = max(max_source_len, len(_format_source(artifact)))
 
-            if manifest and artifacts_base:
-                # Display artifacts grouped by type
-                for artifact_type, artifact_paths in manifest.artifacts.items():
-                    for artifact_path in artifact_paths:
-                        artifact_name = _get_artifact_name(
-                            artifact_path, artifact_type, artifacts_base, kit_id
-                        )
-                        click.echo(f"  {artifact_type}: {artifact_name}")
+    # Ensure minimum widths
+    max_name_len = max(max_name_len, 20)
+    max_source_len = max(max_source_len, 20)
 
-            click.echo()
+    # Display skills
+    if skills:
+        click.echo("Skills:")
+        for skill in sorted(skills, key=lambda a: a.artifact_name):
+            name = skill.artifact_name.ljust(max_name_len)
+            source = _format_source(skill).ljust(max_source_len)
+            path = str(skill.file_path)
+            click.echo(f"  {name} {source} {path}")
+        click.echo()
+
+    # Display commands
+    if commands:
+        click.echo("Commands:")
+        for command in sorted(commands, key=lambda a: a.artifact_name):
+            name = command.artifact_name.ljust(max_name_len)
+            source = _format_source(command).ljust(max_source_len)
+            path = str(command.file_path)
+            click.echo(f"  {name} {source} {path}")
+        click.echo()
+
+    # Display agents
+    if agents:
+        click.echo("Agents:")
+        for agent in sorted(agents, key=lambda a: a.artifact_name):
+            name = agent.artifact_name.ljust(max_name_len)
+            source = _format_source(agent).ljust(max_source_len)
+            path = str(agent.file_path)
+            click.echo(f"  {name} {source} {path}")
 
 
 @click.command("list")
-@click.argument("kit-id", required=False)
-@click.option(
-    "--artifacts",
-    "-a",
-    is_flag=True,
-    help="Show individual artifacts within each kit",
-)
-def list_cmd(kit_id: str | None, artifacts: bool, sources: list[KitSource] | None = None) -> None:
-    """List installed and available kits, or show details for a specific kit.
-
-    When KIT_ID is provided, shows detailed information about that kit.
-    Without arguments, lists all available kits.
-    """
-    # If a specific kit is requested, show details
-    if kit_id is not None:
-        _show_kit_details(kit_id)
-        return
-
-    # Otherwise, list all kits
-    if sources is None:
-        sources = [BundledKitSource()]
-
+def list_cmd() -> None:
+    """List all installed artifacts."""
     # Load project config
     project_dir = Path.cwd()
     loaded_config = load_project_config(project_dir)
     config = loaded_config if loaded_config is not None else create_default_config()
 
-    # Load manifests and artifacts bases for all available kits
-    manifests: dict[str, KitManifest] = {}
-    artifacts_bases: dict[str, Path] = {}
-    for source in sources:
-        for kit_id in source.list_available():
-            if source.can_resolve(kit_id):
-                resolved = source.resolve(kit_id)
-                if resolved.manifest_path.exists():
-                    manifests[kit_id] = load_kit_manifest(resolved.manifest_path)
-                    artifacts_bases[kit_id] = resolved.artifacts_base
-
-    _list_kits(artifacts, config, manifests, artifacts_bases, sources, project_dir)
+    # Create filesystem repository for production use
+    repository = FilesystemArtifactRepository()
+    _list_artifacts(config, project_dir, repository)
 
 
 @click.command("ls", hidden=True)
-@click.argument("kit-id", required=False)
-@click.option(
-    "--artifacts",
-    "-a",
-    is_flag=True,
-    help="Show individual artifacts within each kit",
-)
-def ls_cmd(kit_id: str | None, artifacts: bool, sources: list[KitSource] | None = None) -> None:
-    """List installed and available kits, or show details for a specific kit.
-
-    When KIT_ID is provided, shows detailed information about that kit.
-    Without arguments, lists all available kits.
-    """
-    # If a specific kit is requested, show details
-    if kit_id is not None:
-        _show_kit_details(kit_id)
-        return
-
-    # Otherwise, list all kits
-    if sources is None:
-        sources = [BundledKitSource()]
-
+def ls_cmd() -> None:
+    """List all installed artifacts."""
     # Load project config
     project_dir = Path.cwd()
     loaded_config = load_project_config(project_dir)
     config = loaded_config if loaded_config is not None else create_default_config()
 
-    # Load manifests and artifacts bases for all available kits
-    manifests: dict[str, KitManifest] = {}
-    artifacts_bases: dict[str, Path] = {}
-    for source in sources:
-        for kit_id in source.list_available():
-            if source.can_resolve(kit_id):
-                resolved = source.resolve(kit_id)
-                if resolved.manifest_path.exists():
-                    manifests[kit_id] = load_kit_manifest(resolved.manifest_path)
-                    artifacts_bases[kit_id] = resolved.artifacts_base
-
-    _list_kits(artifacts, config, manifests, artifacts_bases, sources, project_dir)
+    # Create filesystem repository for production use
+    repository = FilesystemArtifactRepository()
+    _list_artifacts(config, project_dir, repository)

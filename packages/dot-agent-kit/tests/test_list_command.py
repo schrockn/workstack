@@ -2,180 +2,274 @@
 
 from pathlib import Path
 
+from click.testing import CliRunner
 from pytest import CaptureFixture
 
-from dot_agent_kit.commands.list import _list_kits
+from dot_agent_kit.commands.list import _list_artifacts, list_cmd, ls_cmd
 from dot_agent_kit.io import create_default_config
-from dot_agent_kit.models import ConflictPolicy, InstalledKit, KitManifest, ProjectConfig
-from dot_agent_kit.sources import KitSource, ResolvedKit
-
-# Use a temp directory for testing
-TEST_PROJECT_DIR = Path("/tmp/test-dot-agent")
+from dot_agent_kit.models import ConflictPolicy, InstalledKit, ProjectConfig
+from dot_agent_kit.models.artifact import ArtifactSource, InstalledArtifact
+from tests.fakes.fake_artifact_repository import FakeArtifactRepository
 
 
-class FakeKitSource(KitSource):
-    """Fake kit source for testing."""
+def test_list_no_artifacts(capsys: CaptureFixture[str]) -> None:
+    """Test list command when no artifacts are installed."""
+    config = create_default_config()
+    project_dir = Path("/tmp/test-project")
+    repository = FakeArtifactRepository()  # Empty by default
 
-    def __init__(
-        self, available_kits: list[str], manifests: dict[str, KitManifest] | None = None
-    ) -> None:
-        """Initialize fake source.
-
-        Args:
-            available_kits: List of kit IDs this source provides
-            manifests: Optional mapping of kit_id -> manifest for artifact display
-        """
-        self._available_kits = available_kits
-        self._manifests = manifests or {}
-
-    def can_resolve(self, source: str) -> bool:
-        """Check if kit is available."""
-        return source in self._available_kits
-
-    def resolve(self, source: str) -> ResolvedKit:
-        """Resolve kit (for artifact display)."""
-        if source not in self._available_kits:
-            raise ValueError(f"Kit not available: {source}")
-
-        # Create a fake manifest path for testing
-        fake_path = Path(f"/fake/{source}/kit.yaml")
-
-        return ResolvedKit(
-            kit_id=source,
-            source_type="fake",
-            source=source,
-            manifest_path=fake_path,
-            artifacts_base=fake_path.parent,
-        )
-
-    def list_available(self) -> list[str]:
-        """List available kits."""
-        return self._available_kits
-
-
-def test_list_with_bundled_kit(capsys: CaptureFixture[str]) -> None:
-    """Test list command with bundled kit."""
-    fake_source = FakeKitSource(available_kits=["dev-runners-da-kit"])
-
-    _list_kits(
-        show_artifacts=False,
-        config=create_default_config(),
-        manifests={},
-        artifacts_bases={},
-        sources=[fake_source],
-        project_dir=TEST_PROJECT_DIR,
-    )
+    _list_artifacts(config, project_dir, repository)
 
     captured = capsys.readouterr()
-    assert "dev-runners-da-kit [AVAILABLE]" in captured.out
-    assert "No kits available" not in captured.out
+    assert "No artifacts installed" in captured.out
 
 
-def test_list_with_installed_kits(capsys: CaptureFixture[str]) -> None:
-    """Test list command with installed kits."""
+def test_list_skills(capsys: CaptureFixture[str]) -> None:
+    """Test list command displays skills properly."""
+    config = create_default_config()
+    project_dir = Path("/tmp/test-project")
+    repository = FakeArtifactRepository()
+
+    # Set up test data directly - no mocking needed!
+    repository.set_artifacts([
+        InstalledArtifact(
+            artifact_type="skill",
+            artifact_name="devrun-make",
+            file_path=Path("skills/devrun-make/SKILL.md"),
+            source=ArtifactSource.MANAGED,
+            kit_id="devrun",
+            kit_version="0.1.0",
+        ),
+        InstalledArtifact(
+            artifact_type="skill",
+            artifact_name="gh",
+            file_path=Path("skills/gh/SKILL.md"),
+            source=ArtifactSource.LOCAL,
+        ),
+    ])
+
+    _list_artifacts(config, project_dir, repository)
+
+    captured = capsys.readouterr()
+    assert "Skills:" in captured.out
+    assert "devrun-make" in captured.out
+    assert "[devrun@0.1.0]" in captured.out
+    assert "skills/devrun-make/SKILL.md" in captured.out
+    assert "gh" in captured.out
+    assert "[local]" in captured.out
+    assert "skills/gh/SKILL.md" in captured.out
+
+
+def test_list_commands(capsys: CaptureFixture[str]) -> None:
+    """Test list command displays commands properly."""
+    config = create_default_config()
+    project_dir = Path("/tmp/test-project")
+    repository = FakeArtifactRepository()
+
+    repository.set_artifacts([
+        InstalledArtifact(
+            artifact_type="command",
+            artifact_name="gt:land-branch",
+            file_path=Path("commands/gt/land-branch.md"),
+            source=ArtifactSource.MANAGED,
+            kit_id="gt",
+            kit_version="0.1.0",
+        ),
+        InstalledArtifact(
+            artifact_type="command",
+            artifact_name="codex-review",
+            file_path=Path("commands/codex-review.md"),
+            source=ArtifactSource.LOCAL,
+        ),
+    ])
+
+    _list_artifacts(config, project_dir, repository)
+
+    captured = capsys.readouterr()
+    assert "Commands:" in captured.out
+    assert "gt:land-branch" in captured.out
+    assert "[gt@0.1.0]" in captured.out
+    assert "commands/gt/land-branch.md" in captured.out
+    assert "codex-review" in captured.out
+    assert "[local]" in captured.out
+    assert "commands/codex-review.md" in captured.out
+
+
+def test_list_agents(capsys: CaptureFixture[str]) -> None:
+    """Test list command displays agents properly."""
+    config = create_default_config()
+    project_dir = Path("/tmp/test-project")
+    repository = FakeArtifactRepository()
+
+    repository.set_artifacts([
+        InstalledArtifact(
+            artifact_type="agent",
+            artifact_name="runner",
+            file_path=Path("agents/devrun/runner.md"),
+            source=ArtifactSource.MANAGED,
+            kit_id="devrun",
+            kit_version="0.1.0",
+        ),
+        InstalledArtifact(
+            artifact_type="agent",
+            artifact_name="spec-creator",
+            file_path=Path("agents/spec-creator.md"),
+            source=ArtifactSource.LOCAL,
+        ),
+    ])
+
+    _list_artifacts(config, project_dir, repository)
+
+    captured = capsys.readouterr()
+    assert "Agents:" in captured.out
+    assert "runner" in captured.out
+    assert "[devrun@0.1.0]" in captured.out
+    assert "agents/devrun/runner.md" in captured.out
+    assert "spec-creator" in captured.out
+    assert "[local]" in captured.out
+    assert "agents/spec-creator.md" in captured.out
+
+
+def test_list_mixed_artifacts(capsys: CaptureFixture[str]) -> None:
+    """Test list command with mixed artifact types and sources."""
     config = ProjectConfig(
         version="1",
         default_conflict_policy=ConflictPolicy.ERROR,
         kits={
-            "test-kit": InstalledKit(
-                kit_id="test-kit",
-                version="1.0.0",
-                source="test-kit",
+            "devrun": InstalledKit(
+                kit_id="devrun",
+                version="0.1.0",
+                source="bundled",
                 installed_at="2024-01-01T00:00:00",
-                artifacts=["agents/test.md"],
+                artifacts=["skills/devrun-make/SKILL.md", "agents/devrun/runner.md"],
             )
         },
     )
+    project_dir = Path("/tmp/test-project")
+    repository = FakeArtifactRepository()
 
-    fake_source = FakeKitSource(available_kits=[])
+    repository.set_artifacts([
+        # Managed artifacts
+        InstalledArtifact(
+            artifact_type="skill",
+            artifact_name="devrun-make",
+            file_path=Path("skills/devrun-make/SKILL.md"),
+            source=ArtifactSource.MANAGED,
+            kit_id="devrun",
+            kit_version="0.1.0",
+        ),
+        InstalledArtifact(
+            artifact_type="agent",
+            artifact_name="runner",
+            file_path=Path("agents/devrun/runner.md"),
+            source=ArtifactSource.MANAGED,
+            kit_id="devrun",
+            kit_version="0.1.0",
+        ),
+        # Unmanaged artifact (has kit info but not in config)
+        InstalledArtifact(
+            artifact_type="skill",
+            artifact_name="gt-graphite",
+            file_path=Path("skills/gt-graphite/SKILL.md"),
+            source=ArtifactSource.UNMANAGED,
+            kit_id="gt",
+            kit_version="0.1.0",
+        ),
+        # Local artifacts
+        InstalledArtifact(
+            artifact_type="skill",
+            artifact_name="gh",
+            file_path=Path("skills/gh/SKILL.md"),
+            source=ArtifactSource.LOCAL,
+        ),
+        InstalledArtifact(
+            artifact_type="command",
+            artifact_name="codex-review",
+            file_path=Path("commands/codex-review.md"),
+            source=ArtifactSource.LOCAL,
+        ),
+    ])
 
-    _list_kits(
-        show_artifacts=False,
-        config=config,
-        manifests={},
-        artifacts_bases={},
-        sources=[fake_source],
-        project_dir=TEST_PROJECT_DIR,
-    )
-
-    captured = capsys.readouterr()
-    assert "test-kit [MANAGED]" in captured.out
-
-
-def test_list_no_kits(capsys: CaptureFixture[str]) -> None:
-    """Test list command when no kits are available."""
-    fake_source = FakeKitSource(available_kits=[])
-
-    _list_kits(
-        show_artifacts=False,
-        config=create_default_config(),
-        manifests={},
-        artifacts_bases={},
-        sources=[fake_source],
-        project_dir=TEST_PROJECT_DIR,
-    )
-
-    captured = capsys.readouterr()
-    assert "No kits available" in captured.out
-
-
-def test_list_with_artifacts_flag(capsys: CaptureFixture[str]) -> None:
-    """Test list command with --artifacts flag shows artifact details."""
-    manifest = KitManifest(
-        name="test-kit",
-        version="1.0.0",
-        description="A test kit",
-        artifacts={
-            "agent": ["agents/pytest-runner.md", "agents/ruff-runner.md"],
-            "command": ["commands/test-kit/test-cmd.md"],
-        },
-    )
-
-    fake_source = FakeKitSource(available_kits=["test-kit"], manifests={"test-kit": manifest})
-
-    _list_kits(
-        show_artifacts=True,
-        config=create_default_config(),
-        manifests={"test-kit": manifest},
-        artifacts_bases={"test-kit": Path("/fake/test-kit")},
-        sources=[fake_source],
-        project_dir=TEST_PROJECT_DIR,
-    )
+    _list_artifacts(config, project_dir, repository)
 
     captured = capsys.readouterr()
-    assert "test-kit [AVAILABLE]" in captured.out
-    assert "agent: pytest-runner" in captured.out
-    assert "agent: ruff-runner" in captured.out
-    assert "command: test-kit:test-cmd" in captured.out
+
+    # Check skills section
+    assert "Skills:" in captured.out
+    assert "devrun-make" in captured.out
+    assert "[devrun@0.1.0]" in captured.out
+    assert "gt-graphite" in captured.out
+    assert "[gt@0.1.0]" in captured.out
+    assert "gh" in captured.out
+    assert "[local]" in captured.out
+
+    # Check commands section
+    assert "Commands:" in captured.out
+    assert "codex-review" in captured.out
+
+    # Check agents section
+    assert "Agents:" in captured.out
+    assert "runner" in captured.out
 
 
-def test_list_bundled_and_installed(capsys: CaptureFixture[str]) -> None:
-    """Test list command shows both bundled and installed kits."""
-    config = ProjectConfig(
-        version="1",
-        default_conflict_policy=ConflictPolicy.ERROR,
-        kits={
-            "installed-kit": InstalledKit(
-                kit_id="installed-kit",
-                version="1.0.0",
-                source="installed-kit",
-                installed_at="2024-01-01T00:00:00",
-                artifacts=["agents/test.md"],
-            )
-        },
-    )
+def test_list_column_alignment(capsys: CaptureFixture[str]) -> None:
+    """Test that columns are properly aligned."""
+    config = create_default_config()
+    project_dir = Path("/tmp/test-project")
+    repository = FakeArtifactRepository()
 
-    fake_source = FakeKitSource(available_kits=["bundled-kit"])
+    repository.set_artifacts([
+        InstalledArtifact(
+            artifact_type="skill",
+            artifact_name="short",
+            file_path=Path("skills/short/SKILL.md"),
+            source=ArtifactSource.LOCAL,
+        ),
+        InstalledArtifact(
+            artifact_type="skill",
+            artifact_name="very-long-skill-name-here",
+            file_path=Path("skills/very-long-skill-name-here/SKILL.md"),
+            source=ArtifactSource.MANAGED,
+            kit_id="long-kit-name",
+            kit_version="1.2.3",
+        ),
+    ])
 
-    _list_kits(
-        show_artifacts=False,
-        config=config,
-        manifests={},
-        artifacts_bases={},
-        sources=[fake_source],
-        project_dir=TEST_PROJECT_DIR,
-    )
+    _list_artifacts(config, project_dir, repository)
 
     captured = capsys.readouterr()
-    assert "bundled-kit [AVAILABLE]" in captured.out
-    assert "installed-kit [MANAGED]" in captured.out
+    lines = captured.out.strip().split("\n")
+
+    # Find skill lines (skip header)
+    skill_lines = [line for line in lines if line.startswith("  ") and line.strip()]
+
+    # Check that columns are aligned (source brackets should start at same position)
+    if len(skill_lines) >= 2:
+        # Find position of '[' in each line
+        bracket_positions = [line.index("[") for line in skill_lines if "[" in line]
+        # All brackets should be at the same position
+        assert len(set(bracket_positions)) == 1, "Columns are not aligned"
+
+
+def test_list_command_cli() -> None:
+    """Test list command through CLI interface.
+
+    Note: We can't easily inject the fake repository through the CLI,
+    so this test verifies basic CLI invocation works without error.
+    """
+    runner = CliRunner()
+    result = runner.invoke(list_cmd)
+    assert result.exit_code == 0
+    # Should run without error and show some output
+
+
+def test_ls_command_cli() -> None:
+    """Test ls command (alias) through CLI interface.
+
+    Note: We can't easily inject the fake repository through the CLI,
+    so this test verifies basic CLI invocation works without error.
+    """
+    runner = CliRunner()
+    result = runner.invoke(ls_cmd)
+    assert result.exit_code == 0
+    # Should run without error and show some output
