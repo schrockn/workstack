@@ -2,8 +2,6 @@
 
 from pathlib import Path
 
-import pytest
-
 from dot_agent_kit.io import create_default_config
 from dot_agent_kit.models import ConflictPolicy, InstalledKit, ProjectConfig
 from dot_agent_kit.models.artifact import ArtifactSource
@@ -27,9 +25,7 @@ def test_discovers_skill_artifacts(tmp_path: Path) -> None:
     # Create another skill
     another_skill = skills_dir / "another-skill"
     another_skill.mkdir(parents=True)
-    (another_skill / "SKILL.md").write_text(
-        "# Another Skill", encoding="utf-8"
-    )
+    (another_skill / "SKILL.md").write_text("# Another Skill", encoding="utf-8")
 
     # Create a directory without SKILL.md (should be ignored)
     invalid_skill = skills_dir / "not-a-skill"
@@ -58,9 +54,7 @@ def test_discovers_command_artifacts(tmp_path: Path) -> None:
     commands_dir.mkdir(parents=True)
 
     # Create a direct command file
-    (commands_dir / "my-command.md").write_text(
-        "# My Command", encoding="utf-8"
-    )
+    (commands_dir / "my-command.md").write_text("# My Command", encoding="utf-8")
 
     # Create a kit commands directory with commands
     kit_commands = commands_dir / "my-kit"
@@ -87,9 +81,7 @@ def test_discovers_agent_artifacts(tmp_path: Path) -> None:
     agents_dir.mkdir(parents=True)
 
     # Create a direct agent file
-    (agents_dir / "my-agent.md").write_text(
-        "# My Agent", encoding="utf-8"
-    )
+    (agents_dir / "my-agent.md").write_text("# My Agent", encoding="utf-8")
 
     # Create a kit agents directory with agents
     kit_agents = agents_dir / "devrun"

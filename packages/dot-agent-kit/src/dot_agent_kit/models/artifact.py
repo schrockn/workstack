@@ -18,9 +18,9 @@ class ArtifactFrontmatter:
 class ArtifactSource(Enum):
     """Source type of an installed artifact."""
 
-    MANAGED = "managed"      # Tracked in dot-agent.toml
+    MANAGED = "managed"  # Tracked in dot-agent.toml
     UNMANAGED = "unmanaged"  # From kit but not in config
-    LOCAL = "local"          # Created manually, no kit association
+    LOCAL = "local"  # Created manually, no kit association
 
 
 @dataclass(frozen=True)
@@ -29,7 +29,7 @@ class InstalledArtifact:
 
     artifact_type: str  # skill, command, agent
     artifact_name: str  # Display name
-    file_path: Path     # Actual file location relative to .claude/
+    file_path: Path  # Actual file location relative to .claude/
     source: ArtifactSource
     kit_id: str | None = None
     kit_version: str | None = None

@@ -31,22 +31,24 @@ def test_list_skills(capsys: CaptureFixture[str]) -> None:
     repository = FakeArtifactRepository()
 
     # Set up test data directly - no mocking needed!
-    repository.set_artifacts([
-        InstalledArtifact(
-            artifact_type="skill",
-            artifact_name="devrun-make",
-            file_path=Path("skills/devrun-make/SKILL.md"),
-            source=ArtifactSource.MANAGED,
-            kit_id="devrun",
-            kit_version="0.1.0",
-        ),
-        InstalledArtifact(
-            artifact_type="skill",
-            artifact_name="gh",
-            file_path=Path("skills/gh/SKILL.md"),
-            source=ArtifactSource.LOCAL,
-        ),
-    ])
+    repository.set_artifacts(
+        [
+            InstalledArtifact(
+                artifact_type="skill",
+                artifact_name="devrun-make",
+                file_path=Path("skills/devrun-make/SKILL.md"),
+                source=ArtifactSource.MANAGED,
+                kit_id="devrun",
+                kit_version="0.1.0",
+            ),
+            InstalledArtifact(
+                artifact_type="skill",
+                artifact_name="gh",
+                file_path=Path("skills/gh/SKILL.md"),
+                source=ArtifactSource.LOCAL,
+            ),
+        ]
+    )
 
     _list_artifacts(config, project_dir, repository)
 
@@ -54,10 +56,10 @@ def test_list_skills(capsys: CaptureFixture[str]) -> None:
     assert "Skills:" in captured.out
     assert "devrun-make" in captured.out
     assert "[devrun@0.1.0]" in captured.out
-    assert "skills/devrun-make/SKILL.md" in captured.out
+    assert "skills/devrun-make/" in captured.out
     assert "gh" in captured.out
     assert "[local]" in captured.out
-    assert "skills/gh/SKILL.md" in captured.out
+    assert "skills/gh/" in captured.out
 
 
 def test_list_commands(capsys: CaptureFixture[str]) -> None:
@@ -66,22 +68,24 @@ def test_list_commands(capsys: CaptureFixture[str]) -> None:
     project_dir = Path("/tmp/test-project")
     repository = FakeArtifactRepository()
 
-    repository.set_artifacts([
-        InstalledArtifact(
-            artifact_type="command",
-            artifact_name="gt:land-branch",
-            file_path=Path("commands/gt/land-branch.md"),
-            source=ArtifactSource.MANAGED,
-            kit_id="gt",
-            kit_version="0.1.0",
-        ),
-        InstalledArtifact(
-            artifact_type="command",
-            artifact_name="codex-review",
-            file_path=Path("commands/codex-review.md"),
-            source=ArtifactSource.LOCAL,
-        ),
-    ])
+    repository.set_artifacts(
+        [
+            InstalledArtifact(
+                artifact_type="command",
+                artifact_name="gt:land-branch",
+                file_path=Path("commands/gt/land-branch.md"),
+                source=ArtifactSource.MANAGED,
+                kit_id="gt",
+                kit_version="0.1.0",
+            ),
+            InstalledArtifact(
+                artifact_type="command",
+                artifact_name="codex-review",
+                file_path=Path("commands/codex-review.md"),
+                source=ArtifactSource.LOCAL,
+            ),
+        ]
+    )
 
     _list_artifacts(config, project_dir, repository)
 
@@ -101,22 +105,24 @@ def test_list_agents(capsys: CaptureFixture[str]) -> None:
     project_dir = Path("/tmp/test-project")
     repository = FakeArtifactRepository()
 
-    repository.set_artifacts([
-        InstalledArtifact(
-            artifact_type="agent",
-            artifact_name="runner",
-            file_path=Path("agents/devrun/runner.md"),
-            source=ArtifactSource.MANAGED,
-            kit_id="devrun",
-            kit_version="0.1.0",
-        ),
-        InstalledArtifact(
-            artifact_type="agent",
-            artifact_name="spec-creator",
-            file_path=Path("agents/spec-creator.md"),
-            source=ArtifactSource.LOCAL,
-        ),
-    ])
+    repository.set_artifacts(
+        [
+            InstalledArtifact(
+                artifact_type="agent",
+                artifact_name="runner",
+                file_path=Path("agents/devrun/runner.md"),
+                source=ArtifactSource.MANAGED,
+                kit_id="devrun",
+                kit_version="0.1.0",
+            ),
+            InstalledArtifact(
+                artifact_type="agent",
+                artifact_name="spec-creator",
+                file_path=Path("agents/spec-creator.md"),
+                source=ArtifactSource.LOCAL,
+            ),
+        ]
+    )
 
     _list_artifacts(config, project_dir, repository)
 
@@ -148,47 +154,49 @@ def test_list_mixed_artifacts(capsys: CaptureFixture[str]) -> None:
     project_dir = Path("/tmp/test-project")
     repository = FakeArtifactRepository()
 
-    repository.set_artifacts([
-        # Managed artifacts
-        InstalledArtifact(
-            artifact_type="skill",
-            artifact_name="devrun-make",
-            file_path=Path("skills/devrun-make/SKILL.md"),
-            source=ArtifactSource.MANAGED,
-            kit_id="devrun",
-            kit_version="0.1.0",
-        ),
-        InstalledArtifact(
-            artifact_type="agent",
-            artifact_name="runner",
-            file_path=Path("agents/devrun/runner.md"),
-            source=ArtifactSource.MANAGED,
-            kit_id="devrun",
-            kit_version="0.1.0",
-        ),
-        # Unmanaged artifact (has kit info but not in config)
-        InstalledArtifact(
-            artifact_type="skill",
-            artifact_name="gt-graphite",
-            file_path=Path("skills/gt-graphite/SKILL.md"),
-            source=ArtifactSource.UNMANAGED,
-            kit_id="gt",
-            kit_version="0.1.0",
-        ),
-        # Local artifacts
-        InstalledArtifact(
-            artifact_type="skill",
-            artifact_name="gh",
-            file_path=Path("skills/gh/SKILL.md"),
-            source=ArtifactSource.LOCAL,
-        ),
-        InstalledArtifact(
-            artifact_type="command",
-            artifact_name="codex-review",
-            file_path=Path("commands/codex-review.md"),
-            source=ArtifactSource.LOCAL,
-        ),
-    ])
+    repository.set_artifacts(
+        [
+            # Managed artifacts
+            InstalledArtifact(
+                artifact_type="skill",
+                artifact_name="devrun-make",
+                file_path=Path("skills/devrun-make/SKILL.md"),
+                source=ArtifactSource.MANAGED,
+                kit_id="devrun",
+                kit_version="0.1.0",
+            ),
+            InstalledArtifact(
+                artifact_type="agent",
+                artifact_name="runner",
+                file_path=Path("agents/devrun/runner.md"),
+                source=ArtifactSource.MANAGED,
+                kit_id="devrun",
+                kit_version="0.1.0",
+            ),
+            # Unmanaged artifact (has kit info but not in config)
+            InstalledArtifact(
+                artifact_type="skill",
+                artifact_name="gt-graphite",
+                file_path=Path("skills/gt-graphite/SKILL.md"),
+                source=ArtifactSource.UNMANAGED,
+                kit_id="gt",
+                kit_version="0.1.0",
+            ),
+            # Local artifacts
+            InstalledArtifact(
+                artifact_type="skill",
+                artifact_name="gh",
+                file_path=Path("skills/gh/SKILL.md"),
+                source=ArtifactSource.LOCAL,
+            ),
+            InstalledArtifact(
+                artifact_type="command",
+                artifact_name="codex-review",
+                file_path=Path("commands/codex-review.md"),
+                source=ArtifactSource.LOCAL,
+            ),
+        ]
+    )
 
     _list_artifacts(config, project_dir, repository)
 
@@ -218,22 +226,24 @@ def test_list_column_alignment(capsys: CaptureFixture[str]) -> None:
     project_dir = Path("/tmp/test-project")
     repository = FakeArtifactRepository()
 
-    repository.set_artifacts([
-        InstalledArtifact(
-            artifact_type="skill",
-            artifact_name="short",
-            file_path=Path("skills/short/SKILL.md"),
-            source=ArtifactSource.LOCAL,
-        ),
-        InstalledArtifact(
-            artifact_type="skill",
-            artifact_name="very-long-skill-name-here",
-            file_path=Path("skills/very-long-skill-name-here/SKILL.md"),
-            source=ArtifactSource.MANAGED,
-            kit_id="long-kit-name",
-            kit_version="1.2.3",
-        ),
-    ])
+    repository.set_artifacts(
+        [
+            InstalledArtifact(
+                artifact_type="skill",
+                artifact_name="short",
+                file_path=Path("skills/short/SKILL.md"),
+                source=ArtifactSource.LOCAL,
+            ),
+            InstalledArtifact(
+                artifact_type="skill",
+                artifact_name="very-long-skill-name-here",
+                file_path=Path("skills/very-long-skill-name-here/SKILL.md"),
+                source=ArtifactSource.MANAGED,
+                kit_id="long-kit-name",
+                kit_version="1.2.3",
+            ),
+        ]
+    )
 
     _list_artifacts(config, project_dir, repository)
 
@@ -244,11 +254,13 @@ def test_list_column_alignment(capsys: CaptureFixture[str]) -> None:
     skill_lines = [line for line in lines if line.startswith("  ") and line.strip()]
 
     # Check that columns are aligned (source brackets should start at same position)
+    # Note: Skills have layout: name | folder_path | file_counts | source
+    # Commands/Agents have layout: name | source | file_path
     if len(skill_lines) >= 2:
         # Find position of '[' in each line
         bracket_positions = [line.index("[") for line in skill_lines if "[" in line]
         # All brackets should be at the same position
-        assert len(set(bracket_positions)) == 1, "Columns are not aligned"
+        assert len(set(bracket_positions)) == 1, "Source columns are not aligned"
 
 
 def test_list_command_cli() -> None:

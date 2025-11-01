@@ -98,9 +98,7 @@ def _extract_kit_from_skill_name(skill_name: str) -> str | None:
     return skill_name
 
 
-def discover_all_artifacts(
-    project_dir: Path, config: ProjectConfig
-) -> list[InstalledArtifact]:
+def discover_all_artifacts(project_dir: Path, config: ProjectConfig) -> list[InstalledArtifact]:
     """Discover all installed artifacts with their metadata.
 
     Scans the .claude/ directory for all artifacts and enriches them with
