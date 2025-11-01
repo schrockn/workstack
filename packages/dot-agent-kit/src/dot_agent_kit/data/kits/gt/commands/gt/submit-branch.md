@@ -173,11 +173,21 @@ Flags explained:
 
 ### 5. Show Results
 
-After submission, show:
+After submission, provide a clear summary using bullet list formatting:
 
-- Whether PR was created or updated
-- PR URL (from gt-runner output)
-- Current branch name
+```
+## ✅ Branch Submitted Successfully
+
+- **PR Created**: #235
+- **URL**: https://app.graphite.dev/github/pr/dagster-io/workstack/235
+- **Branch**: merge-artifact-check-commands
+```
+
+**Formatting requirements:**
+
+- Use bullet list (`-`) for each item
+- Bold the labels (**PR Created**, **URL**, **Branch**)
+- Do NOT use two-space line breaks (they are fragile in terminal rendering)
 
 ## Important Notes
 
@@ -225,9 +235,12 @@ Analyzing changes with git-diff-summarizer...
 ✓ Updating commit message with full analysis
 
 Submitting branch...
-✓ PR created: #123
-✓ https://github.com/owner/repo/pull/123
-✓ Branch: gt-tree-format
+
+## ✅ Branch Submitted Successfully
+
+- **PR Created**: #123
+- **URL**: https://github.com/owner/repo/pull/123
+- **Branch**: gt-tree-format
 ```
 
 ### Example Commit Message Structure
