@@ -5,7 +5,7 @@ from pathlib import Path
 from click.testing import CliRunner
 from pytest import CaptureFixture
 
-from dot_agent_kit.commands.list import _list_artifacts, list_cmd, ls_cmd
+from dot_agent_kit.commands.artifact.list import _list_artifacts, list_artifacts
 from dot_agent_kit.io import create_default_config
 from dot_agent_kit.models import ConflictPolicy, InstalledKit, ProjectConfig
 from dot_agent_kit.models.artifact import ArtifactSource, InstalledArtifact
@@ -270,18 +270,6 @@ def test_list_command_cli() -> None:
     so this test verifies basic CLI invocation works without error.
     """
     runner = CliRunner()
-    result = runner.invoke(list_cmd)
-    assert result.exit_code == 0
-    # Should run without error and show some output
-
-
-def test_ls_command_cli() -> None:
-    """Test ls command (alias) through CLI interface.
-
-    Note: We can't easily inject the fake repository through the CLI,
-    so this test verifies basic CLI invocation works without error.
-    """
-    runner = CliRunner()
-    result = runner.invoke(ls_cmd)
+    result = runner.invoke(list_artifacts)
     assert result.exit_code == 0
     # Should run without error and show some output
