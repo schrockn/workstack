@@ -244,20 +244,7 @@ def _list_artifacts(
 
 
 @click.command("list")
-def list_cmd() -> None:
-    """List all installed artifacts."""
-    # Load project config
-    project_dir = Path.cwd()
-    loaded_config = load_project_config(project_dir)
-    config = loaded_config if loaded_config is not None else create_default_config()
-
-    # Create filesystem repository for production use
-    repository = FilesystemArtifactRepository()
-    _list_artifacts(config, project_dir, repository)
-
-
-@click.command("ls", hidden=True)
-def ls_cmd() -> None:
+def list_artifacts() -> None:
     """List all installed artifacts."""
     # Load project config
     project_dir = Path.cwd()
