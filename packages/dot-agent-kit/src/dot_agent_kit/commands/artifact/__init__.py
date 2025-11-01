@@ -2,7 +2,7 @@
 
 import click
 
-from dot_agent_kit.commands.artifact import check, check_sync, list
+from dot_agent_kit.commands.artifact import check, list
 
 
 @click.group(name="artifact")
@@ -13,4 +13,3 @@ def artifact() -> None:
 # Add subcommands
 artifact.add_command(list.list_artifacts)
 artifact.add_command(check.check)
-artifact.add_command(check_sync.check_sync)

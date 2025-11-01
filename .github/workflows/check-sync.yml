@@ -1,11 +1,11 @@
-name: Check Sync
+name: Check Artifacts
 
 on:
   push:
   pull_request:
 
 jobs:
-  check-sync:
+  check-artifacts:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -16,5 +16,5 @@ jobs:
         run: pip install uv
       - name: Install dependencies
         run: uv sync
-      - name: Check bundled kit sync status
-        run: uv run --package dot-agent-kit dot-agent artifact check-sync
+      - name: Check artifact metadata and sync status
+        run: uv run --package dot-agent-kit dot-agent artifact check
