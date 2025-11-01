@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""
-Dignified Python Skill Suggestion Hook
+"""Dignified Python Skill Suggestion Hook
 
 Suggests loading the dignified-python skill when editing Python files.
 This provides Claude with workstack's Python coding standards.
