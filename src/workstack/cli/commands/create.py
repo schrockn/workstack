@@ -1,7 +1,6 @@
 import re
 import shlex
 import shutil
-import subprocess
 from collections.abc import Iterable, Mapping
 from pathlib import Path
 
