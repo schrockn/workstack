@@ -7,7 +7,7 @@ description: Save implementation plan from context, create worktree, and execute
 This command automates the workflow from implementation plan to code execution by:
 
 1. **Detecting** an implementation plan in the recent conversation context
-2. **Persisting** the plan to a markdown file at the repository root
+2. **Persisting** the plan to a markdown file at the current worktree root
 3. **Creating** a workstack worktree with the plan
 4. **Switching** to that worktree directory
 5. **Executing** the plan automatically
@@ -29,7 +29,7 @@ This command automates the workflow from implementation plan to code execution b
 When you run this command:
 
 1. The assistant searches recent conversation for an implementation plan
-2. Extracts and saves the plan as `<feature-name>-plan.md` at repo root
+2. Extracts and saves the plan as `<feature-name>-plan.md` at current worktree root
 3. Creates a new workstack worktree with: `workstack create --plan <filename>-plan.md`
 4. Changes to the new worktree directory
 5. Automatically starts implementation execution
@@ -76,11 +76,26 @@ When a plan is found:
    - Append "-plan.md"
    - Example: "User Authentication System" → `user-authentication-plan.md`
 
+### Step 2.5: Detect Worktree Root
+
+Execute: `git rev-parse --show-toplevel`
+
+This returns the absolute path to the root of the current worktree. Store this as `<worktree-root>` for use in subsequent steps.
+
+If the command fails:
+
+```
+❌ Error: Could not detect worktree root
+
+Details: Not in a git repository or git command failed
+Suggested action: Ensure you are in a valid git worktree
+```
+
 ### Step 3: Save Plan to Disk
 
 Use the Write tool to save the plan:
 
-- Path: `<repo-root>/<derived-filename>`
+- Path: `<worktree-root>/<derived-filename>`
 - Content: Full plan markdown content
 - Verify file creation
 
@@ -95,7 +110,9 @@ Suggested action: Check file permissions and available disk space
 
 ### Step 4: Create Worktree with Plan
 
-Execute: `workstack create --plan <filename>`
+Execute: `workstack create --plan <worktree-root>/<filename>`
+
+Use the absolute path from Step 2.5 to ensure workstack can find the plan file regardless of current working directory.
 
 Parse the output to extract:
 
