@@ -13,7 +13,10 @@ from dot_agent_kit.operations.user_install import (
     install_kit_to_target,
 )
 from dot_agent_kit.operations.validation import (
+    SyncCheckResult,
     ValidationResult,
+    check_artifact_sync,
+    check_bundled_kits_sync,
     validate_artifact,
     validate_project,
 )
@@ -27,7 +30,10 @@ __all__ = [
     "check_for_updates",
     "sync_all_kits",
     "sync_kit",
+    "SyncCheckResult",
     "ValidationResult",
+    "check_artifact_sync",
+    "check_bundled_kits_sync",
     "validate_artifact",
     "validate_project",
 ]

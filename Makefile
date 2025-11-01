@@ -32,10 +32,10 @@ test-dot-agent-kit:
 
 test: test-workstack-dev test-dot-agent-kit
 
-sync-kit-check:
-	uv run dot-agent artifact check-sync
+artifact-check:
+	uv run dot-agent artifact check
 
-all-ci: lint format-check prettier-check pyright test sync-kit-check
+all-ci: lint format-check prettier-check pyright test artifact-check
 
 # Clean build artifacts
 clean:
