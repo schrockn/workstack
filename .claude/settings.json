@@ -5,18 +5,5 @@
     ],
     "deny": [],
     "ask": []
-  },
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Edit|Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 $CLAUDE_PROJECT_DIR/.claude/hooks/suggest-dignified-python.py"
-          }
-        ]
-      }
-    ]
   }
 }
