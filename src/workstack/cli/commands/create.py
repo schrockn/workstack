@@ -11,6 +11,7 @@ from workstack.cli.config import LoadedConfig, load_config
 from workstack.cli.core import discover_repo_context, ensure_workstacks_dir, worktree_path_for
 from workstack.cli.graphite import get_parent_branch
 from workstack.cli.shell_utils import render_cd_script, write_script_to_temp
+from workstack.cli.subprocess_utils import run_with_error_reporting
 from workstack.core.context import WorkstackContext
 
 _SAFE_COMPONENT_RE = re.compile(r"[^A-Za-z0-9._/-]+")
@@ -221,12 +222,16 @@ def add_worktree(
                     err=True,
                 )
                 raise SystemExit(1)
-            subprocess.run(
+            run_with_error_reporting(
                 ["gt", "create", "--no-interactive", branch],
                 cwd=cwd,
-                check=True,
-                capture_output=True,
-                text=True,
+                error_prefix=f"Failed to create Graphite branch '{branch}'",
+                troubleshooting=[
+                    "Check if branch name is valid",
+                    "Ensure Graphite is properly configured (gt repo init)",
+                    f"Try creating the branch manually: gt create {branch}",
+                    "Disable Graphite: workstack config set use_graphite false",
+                ],
             )
             ctx.git_ops.checkout_branch(cwd, original_branch)
             ctx.git_ops.add_worktree(repo_root, path, branch=branch, ref=None, create_branch=False)
@@ -567,7 +572,13 @@ def run_commands_in_worktree(
     """
 
     for cmd in commands:
-        if shell:
-            subprocess.run([shell, "-lc", cmd], cwd=worktree_path, check=True)
-        else:
-            subprocess.run(shlex.split(cmd), cwd=worktree_path, check=True)
+        cmd_list = [shell, "-lc", cmd] if shell else shlex.split(cmd)
+        run_with_error_reporting(
+            cmd_list,
+            cwd=worktree_path,
+            error_prefix="Post-create command failed",
+            troubleshooting=[
+                "The worktree was created successfully, but a post-create command failed",
+                "You can still use the worktree or re-run the command manually",
+            ],
+        )

@@ -575,6 +575,10 @@ def test_create_uses_graphite_when_enabled() -> None:
 
         # Mock subprocess to simulate gt create
         with mock.patch("workstack.cli.commands.create.subprocess.run") as mock_run:
+            # Configure mock to return a successful result
+            mock_run.return_value.returncode = 0
+            mock_run.return_value.stdout = ""
+            mock_run.return_value.stderr = ""
             result = runner.invoke(cli, ["create", "test-feature"], obj=test_ctx)
 
         assert result.exit_code == 0, result.output
